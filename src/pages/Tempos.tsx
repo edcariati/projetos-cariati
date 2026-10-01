@@ -4,16 +4,19 @@ import { supabase } from '../lib/supabase';
 import type { EtapaModelo, Tempo } from '../lib/types';
 import { FASES, fmtData, fmtDur } from '../lib/labels';
 import { segundosEntre } from '../lib/tempo';
-import { usePerfil } from '../lib/perfil';
+import { podeBancoHoras, usePerfil } from '../lib/perfil';
 
 export default function Tempos() {
   const eu = usePerfil();
   const [tempos, setTempos] = useState<Tempo[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
+  const [concluidas, setConcluidas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.from('tempos').select('*, projetos(nome), profiles(nome)').order('iniciado_em', { ascending: false })
       .then(({ data }) => setTempos((data as Tempo[]) ?? []));
+    supabase.from('projeto_etapas').select('projeto_id,etapa_codigo').eq('status', 'concluida')
+      .then(({ data }) => setConcluidas(new Set(((data as { projeto_id: string; etapa_codigo: string }[]) ?? []).map((x) => `${x.projeto_id}|${x.etapa_codigo}`))));
     supabase.from('etapa_modelos').select('*').order('ordem').then(({ data }) => setModelos((data as EtapaModelo[]) ?? []));
   }, []);
 
@@ -24,6 +27,7 @@ export default function Tempos() {
     const porProjetoEtapa = new Map<string, { etapa: string; seg: number }>();
     for (const t of fechados) {
       const k = `${t.projeto_id}|${t.etapa_codigo}`;
+      if (!concluidas.has(k)) continue;
       const cur = porProjetoEtapa.get(k) ?? { etapa: t.etapa_codigo, seg: 0 };
       cur.seg += segundosEntre(t.iniciado_em, t.finalizado_em);
       porProjetoEtapa.set(k, cur);
@@ -34,7 +38,7 @@ export default function Tempos() {
       const v = porEtapa.get(m.codigo) ?? [];
       return { m, n: v.length, media: v.length ? v.reduce((a, b) => a + b, 0) / v.length : null, min: v.length ? Math.min(...v) : null, max: v.length ? Math.max(...v) : null };
     });
-  }, [fechados, modelos]);
+  }, [fechados, modelos, concluidas]);
 
   const medidas = linhas.filter((l) => l.n > 0);
   const maiorMedia = Math.max(1, ...medidas.map((l) => l.media ?? 0));
@@ -43,8 +47,8 @@ export default function Tempos() {
 
   return (
     <>
-      <div className="titulo"><h1>{eu.perfil === 'admin' ? 'Tempos por etapa' : 'Meus tempos'}</h1></div>
-      <p className="mudo">Cada vez que alguém inicia e para o cronômetro de uma etapa, o tempo entra aqui. Com o tempo, as médias mostram quanto cada etapa realmente leva.{eu.perfil !== 'admin' && ' Aqui aparecem só os seus registros; o administrador vê os de toda a equipe.'}</p>
+      <div className="titulo"><h1>{podeBancoHoras(eu) ? 'Tempos por etapa' : 'Meus tempos'}</h1></div>
+      <p className="mudo">Cada vez que alguém inicia e para o cronômetro de uma etapa, o tempo entra aqui. Com o tempo, as médias mostram quanto cada etapa realmente leva.{!podeBancoHoras(eu) && ' Aqui aparecem só os seus registros; o administrador e o Administrativo veem os de toda a equipe.'} As médias consideram só etapas já concluídas.</p>
 
       <div className="kpis">
         <div className="kpi"><b>{fechados.length}</b><span>registros de tempo</span></div>

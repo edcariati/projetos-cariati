@@ -61,14 +61,14 @@ export const aoMudarPersona = (fn: () => void) => { window.addEventListener('per
 
 const db: Record<string, Row[]> = {
   profiles: [
-    { id: 'demo', nome: 'Edson Cariati', setor: 'projetos', perfil: 'admin', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true },
-    { id: 'marina', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true },
-    { id: 'rafael', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true },
-    { id: 'julia', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true },
-    { id: 'cliente', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true },
+    { id: 'demo', nome: 'Edson Cariati', setor: 'projetos', perfil: 'admin', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 10 },
+    { id: 'marina', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'rafael', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'julia', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'cliente', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
   clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
-  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [],
+  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [],
 };
 
 const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'cliente_participa', 'entrada', 'saida', 'regra', 'opcional', 'aceite_formal', 'escopo'];
@@ -77,6 +77,7 @@ db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codig
 
 /* ---------- regras de acesso (espelham o RLS do banco) ---------- */
 const perfilEu = () => db.profiles.find((p) => p.id === eu)!;
+const podeBanco = () => { const p = perfilEu(); return p.perfil === 'admin' || (p.perfil === 'profissional' && p.setor === 'administrativo'); };
 function verProjeto(pid: string) {
   const pr = db.projetos.find((x) => x.id === pid); const p = perfilEu();
   if (!pr) return false;
@@ -94,7 +95,8 @@ function ver(t: string, r: Row): boolean {
     case 'projeto_equipe': case 'historico': return !cli && verProjeto(r.projeto_id);
     case 'protocolo_andamentos': return !cli;
     case 'projeto_documentos': return verProjeto(r.projeto_id) && (!cli || r.visivel_cliente);
-    case 'tempos': return p.perfil === 'admin' || r.usuario_id === eu;
+    case 'tempos': return podeBanco() || r.usuario_id === eu;
+    case 'banco_horas_ajustes': return podeBanco() || r.usuario_id === eu;
     case 'etapa_modelos': case 'documento_modelos': return !cli;
     case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
     default: return true;
@@ -159,13 +161,14 @@ const DEFAULTS: Record<string, () => Row> = {
   protocolo_andamentos: () => ({ autor_id: eu }),
   projeto_documentos: () => ({ modelo_id: null, codigo_arquivo: null, visivel_cliente: false }),
   tempos: () => ({ usuario_id: eu, iniciado_em: new Date().toISOString(), finalizado_em: null }),
+  banco_horas_ajustes: () => ({ data: data(0), criado_por: eu }),
 };
 const NEGADO = { data: null, error: { message: 'new row violates row-level security policy' } };
 const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos']);
 
 class Q implements PromiseLike<any> {
   op: 'select' | 'insert' | 'update' | 'delete' = 'select';
-  payload: any; sel = '*'; one = false; lim = Infinity; tabela: string; visaoCliente: boolean;
+  payload: any; sel = '*'; one = false; lim = Infinity; tabela: string; visaoCliente: boolean; faixa: [number, number] | null = null;
   filtros: ((r: Row) => boolean)[] = []; ordem: [string, boolean, boolean][] = [];
   constructor(public table: string) { this.visaoCliente = table === 'etapas_cliente'; this.tabela = this.visaoCliente ? 'etapa_modelos' : table; }
   select(s = '*') { this.sel = s; return this; }
@@ -174,6 +177,9 @@ class Q implements PromiseLike<any> {
   delete() { this.op = 'delete'; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
   neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
+  gte(c: string, v: any) { this.filtros.push((r) => r[c] >= v); return this; }
+  lte(c: string, v: any) { this.filtros.push((r) => r[c] <= v); return this; }
+  range(a: number, b: number) { this.faixa = [a, b]; return this; }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   in(c: string, vs: any[]) { this.filtros.push((r) => vs.includes(r[c])); return this; }
   not(c: string, _o: string, v: string) { const vs = v.replace(/[()]/g, '').split(','); this.filtros.push((r) => !vs.includes(String(r[c]))); return this; }
@@ -192,6 +198,7 @@ class Q implements PromiseLike<any> {
     if (this.op !== 'select') {
       if (p.perfil === 'cliente') return NEGADO;
       if (SO_ADMIN.has(t) && p.perfil !== 'admin') return NEGADO;
+      if (t === 'banco_horas_ajustes' && !podeBanco()) return NEGADO;
     }
     if (this.op === 'insert') {
       const itens = Array.isArray(this.payload) ? this.payload : [this.payload];
@@ -204,11 +211,11 @@ class Q implements PromiseLike<any> {
       });
     } else if (this.op === 'update') {
       const campos = { ...this.payload };
-      if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades']) delete campos[k];
+      if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades', 'carga_semanal_horas']) delete campos[k];
       tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => Object.assign(r, campos));
       return { data: null, error: null };
     } else if (this.op === 'delete') {
-      if (p.perfil !== 'admin') return { data: null, error: null };
+      if (p.perfil !== 'admin' && !(t === 'banco_horas_ajustes' && podeBanco())) return { data: null, error: null };
       db[t] = tabela.filter((r) => !casa(r));
       return { data: null, error: null };
     } else alvo = tabela.filter(casa);
@@ -219,6 +226,7 @@ class Q implements PromiseLike<any> {
         return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1);
       });
     }
+    if (this.faixa) alvo = alvo.slice(this.faixa[0], this.faixa[1] + 1);
     let dados = alvo.slice(0, this.lim).map((r) => expand(t, r, this.sel));
     if (this.visaoCliente) dados = dados.map(({ entrada, saida, regra, setores, ...resto }) => { void entrada; void saida; void regra; void setores; return resto; });
     if (this.one) return dados[0] ? { data: dados[0], error: null } : { data: null, error: { message: 'Registro não encontrado' } };
@@ -282,6 +290,38 @@ proto(rocha.id, { tipo: 'entrega_cliente', status: 'protocolado', prazo: data(3)
 novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
   { nome: 'Sobrado Costa', responsavel_id: 'rafael', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
 novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '04');
+
+/** 40 dias de trabalho recentes por pessoa, nas etapas em andamento, para o banco de horas ter o que analisar. */
+function semearDias() {
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const ativos = db.projetos.filter((p) => p.status === 'ativo');
+  const alvos = [
+    { u: 'marina', h: 8.7, projs: ativos.filter((p) => p.responsavel_id === 'marina') },
+    { u: 'rafael', h: 6.9, projs: ativos.filter((p) => p.responsavel_id === 'rafael' || p.id === db.projeto_equipe[0]?.projeto_id) },
+    { u: 'julia', h: 8.0, projs: ativos },
+    { u: 'demo', h: 2.2, projs: ativos },
+  ];
+  const etapaAtiva = (pid: string) => db.projeto_etapas.find((e) => e.projeto_id === pid && e.status === 'em_andamento')?.etapa_codigo ?? '01';
+  for (let d = -40; d <= -1; d++) {
+    const dt = dia(d); const w = dt.getDay();
+    if (w === 0 || w === 6) continue;
+    for (const a of alvos) {
+      if (rnd() < 0.05 || !a.projs.length) continue;
+      const total = Math.max(1, a.h + (rnd() - 0.5) * 2.2);
+      const partes = [[8 + Math.floor(rnd() * 2), 30, total * 0.55], [13 + Math.floor(rnd() * 2), 0, total * 0.45]];
+      for (const [h, m, dur] of partes) {
+        const pr = a.projs[Math.floor(rnd() * a.projs.length)];
+        const ini = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), h, m).getTime();
+        db.tempos.push({ id: uid(), projeto_id: pr.id, etapa_codigo: etapaAtiva(pr.id), usuario_id: a.u, iniciado_em: new Date(ini).toISOString(), finalizado_em: new Date(ini + dur * 3_600_000).toISOString() });
+      }
+    }
+  }
+  db.banco_horas_ajustes.push(
+    { id: uid(), usuario_id: 'marina', data: data(-10), minutos: 180, motivo: 'Hora extra: fechamento do projeto na Prefeitura', criado_por: 'julia', created_at: iso(-10) },
+    { id: uid(), usuario_id: 'rafael', data: data(-6), minutos: -480, motivo: 'Folga compensatória', criado_por: 'julia', created_at: iso(-7) },
+  );
+}
+semearDias();
 
 function rpc(nome: string, args: any = {}) {
   const agora = new Date().toISOString();

@@ -130,3 +130,11 @@ main.largo{max-width:1240px}
 
 .bloqueio{color:var(--amber)}
 .cronometro button:disabled{opacity:.5;cursor:not-allowed}
+
+.positivo{color:var(--green)}
+.tabela tr.clicavel{cursor:pointer}.tabela tr.clicavel:hover td{background:var(--soft)}
+.tabela tfoot td{border-top:2px solid var(--line);font-variant-numeric:tabular-nums}
+.detalhe-linha>td{background:var(--soft);padding:12px}
+.mini-tab td{padding:5px 6px;font-size:13px}
+.detalhe-linha h3{margin:0 0 6px}
+.titulo button{white-space:nowrap}

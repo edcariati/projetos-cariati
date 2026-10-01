@@ -9,7 +9,7 @@ export type PerfilTipo = 'admin' | 'profissional' | 'cliente';
 export type Especialidade = 'arquitetonico' | 'interiores' | 'legal' | 'complementares';
 export interface Profile {
   id: string; nome: string; setor: Setor; perfil: PerfilTipo; especialidades: Especialidade[];
-  cliente_id: string | null; ativo: boolean;
+  cliente_id: string | null; ativo: boolean; carga_semanal_horas: number;
 }
 export interface ProjetoEquipe {
   id: string; projeto_id: string; usuario_id: string; especialidade: Especialidade; profiles?: { nome: string } | null;
@@ -53,4 +53,7 @@ export interface Tempo {
   id: string; projeto_id: string; etapa_codigo: string; usuario_id: string;
   iniciado_em: string; finalizado_em: string | null;
   projetos?: { nome: string } | null; profiles?: { nome: string } | null;
+}
+export interface BancoAjuste {
+  id: string; usuario_id: string; data: string; minutos: number; motivo: string; criado_por: string | null; created_at: string;
 }

@@ -53,11 +53,17 @@ export default function Equipe() {
               </div>
               {p.perfil !== 'cliente' ? (
                 <>
+                  <div className="duas">
+                  <label>Carga horária semanal (h)
+                    <input id={`carga-${p.id}`} type="number" min={0} max={80} step={0.5} defaultValue={p.carga_semanal_horas}
+                      onBlur={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 80 && v !== p.carga_semanal_horas) salvar(p.id, { carga_semanal_horas: v }); }} />
+                  </label>
                   <label>Setor
                     <select id={`setor-${p.id}`} value={p.setor} onChange={(e) => salvar(p.id, { setor: e.target.value as Setor })}>
                       {Object.entries(SETOR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </label>
+                  </div>
                   <fieldset>
                     <legend>Especialidades</legend>
                     <div className="etiquetas">
