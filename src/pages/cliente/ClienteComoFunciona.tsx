@@ -39,6 +39,18 @@ export default function ClienteComoFunciona() {
         </section>
       ))}
       <section className="card">
+        <h2>Habite-se (se estiver no seu contrato)</h2>
+        <p>Depois que a obra fica pronta, ou após a regularização, solicitamos o Habite-se na Prefeitura. Reunimos os documentos e as notas fiscais, fazemos o relatório fotográfico, damos entrada no processo e, quando o processo é deferido, entregamos os documentos aprovados em uma reunião.</p>
+        <ul className="etapas">
+          {etapas.filter((m) => m.fase === 6).map((m) => (
+            <li key={m.codigo} className="et"><div className="linha sem-clique">
+              <span className="et-num">{m.codigo}</span>
+              <div className="grow"><b>{m.titulo}</b><div className="pequeno mudo">{m.cliente_participa ? 'Com a sua participação' : 'Trabalho do escritório'}</div></div>
+            </div></li>
+          ))}
+        </ul>
+      </section>
+      <section className="card">
         <h2>Combinados importantes</h2>
         <ul className="lista">
           <li><div className="lista-item"><div><b>Um único canal.</b><div className="mudo">As conversas e decisões do projeto acontecem no grupo oficial de WhatsApp, para tudo ficar registrado.</div></div></div></li>

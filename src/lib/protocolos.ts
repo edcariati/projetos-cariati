@@ -567,6 +567,118 @@ export const TAREFAS: TarefaModelo[] = [
   "itens": [
    "Enviar o termo de rescisão no 181º dia"
   ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Solicitação e emissão de documentos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Termo de Habite-se (análise simplificada)",
+   "Declaração de veracidade",
+   "Alvará de construção",
+   "Ficha cadastral com histórico",
+   "Certidão de registro de imóveis (matrícula) atualizada",
+   "Procuração assinada pelo responsável e proprietário",
+   "Documento de identidade do proprietário",
+   "E-mail do proprietário",
+   "Telefone do proprietário"
+  ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Notas fiscais e declarações",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Notas fiscais de madeira ou estrutura metálica",
+   "Declaração de origem florestal",
+   "Notas fiscais de caçamba (CTRs)",
+   "Declaração de CTR (quando houver a dispensa do uso de transporte e controle de resíduos ou não houver nota fiscal)"
+  ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "PGRCC aprovado (quando necessário: acima de 300 m²)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 4,
+  "titulo": "AVCB (quando comercial enquadrado nesta exigência)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 5,
+  "titulo": "Relatório fotográfico",
+  "descricao": "As fotos devem enquadrar da melhor forma possível a totalidade da construção, sempre valorizando o posicionamento para melhor visualizar os afastamentos entre a construção e a divisa do lote e a presença de elementos importantes, como, por exemplo, a calçada e os acessos na foto da fachada.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Foto da fachada (frente)",
+   "Foto do recuo frontal",
+   "Foto do recuo lateral esquerdo",
+   "Foto do recuo lateral direito",
+   "Foto do recuo posterior (fundos)",
+   "Foto das áreas livres (poço de luz), quando houver"
+  ]
+ },
+ {
+  "etapa": "H2",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Entrada do processo na Prefeitura",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Selecionar a modalidade Habite-se no Aprova Digital e seguir os passos para a situação da solicitação (nova, 2ª via, retificação, planta vistada)",
+   "Anexar os documentos adquiridos ou emitidos nas etapas anteriores em seus devidos campos",
+   "Preencher os dados do proprietário com as informações coletadas",
+   "Preencher o campo 9 (áreas licenciadas) com as metragens do terreno e das edificações, de acordo com o projeto e o alvará de construção",
+   "Preencher o campo 11 (quadro de compartimentos) com as informações do projeto, do alvará de construção e/ou do termo de compromisso, separados por pavimento",
+   "Encaminhar a taxa do Habite-se (guia eventual) para o financeiro",
+   "Anexar o comprovante de pagamento da guia eventual no Aprova Digital",
+   "Encaminhar a taxa de ISS para o financeiro",
+   "Anexar o comprovante de pagamento do ISS no Aprova Digital",
+   "Processo deferido"
+  ]
+ },
+ {
+  "etapa": "H3",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Agendar reunião de entrega dos documentos aprovados",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcar reunião com cliente"
+  ]
+ },
+ {
+  "etapa": "H3",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Reunião de entrega dos documentos aprovados",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Imprimir documentos aprovados",
+   "Imprimir documentos emitidos pela Prefeitura",
+   "Emitir e imprimir termo de retirada",
+   "Explicar e entregar todos os documentos ao cliente"
+  ]
  }
 ];
 export const VAR_ROTULO: Record<string, string> = {"padrao": "Padrão", "ampliacao": "Ampliação", "mais_projetos": "+ Projetos", "apos_solicitacao": "Após pausa a pedido", "apos_ausencia": "Após falta de retorno"};

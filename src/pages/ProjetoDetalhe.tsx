@@ -5,7 +5,7 @@ import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEq
 import { usePerfil } from '../lib/perfil';
 import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
-  MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, pausarProjeto, reabrirEtapa,
+  MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, iniciarHabitese, pausarProjeto, reabrirEtapa,
   registrarRodada, rescindirProjeto, retomarProjeto,
 } from '../lib/flow';
 import ProtocoloItem from '../components/ProtocoloItem';
@@ -159,7 +159,16 @@ export default function ProjetoDetalhe() {
       </section>
 
       <h2>Etapas</h2>
-      {[1, 2, 3, 4].map((fase) => (
+      {[1, 2, 3, 4, 6].map((fase) => (fase === 6 && !projeto.tem_habitese ? (
+        <section className="card" key={fase}>
+          <h3>6. {FASES[6]}</h3>
+          <p className="mudo" style={{ margin: '0 0 10px' }}>
+            Serviço após a regularização ou com a obra pronta: documentos, relatório fotográfico, entrada na Prefeitura (Aprova Digital) e entrega dos documentos aprovados.
+            {projeto.status === 'finalizado' ? ' O projeto volta ao quadro enquanto o Habite-se estiver em andamento.' : ''}
+          </p>
+          <button disabled={pausado} onClick={() => run(() => iniciarHabitese(projeto.id))}>Iniciar Habite-se</button>
+        </section>
+      ) : (
         <section className="card" key={fase}>
           <h3>{fase}. {FASES[fase]}</h3>
           <ul className="etapas">
@@ -196,7 +205,7 @@ export default function ProjetoDetalhe() {
                           {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
-                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aberto={ativa} />
+                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} />
                       {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
                         pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
                           : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />}
@@ -218,7 +227,7 @@ export default function ProjetoDetalhe() {
             })}
           </ul>
         </section>
-      ))}
+      )))}
 
       <h2>Protocolos</h2>
       <div className="pilha">

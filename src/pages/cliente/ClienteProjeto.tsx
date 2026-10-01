@@ -75,7 +75,7 @@ export default function ClienteProjeto() {
       )}
 
       <h2>Andamento</h2>
-      {[1, 2, 3, 4].map((fase) => {
+      {[1, 2, 3, 4, 6].map((fase) => {
         const lista = modelos.filter((m) => m.fase === fase && st(m.codigo) && st(m.codigo)!.status !== 'nao_aplicavel');
         if (!lista.length) return null;
         return (

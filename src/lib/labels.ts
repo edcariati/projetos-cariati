@@ -5,7 +5,7 @@ export const SETOR: Record<Setor, string> = {
 };
 export const FASES: Record<number, string> = {
   1: 'Abertura e briefing', 2: 'Estudos e aprovações', 3: 'Desenvolvimento',
-  4: 'Entrega e encerramento', 5: 'Pausa e retomada',
+  4: 'Entrega e encerramento', 5: 'Pausa e retomada', 6: 'Habite-se',
 };
 export const PROJETO_STATUS: Record<ProjetoStatus, string> = {
   ativo: 'Ativo', pausado: 'Pausado', finalizado: 'Finalizado', rescindido: 'Rescindido',

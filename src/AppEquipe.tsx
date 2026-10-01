@@ -9,6 +9,7 @@ import NovoProjeto from './pages/NovoProjeto';
 import Protocolos from './pages/Protocolos';
 import Fluxo from './pages/Fluxo';
 import Tempos from './pages/Tempos';
+import Tarefas from './pages/Tarefas';
 import Equipe from './pages/Equipe';
 import BancoHoras from './pages/BancoHoras';
 import BarraCronometro from './components/BarraCronometro';
@@ -26,6 +27,7 @@ export default function AppEquipe() {
         <nav>
           <NavLink to="/" end>Painel</NavLink>
           <NavLink to="/projetos">Projetos</NavLink>
+          <NavLink to="/tarefas">Minhas tarefas</NavLink>
           <NavLink to="/protocolos">Protocolos</NavLink>
           <NavLink to="/tempos">Tempos</NavLink>
           <NavLink to="/fluxo">Fluxo</NavLink>
@@ -42,6 +44,7 @@ export default function AppEquipe() {
           <Route path="/projetos" element={<Projetos />} />
           <Route path="/projetos/novo" element={<NovoProjeto />} />
           <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
+          <Route path="/tarefas" element={<Tarefas />} />
           <Route path="/protocolos" element={<Protocolos />} />
           <Route path="/tempos" element={<Tempos />} />
           <Route path="/fluxo" element={<Fluxo />} />

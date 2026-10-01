@@ -1,5 +1,5 @@
--- Instalação completa do banco (0001 a 0009). Cole tudo no SQL Editor do Supabase e clique em Run.
--- Se o banco já foi instalado até a 0005, rode, na ordem, apenas 0006, 0007, 0008 e 0009 de supabase/migrations/.
+-- Instalação completa do banco (0001 a 0011). Cole tudo no SQL Editor do Supabase e clique em Run.
+-- Se o banco já foi instalado até a 0005, rode, na ordem, apenas 0006 a 0011 de supabase/migrations/. Se já foi até a 0009, rode só 0010 e 0011.
 
 -- ===== 0001_schema.sql =====
 -- Setor de Projetos · Cariati — esquema inicial
@@ -868,3 +868,191 @@ begin
     perform inserir_tarefas(e.projeto_id, e.etapa_codigo, array['todas', e.tipo_estudo]);
   end loop;
 end $$;
+
+-- ===== 0010_habitese.sql =====
+-- Habite-se (protocolo 02): serviço após a regularização ou com a obra pronta.
+-- Três etapas opcionais (fase 6), que seguem em paralelo ao fluxo principal e podem ser iniciadas a qualquer momento.
+
+alter table projetos add column tem_habitese boolean not null default false;
+
+insert into etapa_modelos (codigo, ordem, fase, titulo, rotulo, setores, cliente_participa, entrada, saida, regra, opcional, aceite_formal, escopo) values
+('H1',31,6,'Habite-se: documentos','Documentos','{projetos,terceiros}',true,'Obra pronta ou regularização concluída','Documentos e relatório fotográfico prontos','Solicitado após a etapa de regularização ou depois que a obra ficar pronta',true,false,'habitese'),
+('H2',32,6,'Habite-se: entrada na Prefeitura','Prefeitura','{projetos,administrativo,terceiros}',false,'Documentos prontos','Processo deferido','Taxas do Habite-se e do ISS seguem para o financeiro; os comprovantes são anexados no Aprova Digital',true,false,'habitese'),
+('H3',33,6,'Habite-se: entrega dos documentos aprovados','Entrega','{projetos,administrativo}',true,'Processo deferido','Documentos entregues com termo de retirada','Imprimir os documentos aprovados e os emitidos pela Prefeitura e emitir o termo de retirada',true,false,'habitese');
+
+-- projetos que já existiam recebem as etapas do Habite-se como "não contratadas"
+insert into projeto_etapas (projeto_id, etapa_codigo, status)
+select p.id, m.codigo, 'nao_aplicavel' from projetos p cross join etapa_modelos m where m.fase = 6
+on conflict (projeto_id, etapa_codigo) do nothing;
+
+-- Etapas do projeto: Habite-se só se aplica quando contratado; no estudo "+ projetos" a fachada é junto com a planta
+create or replace function instanciar_etapas() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into projeto_etapas (projeto_id, etapa_codigo, status)
+  select new.id, m.codigo,
+    case
+      when m.fase = 5 then 'nao_aplicavel'::etapa_status
+      when m.escopo = 'legal' and not new.tem_legal then 'nao_aplicavel'
+      when m.escopo = 'interiores' and not new.tem_interiores then 'nao_aplicavel'
+      when m.escopo = 'complementares' and not new.tem_complementares then 'nao_aplicavel'
+      when m.escopo = 'habitese' and not new.tem_habitese then 'nao_aplicavel'
+      when new.tipo_estudo = 'mais_projetos' and m.codigo in ('11','12','13','14') then 'nao_aplicavel'
+      else 'pendente'
+    end
+  from etapa_modelos m;
+
+  update projeto_etapas set status = 'em_andamento', iniciada_em = now()
+   where projeto_id = new.id and etapa_codigo = '01';
+  insert into historico (projeto_id, etapa_codigo, tipo, texto)
+  values (new.id, '01', 'etapa_iniciada', 'Projeto criado');
+
+  perform inserir_tarefas(new.id, e.etapa_codigo, array['todas', new.tipo_estudo])
+  from projeto_etapas e join etapa_modelos m on m.codigo = e.etapa_codigo
+  where e.projeto_id = new.id and e.status <> 'nao_aplicavel' and (m.fase <= 4 or m.fase = 6);
+  return new;
+end $$;
+
+-- Inicia o Habite-se num projeto (contratado ou não, em andamento ou já finalizado)
+create or replace function iniciar_habitese(p_projeto uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not (is_equipe() and pode_ver_projeto(p_projeto)) then raise exception 'Sem permissão para este projeto'; end if;
+  insert into projeto_etapas (projeto_id, etapa_codigo, status)
+    select p_projeto, codigo, 'nao_aplicavel' from etapa_modelos where fase = 6
+  on conflict (projeto_id, etapa_codigo) do nothing;
+  update projetos set tem_habitese = true,
+         status = case when status = 'finalizado' then 'ativo'::projeto_status else status end
+   where id = p_projeto;
+  update projeto_etapas set status = 'pendente'
+   where projeto_id = p_projeto and status = 'nao_aplicavel' and etapa_codigo in (select codigo from etapa_modelos where fase = 6);
+  update projeto_etapas set status = 'em_andamento', iniciada_em = now()
+   where projeto_id = p_projeto and etapa_codigo = 'H1' and status = 'pendente';
+  perform inserir_tarefas(p_projeto, m.codigo, array['todas']) from etapa_modelos m where m.fase = 6;
+  insert into historico (projeto_id, etapa_codigo, tipo, texto) values (p_projeto, 'H1', 'etapa_iniciada', 'Habite-se iniciado');
+end $$;
+
+-- Documentos do Habite-se
+insert into documento_modelos (etapa_codigo, nome, padrao_arquivo, ordem) values
+('H1','Termo de Habite-se','TDH_CAXXXXXX_REVXX',1),
+('H1','Declaração de veracidade','TDV_CAXXXXXX_REVXX',2),
+('H1','Procuração (pessoa física ou jurídica)','PRC_CAXXXXXX_REVXX',3),
+('H1','Declaração de CTRS','CTR_CAXXXXXX_REVXX',4),
+('H1','Isenção da CTRS','ICTR_CAXXXXXX_REVXX',5),
+('H1','Relatório fotográfico',null,6),
+('H3','Termo de retirada de documento','TDRD_CAXXXXXX_REVXX',1);
+
+-- Tarefas e checklists do protocolo
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H1', 'todas', 1, 'Solicitação e emissão de documentos', null, 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Termo de Habite-se (análise simplificada)'), (2, 'Declaração de veracidade'), (3, 'Alvará de construção'), (4, 'Ficha cadastral com histórico'), (5, 'Certidão de registro de imóveis (matrícula) atualizada'), (6, 'Procuração assinada pelo responsável e proprietário'), (7, 'Documento de identidade do proprietário'), (8, 'E-mail do proprietário'), (9, 'Telefone do proprietário')) as v(o, x);
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H1', 'todas', 2, 'Notas fiscais e declarações', null, 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Notas fiscais de madeira ou estrutura metálica'), (2, 'Declaração de origem florestal'), (3, 'Notas fiscais de caçamba (CTRs)'), (4, 'Declaração de CTR (quando houver a dispensa do uso de transporte e controle de resíduos ou não houver nota fiscal)')) as v(o, x);
+insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade) values ('H1', 'todas', 3, 'PGRCC aprovado (quando necessário: acima de 300 m²)', null, 'Baixa');
+insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade) values ('H1', 'todas', 4, 'AVCB (quando comercial enquadrado nesta exigência)', null, 'Baixa');
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H1', 'todas', 5, 'Relatório fotográfico', 'As fotos devem enquadrar da melhor forma possível a totalidade da construção, sempre valorizando o posicionamento para melhor visualizar os afastamentos entre a construção e a divisa do lote e a presença de elementos importantes, como, por exemplo, a calçada e os acessos na foto da fachada.', 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Foto da fachada (frente)'), (2, 'Foto do recuo frontal'), (3, 'Foto do recuo lateral esquerdo'), (4, 'Foto do recuo lateral direito'), (5, 'Foto do recuo posterior (fundos)'), (6, 'Foto das áreas livres (poço de luz), quando houver')) as v(o, x);
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H2', 'todas', 1, 'Entrada do processo na Prefeitura', null, 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Selecionar a modalidade Habite-se no Aprova Digital e seguir os passos para a situação da solicitação (nova, 2ª via, retificação, planta vistada)'), (2, 'Anexar os documentos adquiridos ou emitidos nas etapas anteriores em seus devidos campos'), (3, 'Preencher os dados do proprietário com as informações coletadas'), (4, 'Preencher o campo 9 (áreas licenciadas) com as metragens do terreno e das edificações, de acordo com o projeto e o alvará de construção'), (5, 'Preencher o campo 11 (quadro de compartimentos) com as informações do projeto, do alvará de construção e/ou do termo de compromisso, separados por pavimento'), (6, 'Encaminhar a taxa do Habite-se (guia eventual) para o financeiro'), (7, 'Anexar o comprovante de pagamento da guia eventual no Aprova Digital'), (8, 'Encaminhar a taxa de ISS para o financeiro'), (9, 'Anexar o comprovante de pagamento do ISS no Aprova Digital'), (10, 'Processo deferido')) as v(o, x);
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H3', 'todas', 1, 'Agendar reunião de entrega dos documentos aprovados', null, 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Marcar reunião com cliente')) as v(o, x);
+with t as (insert into tarefa_modelos (etapa_codigo, variante, ordem, titulo, descricao, prioridade)
+  values ('H3', 'todas', 2, 'Reunião de entrega dos documentos aprovados', null, 'Baixa') returning id)
+insert into tarefa_item_modelos (tarefa_id, ordem, texto) select t.id, v.o, v.x from t, (values (1, 'Imprimir documentos aprovados'), (2, 'Imprimir documentos emitidos pela Prefeitura'), (3, 'Emitir e imprimir termo de retirada'), (4, 'Explicar e entregar todos os documentos ao cliente')) as v(o, x);
+
+-- ===== 0011_provisionamento.sql =====
+-- Provisionamento: ao abrir o projeto, as tarefas de cada protocolo já nascem atribuídas a quem faz.
+-- Regra: etapa do Setor de Projetos -> profissional da especialidade na equipe (arquitetônico, legal, interiores,
+-- complementares) ou, na falta dele, o responsável pelo projeto. Etapa do Administrativo/Comercial -> fila do setor.
+
+alter table projeto_tarefas
+  add column responsavel_id uuid references profiles(id) on delete set null,
+  add column setor_fila setor,
+  add column atribuicao_manual boolean not null default false;
+create index on projeto_tarefas(responsavel_id);
+create index on projeto_tarefas(setor_fila) where responsavel_id is null;
+
+-- setor que cuida da etapa (primeiro setor da lista, sem contar terceiros)
+create or replace function fila_etapa(p_etapa text) returns setor language sql stable as $$
+  select u.s from etapa_modelos m, unnest(m.setores) with ordinality as u(s, n)
+  where m.codigo = p_etapa and u.s <> 'terceiros' order by u.n limit 1
+$$;
+
+-- profissional que faz a tarefa (nulo = fila do setor)
+create or replace function responsavel_etapa(p_projeto uuid, p_etapa text) returns uuid
+language plpgsql stable security definer set search_path = public as $$
+declare esp text; r uuid;
+begin
+  if fila_etapa(p_etapa) is distinct from 'projetos' then return null; end if;
+  esp := case when p_etapa = '15' then 'arquitetonico'
+              when p_etapa in ('16','H1','H2','H3') then 'legal'
+              when p_etapa in ('17','18') then 'interiores'
+              when p_etapa = '19' then 'complementares' end;
+  if esp is not null then
+    select usuario_id into r from projeto_equipe where projeto_id = p_projeto and especialidade = esp order by id limit 1;
+    if r is not null then return r; end if;
+  end if;
+  select responsavel_id into r from projetos where id = p_projeto;
+  return r;
+end $$;
+
+-- cópia das tarefas para o projeto, já com a atribuição
+create or replace function inserir_tarefas(p_projeto uuid, p_etapa text, p_variantes text[]) returns int
+language plpgsql security definer set search_path = public as $$
+declare t record; nt uuid; n int := 0;
+begin
+  if exists (select 1 from projeto_tarefas where projeto_id = p_projeto and etapa_codigo = p_etapa) then return 0; end if;
+  for t in select * from tarefa_modelos where etapa_codigo = p_etapa and variante = any (p_variantes) order by ordem loop
+    insert into projeto_tarefas (projeto_id, etapa_codigo, modelo_id, ordem, titulo, descricao, prioridade, responsavel_id, setor_fila)
+    values (p_projeto, p_etapa, t.id, t.ordem, t.titulo, t.descricao, t.prioridade,
+            responsavel_etapa(p_projeto, p_etapa), fila_etapa(p_etapa)) returning id into nt;
+    if exists (select 1 from tarefa_item_modelos where tarefa_id = t.id) then
+      insert into projeto_tarefa_itens (tarefa_id, projeto_id, ordem, texto)
+        select nt, p_projeto, i.ordem, i.texto from tarefa_item_modelos i where i.tarefa_id = t.id order by i.ordem;
+    else
+      insert into projeto_tarefa_itens (tarefa_id, projeto_id, ordem, texto) values (nt, p_projeto, 1, null);
+    end if;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
+-- reatribui quando muda o responsável ou a equipe (tarefas já iniciadas ou atribuídas à mão não mudam)
+create or replace function atribuir_tarefas(p_projeto uuid) returns void
+language sql security definer set search_path = public as $$
+  update projeto_tarefas t set responsavel_id = responsavel_etapa(t.projeto_id, t.etapa_codigo)
+   where t.projeto_id = p_projeto and not t.atribuicao_manual
+     and not exists (select 1 from projeto_tarefa_itens i where i.tarefa_id = t.id and i.feito)
+$$;
+revoke execute on function atribuir_tarefas(uuid) from public, anon, authenticated;
+revoke execute on function responsavel_etapa(uuid, text) from public, anon, authenticated;
+
+create or replace function reatribuir_por_projeto() returns trigger language plpgsql security definer set search_path = public as $$
+begin perform atribuir_tarefas(new.id); return new; end $$;
+create trigger projetos_reatribuir after update of responsavel_id on projetos
+  for each row when (old.responsavel_id is distinct from new.responsavel_id) execute function reatribuir_por_projeto();
+
+create or replace function reatribuir_por_equipe() returns trigger language plpgsql security definer set search_path = public as $$
+begin perform atribuir_tarefas(coalesce(new.projeto_id, old.projeto_id)); return coalesce(new, old); end $$;
+create trigger equipe_reatribuir after insert or update or delete on projeto_equipe
+  for each row execute function reatribuir_por_equipe();
+
+-- a equipe pode reatribuir uma tarefa ("assumir", "passar para"); o resto da tarefa fica protegido
+create policy ptarefas_editar on projeto_tarefas for update to authenticated
+  using (is_equipe() and pode_ver_projeto(projeto_id)) with check (is_equipe() and pode_ver_projeto(projeto_id));
+create or replace function proteger_tarefa() returns trigger language plpgsql as $$
+begin
+  new.projeto_id := old.projeto_id; new.etapa_codigo := old.etapa_codigo; new.modelo_id := old.modelo_id;
+  new.ordem := old.ordem; new.titulo := old.titulo; new.descricao := old.descricao;
+  new.prioridade := old.prioridade; new.setor_fila := old.setor_fila;
+  return new;
+end $$;
+create trigger tarefas_proteger before update on projeto_tarefas for each row execute function proteger_tarefa();
+
+-- projetos que já existiam: atribui as tarefas
+update projeto_tarefas t set responsavel_id = responsavel_etapa(t.projeto_id, t.etapa_codigo), setor_fila = fila_etapa(t.etapa_codigo);
+

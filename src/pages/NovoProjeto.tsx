@@ -19,6 +19,7 @@ export default function NovoProjeto() {
   const [legal, setLegal] = useState(false);
   const [interiores, setInteriores] = useState(false);
   const [compl, setCompl] = useState(false);
+  const [habitese, setHabitese] = useState(false);
   const [aprovacao, setAprovacao] = useState('');
   const [erro, setErro] = useState('');
   const [busy, setBusy] = useState(false);
@@ -47,7 +48,7 @@ export default function NovoProjeto() {
       }
       const { data, error } = await supabase.from('projetos').insert({
         cliente_id: cid, nome, responsavel_id: responsavel || null, tem_legal: legal,
-        tem_interiores: interiores, tem_complementares: compl, tipo_estudo: tipoEstudo, tipo_aprovacao: legal ? aprovacao || null : null,
+        tem_interiores: interiores, tem_complementares: compl, tem_habitese: habitese, tipo_estudo: tipoEstudo, tipo_aprovacao: legal ? aprovacao || null : null,
       }).select('id').single();
       if (error) throw error;
       nav(`/projetos/${data.id}`);
@@ -112,6 +113,7 @@ export default function NovoProjeto() {
           )}
           <label className="check"><input type="checkbox" checked={interiores} onChange={(e) => setInteriores(e.target.checked)} />Interiores (estudo + detalhamento)</label>
           <label className="check"><input type="checkbox" checked={compl} onChange={(e) => setCompl(e.target.checked)} />Projetos complementares</label>
+          <label className="check"><input type="checkbox" checked={habitese} onChange={(e) => setHabitese(e.target.checked)} />Habite-se (serviço após a regularização ou a obra pronta)</label>
         </fieldset>
         {erro && <p className="erro">{erro}</p>}
         <button className="primario" disabled={busy}>{busy ? 'Criando…' : 'Criar projeto'}</button>

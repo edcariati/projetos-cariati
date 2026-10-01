@@ -76,7 +76,15 @@ const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'c
 db.etapa_modelos = parseTuples(sqlEtapas).map((t) => Object.fromEntries(COLS_ETAPA.map((c, k) => [c, t[k]])));
 // ajustes feitos pela migration 0009 sobre os modelos de etapa
 Object.assign(db.etapa_modelos.find((m) => m.codigo === '01')!, { titulo: 'Levantamento de dados e contrato', entrada: 'Primeiro contato do cliente', saida: 'Contrato assinado e oportunidade promovida a projeto' });
+db.etapa_modelos.push(
+  { codigo: 'H1', ordem: 31, fase: 6, titulo: 'Habite-se: documentos', rotulo: 'Documentos', setores: ['projetos', 'terceiros'], cliente_participa: true, entrada: 'Obra pronta ou regularização concluída', saida: 'Documentos e relatório fotográfico prontos', regra: 'Solicitado após a etapa de regularização ou depois que a obra ficar pronta', opcional: true, aceite_formal: false, escopo: 'habitese' },
+  { codigo: 'H2', ordem: 32, fase: 6, titulo: 'Habite-se: entrada na Prefeitura', rotulo: 'Prefeitura', setores: ['projetos', 'administrativo', 'terceiros'], cliente_participa: false, entrada: 'Documentos prontos', saida: 'Processo deferido', regra: 'Taxas do Habite-se e do ISS seguem para o financeiro; os comprovantes são anexados no Aprova Digital', opcional: true, aceite_formal: false, escopo: 'habitese' },
+  { codigo: 'H3', ordem: 33, fase: 6, titulo: 'Habite-se: entrega dos documentos aprovados', rotulo: 'Entrega', setores: ['projetos', 'administrativo'], cliente_participa: true, entrada: 'Processo deferido', saida: 'Documentos entregues com termo de retirada', regra: 'Imprimir os documentos aprovados e os emitidos pela Prefeitura e emitir o termo de retirada', opcional: true, aceite_formal: false, escopo: 'habitese' },
+);
 db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codigo: t[0], nome: t[1], padrao_arquivo: t[2], ordem: t[3] }));
+([['H1', 'Termo de Habite-se', 'TDH_CAXXXXXX_REVXX'], ['H1', 'Declaração de veracidade', 'TDV_CAXXXXXX_REVXX'], ['H1', 'Procuração (pessoa física ou jurídica)', 'PRC_CAXXXXXX_REVXX'],
+  ['H1', 'Declaração de CTRS', 'CTR_CAXXXXXX_REVXX'], ['H1', 'Isenção da CTRS', 'ICTR_CAXXXXXX_REVXX'], ['H1', 'Relatório fotográfico', null], ['H3', 'Termo de retirada de documento', 'TDRD_CAXXXXXX_REVXX']] as [string, string, string | null][])
+  .forEach(([e, n, c], k) => db.documento_modelos.push({ id: uid(), etapa_codigo: e, nome: n, padrao_arquivo: c, ordem: k + 1 }));
 
 /* ---------- regras de acesso (espelham o RLS do banco) ---------- */
 const perfilEu = () => db.profiles.find((p) => p.id === eu)!;
@@ -147,7 +155,7 @@ function instanciarEtapas(p: Row) {
   for (const m of db.etapa_modelos) {
     const naoAplic = m.fase === 5 || (m.escopo === 'legal' && !p.tem_legal) ||
       (m.escopo === 'interiores' && !p.tem_interiores) || (m.escopo === 'complementares' && !p.tem_complementares) ||
-      (p.tipo_estudo === 'mais_projetos' && ['11', '12', '13', '14'].includes(m.codigo));
+      (m.escopo === 'habitese' && !p.tem_habitese) || (p.tipo_estudo === 'mais_projetos' && ['11', '12', '13', '14'].includes(m.codigo));
     db.projeto_etapas.push({
       id: uid(), projeto_id: p.id, etapa_codigo: m.codigo, status: naoAplic ? 'nao_aplicavel' : 'pendente',
       responsavel_id: null, iniciada_em: null, concluida_em: null, rodadas_ajuste: 0, observacao: null,
@@ -157,7 +165,22 @@ function instanciarEtapas(p: Row) {
   e1.status = 'em_andamento'; e1.iniciada_em = new Date().toISOString();
   db.historico.push({ id: uid(), projeto_id: p.id, etapa_codigo: '01', tipo: 'etapa_iniciada', texto: 'Projeto criado', autor_id: eu, created_at: new Date().toISOString() });
   for (const e of db.projeto_etapas.filter((x) => x.projeto_id === p.id && x.status !== 'nao_aplicavel')) {
-    if (db.etapa_modelos.find((m) => m.codigo === e.etapa_codigo)!.fase <= 4) inserirTarefas(p.id, e.etapa_codigo, ['todas', p.tipo_estudo ?? 'padrao']);
+    const fase = db.etapa_modelos.find((m) => m.codigo === e.etapa_codigo)!.fase;
+    if (fase <= 4 || fase === 6) inserirTarefas(p.id, e.etapa_codigo, ['todas', p.tipo_estudo ?? 'padrao']);
+  }
+}
+
+/** Setor que cuida da etapa e profissional que faz a tarefa (mesma regra do banco: especialidade na equipe, senão o responsável). */
+const filaEtapa = (cod: string): string | null => db.etapa_modelos.find((m) => m.codigo === cod)?.setores.find((x: string) => x !== 'terceiros') ?? null;
+function responsavelEtapa(pid: string, cod: string): string | null {
+  if (filaEtapa(cod) !== 'projetos') return null;
+  const esp = cod === '15' ? 'arquitetonico' : ['16', 'H1', 'H2', 'H3'].includes(cod) ? 'legal' : ['17', '18'].includes(cod) ? 'interiores' : cod === '19' ? 'complementares' : null;
+  const membro = esp ? db.projeto_equipe.find((e) => e.projeto_id === pid && e.especialidade === esp) : null;
+  return membro?.usuario_id ?? db.projetos.find((p) => p.id === pid)?.responsavel_id ?? null;
+}
+function atribuirTarefas(pid: string) {
+  for (const t of db.projeto_tarefas.filter((x) => x.projeto_id === pid && !x.atribuicao_manual)) {
+    if (!db.projeto_tarefa_itens.some((i) => i.tarefa_id === t.id && i.feito)) t.responsavel_id = responsavelEtapa(pid, t.etapa_codigo);
   }
 }
 
@@ -167,7 +190,7 @@ function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): 
   let n = 0;
   for (const m of TAREFAS.filter((t) => t.etapa === etapa && variantes.includes(t.variante)).sort((a, b) => a.ordem - b.ordem)) {
     const tid = uid();
-    db.projeto_tarefas.push({ id: tid, projeto_id: projetoId, etapa_codigo: etapa, ordem: m.ordem, titulo: m.titulo, descricao: m.descricao, prioridade: m.prioridade });
+    db.projeto_tarefas.push({ id: tid, projeto_id: projetoId, etapa_codigo: etapa, ordem: m.ordem, titulo: m.titulo, descricao: m.descricao, prioridade: m.prioridade, responsavel_id: responsavelEtapa(projetoId, etapa), setor_fila: filaEtapa(etapa), atribuicao_manual: false });
     const textos: (string | null)[] = m.itens.length ? m.itens : [null];
     textos.forEach((texto, k) => db.projeto_tarefa_itens.push({ id: uid(), tarefa_id: tid, projeto_id: projetoId, ordem: k + 1, texto, feito: false, feito_por: null, feito_em: null }));
     n++;
@@ -177,7 +200,7 @@ function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): 
 
 const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({ codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null }),
-  projetos: () => ({ tipo_estudo: 'padrao', codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ tipo_estudo: 'padrao', tem_habitese: false, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),
@@ -229,20 +252,25 @@ class Q implements PromiseLike<any> {
         if (t === 'projetos' && r.responsavel_id == null && p.perfil !== 'admin') r.responsavel_id = eu;
         tabela.push(r);
         if (t === 'projetos') instanciarEtapas(r);
+        if (t === 'projeto_equipe') atribuirTarefas(r.projeto_id);
         return r;
       });
     } else if (this.op === 'update') {
-      const campos = { ...this.payload };
+      let campos = { ...this.payload };
+      if (t === 'projeto_tarefas') campos = Object.fromEntries(Object.entries(campos).filter(([k]) => ['responsavel_id', 'atribuicao_manual'].includes(k)));
       if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades', 'carga_semanal_horas']) delete campos[k];
       tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => {
         if (t === 'projeto_tarefa_itens' && 'feito' in campos) {
           Object.assign(r, campos, campos.feito ? (r.feito ? {} : { feito_por: eu, feito_em: new Date().toISOString() }) : { feito_por: null, feito_em: null });
         } else Object.assign(r, campos);
+        if (t === 'projetos' && 'responsavel_id' in campos) atribuirTarefas(r.id);
       });
       return { data: null, error: null };
     } else if (this.op === 'delete') {
       if (p.perfil !== 'admin' && !(t === 'banco_horas_ajustes' && podeBanco())) return { data: null, error: null };
+      const afetados = t === 'projeto_equipe' ? tabela.filter(casa).map((r) => r.projeto_id) : [];
       db[t] = tabela.filter((r) => !casa(r));
+      afetados.forEach(atribuirTarefas);
       return { data: null, error: null };
     } else alvo = tabela.filter(casa);
     for (const [c, asc, nf] of [...this.ordem].reverse()) {
@@ -306,7 +334,7 @@ const doc = (projeto_id: string, etapa: string, nome: string, arquivo: string, l
   db.projeto_documentos.push({ id: uid(), projeto_id, etapa_codigo: etapa, modelo_id: null, nome, codigo_arquivo: null, arquivo_path: `${projeto_id}/${etapa}/${arquivo}`, arquivo_nome: arquivo, created_at: iso(-3), visivel_cliente: liberado });
 
 const silva = novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A', premium: true, telefone: '(15) 99999-0101' },
-  { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tipo_aprovacao: 'residencial' }, '09', 2);
+  { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tem_habitese: true, tipo_aprovacao: 'residencial' }, '09', 2);
 db.projeto_equipe.push({ id: uid(), projeto_id: silva.id, usuario_id: 'rafael', especialidade: 'interiores' });
 const oliveira = novoProjeto({ nome: 'Ana Oliveira', codigo: 'CA000102', categoria: 'B' },
   { nome: 'Casa de Praia Oliveira', responsavel_id: 'marina', tem_legal: true, tipo_aprovacao: 'residencial' }, '16');
@@ -355,6 +383,22 @@ function semearDias() {
 }
 semearDias();
 
+// Galpão Alves: cliente C (estudo + projetos), com a Rafael no croqui e fachadas
+novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'C' }, { nome: 'Galpão Alves', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '07');
+// Casa Duarte: projeto principal encerrado; o Habite-se está na entrada da Prefeitura
+{
+  const duarte = novoProjeto({ nome: 'Roberto Duarte', codigo: 'CA000106', categoria: 'B' }, { nome: 'Casa Duarte', responsavel_id: 'marina', tem_legal: true, tem_habitese: true, tipo_aprovacao: 'residencial' }, '24');
+  const marcar = (cod: string, quantos: number, quando: string) => {
+    const ids = db.projeto_tarefas.filter((t) => t.projeto_id === duarte.id && t.etapa_codigo === cod).map((t) => t.id);
+    db.projeto_tarefa_itens.filter((i) => ids.includes(i.tarefa_id)).sort((a, b) => a.ordem - b.ordem).slice(0, quantos)
+      .forEach((i) => { i.feito = true; i.feito_por = 'marina'; i.feito_em = quando; });
+  };
+  const et = (cod: string) => db.projeto_etapas.find((x) => x.projeto_id === duarte.id && x.etapa_codigo === cod)!;
+  Object.assign(et('24'), { status: 'concluida', concluida_em: iso(-20) });
+  Object.assign(et('H1'), { status: 'concluida', iniciada_em: iso(-18), concluida_em: iso(-8) }); marcar('H1', 99, iso(-8));
+  Object.assign(et('H2'), { status: 'em_andamento', iniciada_em: iso(-8) }); marcar('H2', 6, iso(-2));
+}
+
 // Sobrado Costa: pausa por falta de retorno, com as 3 tentativas de contato já feitas e a notificação enviada
 {
   const costa = db.projetos.find((x) => x.nome === 'Sobrado Costa')!;
@@ -381,6 +425,18 @@ function rpc(nome: string, args: any = {}) {
       ? ['todas', db.projeto_tarefas.some((t) => t.projeto_id === pr.id && t.etapa_codigo === 'P2') ? 'apos_ausencia' : 'apos_solicitacao']
       : ['todas', pr.tipo_estudo ?? 'padrao'];
     return Promise.resolve({ data: inserirTarefas(pr.id, args.p_etapa, v), error: null });
+  }
+  if (nome === 'iniciar_habitese') {
+    const pr = db.projetos.find((x) => x.id === args.p_projeto);
+    if (!pr || perfilEu().perfil === 'cliente' || !verProjeto(pr.id)) return Promise.resolve({ data: null, error: { message: 'Sem permissão para este projeto' } });
+    pr.tem_habitese = true; if (pr.status === 'finalizado') pr.status = 'ativo';
+    for (const e of db.projeto_etapas.filter((x) => x.projeto_id === pr.id && x.etapa_codigo.startsWith('H'))) {
+      if (e.status === 'nao_aplicavel') e.status = 'pendente';
+      if (e.etapa_codigo === 'H1' && e.status === 'pendente') { e.status = 'em_andamento'; e.iniciada_em = new Date().toISOString(); }
+      inserirTarefas(pr.id, e.etapa_codigo, ['todas']);
+    }
+    db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: 'H1', tipo: 'etapa_iniciada', texto: 'Habite-se iniciado', autor_id: eu, created_at: new Date().toISOString() });
+    return Promise.resolve({ data: null, error: null });
   }
   if (nome === 'parar_cronometro') { parar(); return Promise.resolve({ data: null, error: null }); }
   return Promise.resolve({ data: null, error: { message: 'Função não disponível na demonstração' } });

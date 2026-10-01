@@ -23,8 +23,9 @@ export async function concluirEtapa(
 
   const ordem = new Map(modelos.map((m) => [m.codigo, m]));
   const atual = ordem.get(etapa.etapa_codigo)!;
+  const habitese = atual.fase === 6;   // o Habite-se segue em linha própria, em paralelo ao fluxo principal
   const proxima = etapas
-    .filter((e) => ordem.get(e.etapa_codigo)!.fase <= 4 && ordem.get(e.etapa_codigo)!.ordem > atual.ordem)
+    .filter((e) => (habitese ? ordem.get(e.etapa_codigo)!.fase === 6 : ordem.get(e.etapa_codigo)!.fase <= 4) && ordem.get(e.etapa_codigo)!.ordem > atual.ordem)
     .filter((e) => e.status === 'pendente')
     .sort((a, b) => ordem.get(a.etapa_codigo)!.ordem - ordem.get(b.etapa_codigo)!.ordem)[0];
 
@@ -35,6 +36,12 @@ export async function concluirEtapa(
   } else if (etapa.etapa_codigo === '24') {
     await supabase.from('projetos').update({ status: 'finalizado' }).eq('id', projetoId);
     await log(projetoId, 'nota', 'Projeto finalizado');
+  } else if (etapa.etapa_codigo === 'H3') {
+    await log(projetoId, 'nota', 'Habite-se concluído', 'H3');
+    // se o projeto principal já estava encerrado e foi reaberto só para o Habite-se, volta a finalizado
+    if (etapas.find((e) => e.etapa_codigo === '24')?.status === 'concluida') {
+      await supabase.from('projetos').update({ status: 'finalizado' }).eq('id', projetoId);
+    }
   }
 }
 
@@ -82,3 +89,9 @@ export async function rescindirProjeto(projetoId: string) {
 
 export const diasDePausa = (pausado_em: string | null) =>
   pausado_em ? Math.floor((Date.now() - new Date(pausado_em + 'T12:00:00').getTime()) / 86_400_000) : 0;
+
+/** Inicia o Habite-se (após a regularização ou com a obra pronta). Reabre o projeto no quadro se já estava finalizado. */
+export async function iniciarHabitese(projetoId: string) {
+  const { error } = await supabase.rpc('iniciar_habitese', { p_projeto: projetoId });
+  if (error) throw error;
+}

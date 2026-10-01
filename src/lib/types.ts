@@ -32,7 +32,7 @@ export interface EtapaModelo {
 export interface Projeto {
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
-  tipo_estudo: TipoEstudo; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
+  tipo_estudo: TipoEstudo; tem_habitese: boolean; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
   created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null; profiles?: { nome: string } | null;
   projeto_etapas?: Pick<ProjetoEtapa, 'etapa_codigo' | 'status'>[];
 }
@@ -60,6 +60,7 @@ export interface BancoAjuste {
 }
 export interface ProjetoTarefa {
   id: string; projeto_id: string; etapa_codigo: string; ordem: number; titulo: string; descricao: string | null; prioridade: 'Alta' | 'Média' | 'Baixa';
+  responsavel_id: string | null; setor_fila: Setor | null; atribuicao_manual: boolean;
 }
 export interface ProjetoItem {
   id: string; tarefa_id: string; projeto_id: string; ordem: number; texto: string | null; feito: boolean; feito_por: string | null; feito_em: string | null;

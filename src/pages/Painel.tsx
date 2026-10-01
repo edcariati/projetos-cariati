@@ -5,12 +5,16 @@ import type { EtapaModelo, Projeto, Protocolo } from '../lib/types';
 import { FASES, diasAte, fmtData, statusProtocolo } from '../lib/labels';
 import { MAX_DIAS_PAUSA, diasDePausa } from '../lib/flow';
 import { usePerfil } from '../lib/perfil';
+import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
 
 export default function Painel() {
   const eu = usePerfil();
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
+  const [minhas, setMinhas] = useState<GrupoTarefas[]>([]);
+
+  useEffect(() => { carregarTarefas(eu).then(setMinhas).catch(() => setMinhas([])); }, [eu]);
 
   useEffect(() => {
     supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome), projeto_etapas(etapa_codigo,status)')
@@ -28,7 +32,7 @@ export default function Painel() {
   };
   const ativos = projetos.filter((p) => p.status === 'ativo');
   const pausados = projetos.filter((p) => p.status === 'pausado');
-  const porFase = [1, 2, 3, 4].map((f) => ({ fase: f, itens: ativos.filter((p) => etapaAtual(p)?.fase === f) }));
+  const porFase = [1, 2, 3, 4, 6].map((f) => ({ fase: f, itens: ativos.filter((p) => etapaAtual(p)?.fase === f) }));
   const porPessoa = [...new Set(projetos.map((p) => p.responsavel_id).filter(Boolean) as string[])].map((rid) => {
     const meus = projetos.filter((p) => p.responsavel_id === rid);
     return {
@@ -49,6 +53,26 @@ export default function Painel() {
         <div className="kpi"><b>{protocolos.length}</b><span>protocolos abertos</span></div>
         <div className="kpi"><b className={atencao.length ? 'alerta' : ''}>{atencao.length}</b><span>pedem atenção</span></div>
       </div>
+
+      {(() => {
+        const agora = minhas.filter((g) => g.status === 'em_andamento');
+        const itens = agora.reduce((s, g) => s + g.pendentes, 0);
+        return (
+          <section className="card">
+            <h2>Minhas tarefas agora <span className="badge">{itens}</span></h2>
+            {agora.length === 0 && <p className="mudo">Nada pendente nas etapas em andamento. As próximas tarefas já estão provisionadas em “Minhas tarefas”.</p>}
+            <ul className="lista">
+              {agora.slice(0, 5).map((g) => (
+                <li key={g.projeto.id + g.etapa.codigo}><Link to="/tarefas">
+                  <b>{g.projeto.nome}</b> <span className="mudo">· etapa {g.etapa.codigo} · {g.etapa.titulo}</span>
+                  <span className="etapa">{g.pendentes} item(ns) a fazer</span>
+                </Link></li>
+              ))}
+            </ul>
+            {agora.length > 0 && <p style={{ margin: '8px 0 0' }}><Link to="/tarefas">Ver todas as minhas tarefas →</Link></p>}
+          </section>
+        );
+      })()}
 
       {eu.perfil === 'admin' && porPessoa.length > 0 && (
         <section className="card">
