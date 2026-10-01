@@ -7,7 +7,7 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 ## Como colocar para rodar
 
 1. Crie um projeto em <https://supabase.com>.
-2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0005` de `supabase/migrations/`)
+2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0006` de `supabase/migrations/`)
    (ou use `supabase db push` com a CLI).
 3. Em **Authentication → Providers → Email**, desative "Allow new users to sign up" e crie os usuários da
    equipe em **Authentication → Users**. Para tornar alguém admin:
@@ -28,12 +28,14 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
   (limite de 3, alerta de custo adicional), aceites formais, pausa, retomada e rescisão (180 dias).
 - **Protocolos**: tipo (Prefeitura, condomínio, outro órgão ou entrega ao cliente), órgão, número, status, data, próximo prazo, cliente notificado e andamentos.
 - **Documentos por etapa**: modelos exigidos em cada etapa, com código de arquivo padronizado (`CAXXXXXX` vira o código do cliente) e anexo no Supabase Storage (bucket privado `documentos`).
+- **Cronômetro por etapa**: iniciar/parar na etapa em andamento (rodando no banco, com hora do servidor), faixa fixa com o tempo em curso, parada automática ao concluir a etapa ou pausar o projeto. A aba **Tempos** mostra média, mínimo e máximo por etapa; as views `tempo_etapa_projeto` e `tempo_medio_etapa` servem para análise externa.
+- **Fluxo**: o fluxograma do setor (mapa, etapas, regras e índice de documentos) para consulta.
 - **Histórico** rastreável por projeto.
 
 ## Estrutura de dados (Supabase)
 
 `profiles`, `clientes`, `etapa_modelos` (o fluxo, editável sem mexer no código), `projetos`, `projeto_etapas`,
-`historico`, `protocolos`, `protocolo_andamentos`, `documento_modelos`, `projeto_documentos`. Todas com RLS: só usuários logados acessam; excluir é só
+`historico`, `protocolos`, `protocolo_andamentos`, `documento_modelos`, `projeto_documentos`, `tempos`. Todas com RLS: só usuários logados acessam; excluir é só
 para admin. Novos módulos entram como novas migrations em `supabase/migrations/`.
 
 ## Próximos passos sugeridos

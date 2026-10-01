@@ -9,6 +9,7 @@ import {
 } from '../lib/flow';
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
+import Cronometro from '../components/Cronometro';
 import { confirmar, pedirTexto } from '../components/Dialogo';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
@@ -125,6 +126,7 @@ export default function ProjetoDetalhe() {
                           {ativa && !pausado && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
+                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} bloqueado={pausado} />}
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
                         {ativa && !pausado && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>

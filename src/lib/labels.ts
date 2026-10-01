@@ -37,3 +37,19 @@ export const fmtData = (d: string | null | undefined) =>
 
 export const diasAte = (d: string | null) =>
   d ? Math.round((new Date(d + 'T12:00:00').getTime() - Date.now()) / 86_400_000) : null;
+
+/** 3725 → "1 h 02 min"; 600 → "10 min"; 45 → "45 s" */
+export function fmtDur(seg: number | null | undefined) {
+  if (seg == null) return '—';
+  const s = Math.max(0, Math.round(seg));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  if (h) return `${h} h ${String(m).padStart(2, '0')} min`;
+  if (m) return `${m} min`;
+  return `${s} s`;
+}
+/** Relógio do cronômetro: 3725 → "01:02:05" */
+export function fmtRelogio(seg: number) {
+  const s = Math.max(0, Math.floor(seg));
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+}

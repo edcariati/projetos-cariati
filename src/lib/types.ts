@@ -36,3 +36,8 @@ export interface Protocolo {
   cliente_notificado: boolean; observacao: string | null; updated_at: string;
   projetos?: { nome: string; clientes: { nome: string } | null } | null;
 }
+export interface Tempo {
+  id: string; projeto_id: string; etapa_codigo: string; usuario_id: string;
+  iniciado_em: string; finalizado_em: string | null;
+  projetos?: { nome: string } | null; profiles?: { nome: string } | null;
+}

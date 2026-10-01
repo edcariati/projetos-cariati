@@ -49,7 +49,7 @@ const data = (d: number) => dia(d).toISOString().slice(0, 10);
 const db: Record<string, Row[]> = {
   profiles: [{ id: 'demo', nome: 'Equipe Projetos', setor: 'projetos', papel: 'admin' }],
   clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [],
-  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [],
+  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [],
 };
 
 const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'cliente_participa', 'entrada', 'saida', 'regra', 'opcional', 'aceite_formal', 'escopo'];
@@ -60,6 +60,7 @@ const REL: Record<string, Record<string, { t: string; fk: string; many: boolean 
   projetos: { clientes: { t: 'clientes', fk: 'cliente_id', many: false }, projeto_etapas: { t: 'projeto_etapas', fk: 'projeto_id', many: true } },
   protocolos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false } },
   historico: { profiles: { t: 'profiles', fk: 'autor_id', many: false } },
+  tempos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false }, profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
 };
 
 function splitTop(s: string): string[] {
@@ -108,6 +109,7 @@ const DEFAULTS: Record<string, () => Row> = {
   historico: () => ({ etapa_codigo: null, autor_id: 'demo' }),
   protocolo_andamentos: () => ({ autor_id: 'demo' }),
   projeto_documentos: () => ({ modelo_id: null, codigo_arquivo: null }),
+  tempos: () => ({ usuario_id: 'demo', iniciado_em: new Date().toISOString(), finalizado_em: null }),
 };
 
 class Q implements PromiseLike<any> {
@@ -120,6 +122,7 @@ class Q implements PromiseLike<any> {
   update(p: any) { this.op = 'update'; this.payload = p; return this; }
   delete() { this.op = 'delete'; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
+  is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   in(c: string, vs: any[]) { this.filtros.push((r) => vs.includes(r[c])); return this; }
   not(c: string, _o: string, v: string) { const vs = v.replace(/[()]/g, '').split(','); this.filtros.push((r) => !vs.includes(String(r[c]))); return this; }
   order(c: string, o: { ascending?: boolean; nullsFirst?: boolean } = {}) {
@@ -163,6 +166,21 @@ class Q implements PromiseLike<any> {
 }
 
 /* ---------- dados de exemplo ---------- */
+const MIN_BASE: Record<string, number> = { '01': 20, '02': 15, '03': 25, '04': 10, '05': 70, '06': 60, '07': 240, '08': 10, '09': 75, '10': 15, '11': 200, '12': 10, '13': 70, '14': 15, '15': 480, '16': 300, '17': 360, '18': 420, '19': 120, '20': 45, '21': 10, '22': 60, '23': 50, '24': 20 };
+function semearTempos(projetoId: string) {
+  const k = db.projetos.length - 1;
+  for (const e of db.projeto_etapas.filter((x) => x.projeto_id === projetoId && ['concluida', 'em_andamento'].includes(x.status))) {
+    const feito = e.status === 'concluida';
+    const min = (MIN_BASE[e.etapa_codigo] ?? 30) * (0.8 + 0.12 * k) * (feito ? 1 : 0.3);
+    const sessoes = min > 100 ? 2 : 1;
+    for (let s = 0; s < sessoes; s++) {
+      const dur = (min / sessoes) * 60_000;
+      const fim = new Date(e.concluida_em ?? iso(-1)).getTime() - s * 4 * 3_600_000;
+      db.tempos.push({ id: uid(), projeto_id: projetoId, etapa_codigo: e.etapa_codigo, usuario_id: 'demo', iniciado_em: new Date(fim - dur).toISOString(), finalizado_em: new Date(fim).toISOString() });
+    }
+  }
+}
+
 function novoProjeto(cliente: Row, p: Row, ate: string, rodadas = 0) {
   const c = { id: uid(), created_at: iso(-90), ...DEFAULTS.clientes(), ...cliente }; db.clientes.push(c);
   const pr: Row = { id: uid(), created_at: iso(-90), cliente_id: c.id, ...DEFAULTS.projetos(), responsavel_id: 'demo', ...p };
@@ -177,6 +195,7 @@ function novoProjeto(cliente: Row, p: Row, ate: string, rodadas = 0) {
     else if (m.ordem === alvo.ordem) { e.status = 'em_andamento'; e.iniciada_em = iso(-2); e.concluida_em = null; e.rodadas_ajuste = rodadas; }
     else { e.status = 'pendente'; e.iniciada_em = null; e.concluida_em = null; }
   }
+  semearTempos(pr.id);
   db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: ate, tipo: 'etapa_iniciada', texto: 'Etapa iniciada', autor_id: 'demo', created_at: iso(-2) });
   db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: null, tipo: 'nota', texto: 'Cliente prefere reuniões online às terças.', autor_id: 'demo', created_at: iso(-10) });
   return pr;
@@ -195,9 +214,24 @@ novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
   { nome: 'Sobrado Costa', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
 novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', tem_interiores: true }, '03');
 
+function rpc(nome: string, args: any = {}) {
+  const agora = new Date().toISOString();
+  const parar = () => db.tempos.filter((t) => t.usuario_id === 'demo' && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
+  if (nome === 'iniciar_cronometro') {
+    parar();
+    const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: 'demo', iniciado_em: agora, finalizado_em: null };
+    db.tempos.push(r);
+    return Promise.resolve({ data: r, error: null });
+  }
+  if (nome === 'parar_cronometro') { parar(); return Promise.resolve({ data: null, error: null }); }
+  return Promise.resolve({ data: null, error: { message: 'Função não disponível na demonstração' } });
+}
+
 export const demoClient: any = {
   from: (t: string) => new Q(t),
+  rpc,
   auth: {
+    getUser: async () => ({ data: { user: { id: 'demo' } } }),
     getSession: async () => ({ data: { session: { user: { id: 'demo' } } } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
     signInWithPassword: async () => ({ error: null }),

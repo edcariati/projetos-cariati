@@ -10,7 +10,7 @@ code{background:var(--soft);padding:1px 6px;border-radius:4px}
 main{max-width:1000px;margin:0 auto;padding:16px 16px 90px}
 .topo{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:20px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));background:var(--card);border-bottom:1px solid var(--line)}
 .topo nav{display:flex;gap:4px;flex:1}
-.topo nav a{padding:8px 12px;border-radius:8px;color:var(--ink2)}
+.topo nav a{padding:8px 10px;border-radius:8px;color:var(--ink2)}
 .topo nav a.active{background:var(--tint);color:var(--blue);font-weight:500}
 .link{background:none;border:0;color:var(--ink3);cursor:pointer;font:inherit}
 @media(max-width:640px){
@@ -88,3 +88,25 @@ dl{display:grid;grid-template-columns:90px 1fr;gap:4px 12px;margin:0;font-size:1
 .modal .card{width:100%;max-width:420px;margin:0;display:flex;flex-direction:column;gap:12px}
 .modal p{margin:0}
 main.largo{max-width:1240px}
+
+.cronometro{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);flex-wrap:wrap}
+.cronometro.rodando{border-color:var(--blue);background:var(--tint)}
+.relogio{font-variant-numeric:tabular-nums;font-size:26px;font-weight:300;letter-spacing:.02em;min-width:5.6ch}
+.barra-cron{position:sticky;top:calc(env(safe-area-inset-top,0px) + 57px);z-index:4;display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--blue);color:var(--on-accent)}
+.barra-cron a{color:inherit;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barra-cron button{min-height:36px;padding:4px 12px;background:transparent;color:inherit;border-color:currentColor}
+.relogio-peq{font-variant-numeric:tabular-nums;font-weight:500}
+.ponto{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none;animation:pulso 1.4s ease-in-out infinite}
+@keyframes pulso{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.ponto{animation:none}}
+.tabela-wrap{overflow-x:auto;padding:8px 16px}
+.tabela{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.tabela th{font-weight:500;font-size:12px;color:var(--ink3);text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+.tabela td{padding:8px 6px;border-top:1px solid var(--line);vertical-align:middle}
+.tabela .num-col{text-align:right;white-space:nowrap}
+.tabela th.num-col{text-align:right}
+.fase-th td{background:var(--soft);font-size:13px;color:var(--ink2);font-weight:500;border-top:0}
+.sem-dado td{color:var(--ink3)}
+.cod{display:inline-block;min-width:2.2ch;color:var(--blue);font-weight:500}
+.barra-col{width:22%;min-width:90px}
+.mini{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}.mini i{display:block;height:100%;background:var(--blue)}

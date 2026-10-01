@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { EtapaModelo, ProjetoEtapa } from './types';
+import { cronometroAtivo, pararCronometro } from './tempo';
 
 export const MAX_RODADAS = 3;
 export const MAX_DIAS_PAUSA = 180;
@@ -13,6 +14,8 @@ export async function concluirEtapa(
   projetoId: string, etapa: ProjetoEtapa, modelos: EtapaModelo[], etapas: ProjetoEtapa[],
 ) {
   const agora = new Date().toISOString();
+  const rodando = await cronometroAtivo();
+  if (rodando && rodando.projeto_id === projetoId && rodando.etapa_codigo === etapa.etapa_codigo) await pararCronometro();
   const { error } = await supabase.from('projeto_etapas')
     .update({ status: 'concluida', concluida_em: agora }).eq('id', etapa.id);
   if (error) throw error;
@@ -51,6 +54,8 @@ export async function registrarRodada(projetoId: string, etapa: ProjetoEtapa) {
 }
 
 export async function pausarProjeto(projetoId: string, motivo: string) {
+  const rodando = await cronometroAtivo();
+  if (rodando && rodando.projeto_id === projetoId) await pararCronometro();
   const hoje = new Date().toISOString().slice(0, 10);
   await supabase.from('projetos').update({ status: 'pausado', pausado_em: hoje, motivo_pausa: motivo }).eq('id', projetoId);
   await log(projetoId, 'pausa', motivo);

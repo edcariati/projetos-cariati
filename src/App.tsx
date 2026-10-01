@@ -9,6 +9,8 @@ import ProjetoDetalhe from './pages/ProjetoDetalhe';
 import NovoProjeto from './pages/NovoProjeto';
 import Protocolos from './pages/Protocolos';
 import Fluxo from './pages/Fluxo';
+import Tempos from './pages/Tempos';
+import BarraCronometro from './components/BarraCronometro';
 import { DialogHost } from './components/Dialogo';
 
 export default function App() {
@@ -42,10 +44,12 @@ export default function App() {
           <NavLink to="/" end>Painel</NavLink>
           <NavLink to="/projetos">Projetos</NavLink>
           <NavLink to="/protocolos">Protocolos</NavLink>
+          <NavLink to="/tempos">Tempos</NavLink>
           <NavLink to="/fluxo">Fluxo</NavLink>
         </nav>
         <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
       </header>
+      <BarraCronometro />
       <main className={pathname === '/fluxo' ? 'largo' : ''}>
         <Routes>
           <Route path="/" element={<Painel />} />
@@ -53,6 +57,7 @@ export default function App() {
           <Route path="/projetos/novo" element={<NovoProjeto />} />
           <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
           <Route path="/protocolos" element={<Protocolos />} />
+          <Route path="/tempos" element={<Tempos />} />
           <Route path="/fluxo" element={<Fluxo />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
