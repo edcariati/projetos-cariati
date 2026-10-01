@@ -60,16 +60,16 @@ legend{padding:0 6px;font-size:13px;color:var(--ink3)}
 .tag.pausado,.tag.p-exigencia{background:#F6E7C8;color:#7A5410}
 .tag.e-concluida,.tag.finalizado,.tag.p-aprovado,.tag.p-entregue_ao_cliente{background:#D9F0E2;color:#1F6B45}
 .tag.rescindido{background:#F5D5D0;color:#8A2A20}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.chip{background:var(--soft);padding:3px 12px;border-radius:999px;font-size:13px;color:var(--ink2)}
+.etiquetas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.etiqueta{background:var(--soft);padding:3px 12px;border-radius:999px;font-size:13px;color:var(--ink2)}
 .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .etapas{list-style:none;margin:0;padding:0}
 .et{border-top:1px solid var(--line)}.et:first-child{border-top:0}
 .et.nao_aplicavel{display:none}
 .linha{display:flex;align-items:center;gap:12px;padding:10px 0;cursor:pointer;justify-content:space-between}
 .grow{flex:1;min-width:0}
-.num{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
-.et.em_andamento .num{background:var(--blue);border-color:var(--blue);color:#fff}
-.et.concluida .num{background:var(--tint);color:var(--blue);border-color:var(--blue)}
+.et-num{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.et.em_andamento .et-num{background:var(--blue);border-color:var(--blue);color:#fff}
+.et.concluida .et-num{background:var(--tint);color:var(--blue);border-color:var(--blue)}
 .detalhe{background:var(--soft);border-radius:10px;padding:12px;margin:0 0 10px;display:flex;flex-direction:column;gap:10px}
 dl{display:grid;grid-template-columns:90px 1fr;gap:4px 12px;margin:0;font-size:14px}dt{color:var(--ink3)}dd{margin:0}
 .rodadas{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
@@ -78,12 +78,13 @@ dl{display:grid;grid-template-columns:90px 1fr;gap:4px 12px;margin:0;font-size:1
 .pilha{display:flex;flex-direction:column}
 .nota{display:flex;gap:8px;margin-bottom:12px}
 .hist{list-style:none;padding:0;margin:0}.hist li{padding:8px 0;border-top:1px solid var(--line);font-size:14px}
-.docs{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
-.doc{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px}
+.anexos{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.anexo{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px}
 .upload{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);cursor:pointer;font-size:13px;white-space:nowrap;align-self:flex-start;min-height:40px;display:inline-flex;align-items:center}
-.docs .link{color:var(--blue);text-align:left}
+.anexos .link{color:var(--blue);text-align:left}
 .demo{background:#F6E7C8;color:#7A5410;text-align:center;font-size:13px;padding:6px 12px}
 
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
 .modal .card{width:100%;max-width:420px;margin:0;display:flex;flex-direction:column;gap:12px}
 .modal p{margin:0}
+main.largo{max-width:1240px}

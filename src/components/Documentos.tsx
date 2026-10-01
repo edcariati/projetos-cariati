@@ -54,14 +54,14 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
   );
 
   return (
-    <div className="docs">
+    <div className="anexos">
       <b className="pequeno mudo">Documentos</b>
       {erro && <p className="erro">{erro}</p>}
       {modelos.map((m) => {
         const feitos = docs.filter((d) => d.modelo_id === m.id);
         const codigo = m.padrao_arquivo?.replace('CAXXXXXX', clienteCodigo ?? 'CAXXXXXX');
         return (
-          <div className="doc" key={m.id}>
+          <div className="anexo" key={m.id}>
             <div className="grow">
               <div>{m.nome}</div>
               <div className="pequeno mudo">{codigo ? <code>{codigo}</code> : 'sem necessidade de salvamento'}</div>
@@ -72,7 +72,7 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
         );
       })}
       {docs.filter((d) => !d.modelo_id).map((d) => (
-        <div className="doc" key={d.id}><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button></div>
+        <div className="anexo" key={d.id}><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button></div>
       ))}
       <Envio modelo={null} rotulo="+ Outro arquivo" />
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { configurado, demo, supabase } from './lib/supabase';
 import Login from './pages/Login';
@@ -8,9 +8,11 @@ import Projetos from './pages/Projetos';
 import ProjetoDetalhe from './pages/ProjetoDetalhe';
 import NovoProjeto from './pages/NovoProjeto';
 import Protocolos from './pages/Protocolos';
+import Fluxo from './pages/Fluxo';
 import { DialogHost } from './components/Dialogo';
 
 export default function App() {
+  const { pathname } = useLocation();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
@@ -40,16 +42,18 @@ export default function App() {
           <NavLink to="/" end>Painel</NavLink>
           <NavLink to="/projetos">Projetos</NavLink>
           <NavLink to="/protocolos">Protocolos</NavLink>
+          <NavLink to="/fluxo">Fluxo</NavLink>
         </nav>
         <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
       </header>
-      <main>
+      <main className={pathname === '/fluxo' ? 'largo' : ''}>
         <Routes>
           <Route path="/" element={<Painel />} />
           <Route path="/projetos" element={<Projetos />} />
           <Route path="/projetos/novo" element={<NovoProjeto />} />
           <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
           <Route path="/protocolos" element={<Protocolos />} />
+          <Route path="/fluxo" element={<Fluxo />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

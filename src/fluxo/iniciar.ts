@@ -1,0 +1,297 @@
+// @ts-nocheck
+/* Fluxo do Setor de Projetos: script original da página de referência, adaptado para rodar dentro do app. */
+export function iniciarFluxo(root){
+var $=function(id){return root.querySelector('#'+id);};
+
+var SET={cm:'Comercial',ad:'Administrativo',pj:'Setor de Projetos',cl:'Cliente',tr:'Terceiros'};
+var CICLO_AGEND=function(qual){return ['Solicitação|O Setor de Projetos informa a finalização do estudo de '+qual+' no canal oficial e solicita ao Administrativo o agendamento.','Agendamento|O Administrativo agenda a reunião de apresentação com o cliente pelo canal oficial e combina a modalidade: presencial ou online.','Confirmação|Confirma a reunião perto da data marcada.'];};
+var CICLO_APRES=function(arq){return ['Ata de reunião|Redigir a ata preenchida em reunião para envio e assinatura formal do cliente.','Cenário A|Cliente aprova sem alterações: é informado de que receberá o documento de aceite formal e o fluxo segue para o aceite.','Cenário B|Cliente pede alterações: o Setor de Projetos analisa as solicitações e o tipo de impacto das alterações para definir a forma de apresentação.','Alterações simples|Pontuais, sem impacto significativo. Solicitação registrada em ata preenchida em reunião, ajustes realizados, envio do '+arq+' pelo grupo oficial (WhatsApp) e aguardar o retorno do cliente. Aprovou: aceite formal. Pediu mais: novo ciclo.','Alterações significativas|Numerosas ou que mudam a lógica, a distribuição ou o desenvolvimento. Solicitação registrada em ata preenchida em reunião, ajustes realizados, agendamento de reunião e apresentação presencial ou online. Aprovou: aceite formal. Pediu mais: novo ciclo.','Limite|Até 3 rodadas de alteração por etapa, previstas em contrato. Acima disso haverá custo adicional, e isso deve ser lembrado ao cliente na segunda reunião de ajustes.','Prazo|Mínimo de 7 dias corridos para alterações simples e 15 para significativas, podendo variar com a demanda do profissional e a complexidade. Com o cliente, nunca informar prazo menor, mesmo que seja possível concluir antes, para não criar expectativa irreal.'];};
+var S={
+ '1':{n:'01',l:'Contrato',t:'Fechamento do contrato',w:['cm'],i:'Negociação concluída',f:'Formaliza o contrato e alinha o perfil do cliente com o Setor de Projetos',o:'Dossiê do cliente',r:'Dossiê incompleto volta ao Comercial, impossibilitando seguir para o Setor de Projetos até a regularização',
+  d:['Início|O Setor Comercial negocia e fecha o contrato com o cliente.','Transferência|Com o contrato formalizado, envia o dossiê do cliente/projeto ao Setor de Projetos e informa o Administrativo sobre o fechamento.','Dossiê|Reúne todas as informações da negociação pertinentes ao projeto, inclusive as fornecidas pelo cliente.','Alinhamento|Depois do envio, realiza uma breve reunião com o profissional responsável pelo projeto: percepção do perfil do cliente, expectativas, necessidades e tudo que ajude nas reuniões futuras e na experiência do cliente.','Ponto de controle|Se faltar informação essencial, houver inconsistência ou dados insuficientes sobre cliente, escopo ou necessidades, o Setor de Projetos comunica o Comercial para alinhar, complementar ou corrigir. Até a regularização, o fluxo não segue para o Setor de Projetos.'],doc:['Dossiê com as informações do cliente (app do Comercial)|DOS_CAXXXXXX_REVXX']},
+ '2':{n:'02',l:'Pasta e grupo',t:'Pasta e grupo do cliente',w:['ad'],i:'Contrato fechado',f:'Cria a pasta no servidor, registra na data base e abre o grupo do cliente',o:'Grupo oficial no WhatsApp',r:'Acontece em paralelo ao envio do dossiê',
+  d:['Pasta|O Administrativo cria a pasta do cliente no servidor e insere as informações na data base.','Grupo|Em paralelo à transferência do Comercial para o Setor de Projetos, cria o grupo de comunicação com o cliente, de acordo com o padrão do cliente.','Objetivo|Centralizar as comunicações do projeto e garantir que os alinhamentos entre cliente e Setor de Projetos aconteçam em canal oficial.','Participantes|Cliente, Setor de Projetos e Atendimento/Administrativo.','Início técnico|Com o grupo criado, o Setor de Projetos entra no canal e começa formalmente o relacionamento técnico com o cliente.'],doc:['Texto padrão para grupo de WhatsApp (cliente A para cima)_REV01|sem necessidade de salvamento','Texto padrão para grupo de WhatsApp (cliente B para baixo)_REV01|sem necessidade de salvamento','Texto padrão para grupo de WhatsApp (cliente + projetos)_REVIN|sem necessidade de salvamento']},
+ '3':{n:'03',l:'Briefing',t:'Apresentação e envio do briefing',w:['pj','cl'],i:'Grupo de WhatsApp criado',f:'O responsável se apresenta, envia o briefing e orienta o preenchimento',o:'Briefing preenchido',r:'O fluxo é pausado até a realização do preenchimento pelo cliente',
+  d:['Apresentação|Ao entrar no grupo, o responsável pelo projeto se apresenta ao cliente.','Envio|Envia o briefing de acordo com o escopo de serviços contratado (projeto, interiores ou outro existente) e orienta o cliente no preenchimento.','Resultado esperado|Briefing preenchido pelo cliente.','Uso|O briefing é uma das principais bases dos estudos e deve ser considerado ao longo de todo o projeto.','Decisão 01|Briefing preenchido? Não: o fluxo fica pausado até o preenchimento. Sim: agendar a reunião de briefing.'],doc:['Envio do briefing de projeto_REVIN|sem necessidade de salvamento','Imagem briefing|sem necessidade de salvamento','Briefing respondido pelo cliente (Forms)|BRF_CAXXXXXX_REVXX']},
+ '4':{n:'04',l:'Agendamento',t:'Agendamento da reunião de briefing',w:['ad','cl'],i:'Briefing preenchido',f:'Agenda com o cliente, define a modalidade e confirma perto da data',o:'Reunião de briefing marcada',r:'A modalidade (presencial ou online) é combinada com o cliente no agendamento',
+  d:['Notificação|Recebe a notificação de que o briefing foi preenchido.','Agendamento|Agenda a reunião com o cliente e combina a modalidade: presencial ou online.','Confirmação|Confirma a reunião perto da data marcada.']},
+ '5':{n:'05',l:'Reunião',t:'Reunião de briefing',w:['pj','cl'],i:'Briefing e dossiê do Comercial',f:'Tira dúvidas, aprofunda necessidades e registra os pontos técnicos em ata',o:'Ata da reunião assinada',r:'Com informação suficiente, o projeto entra em desenvolvimento',
+  d:['Objetivo|Compreender, validar e complementar as informações fornecidas pelo cliente por meio do briefing e do dossiê do Comercial.','Na reunião|Esclarecer dúvidas, aprofundar necessidades, discutir expectativas e avaliar necessidades específicas do projeto.','Registro|Alinhar as informações para o desenvolvimento arquitetônico e registrar em ata os pontos técnicos que valem para as etapas seguintes.','Ata de reunião|Assinada pelo cliente ao final da reunião. Depois, o responsável pela reunião redige a ata e envia para a assinatura formal do cliente.','Saída|Com informações suficientes, o projeto entra efetivamente na etapa de desenvolvimento.'],doc:['Ata reunião presencial padrão 2026_REV02|ATA_CAXXXXXX_BRF_DATA']},
+ '6':{n:'06',l:'Levantamento',t:'Levantamento e documentos',w:['pj','cl'],i:'Ata e briefing',f:'Faz o levantamento fotográfico e solicita os documentos pelo grupo oficial',o:'Fotos e documentação',r:'O estudo só começa com o levantamento e os documentos em mãos',
+  d:['Levantamento fotográfico|O Setor de Projetos fotografa o terreno, imóvel ou local do projeto.','Clientes + projetos (C e D)|O levantamento fotográfico não se aplica. Para esses clientes, é solicitada a foto do terreno.','Objetivos|Conhecer as condições existentes, registrar características, obter referências visuais, identificar elementos que possam interferir no projeto e subsidiar o estudo.','Documentos|Solicitados ao cliente pelo canal oficial (grupo de WhatsApp). A relação depende das características e necessidades de cada projeto.','Ponto de controle|Levantamento realizado e documentação necessária recebida liberam o início do estudo preliminar.'],doc:['Documentação do terreno ou imóvel']},
+ '7':{n:'07',l:'Planta baixa',t:'Estudo de planta baixa',w:['pj'],i:'Briefing, ata, fotos e documentos',f:'Desenvolve o estudo preliminar e gera o PDF de apresentação',o:'Estudo preliminar em PDF',r:'Ao finalizar, informa no canal oficial que o Administrativo fará o agendamento',
+  d:['Análise das informações colhidas|Informações do briefing, ata da reunião, levantamento fotográfico, diretrizes e zoneamento municipal.','Início do estudo preliminar|Desenvolvimento do estudo preliminar da planta baixa. Para clientes + projetos, o estudo da fachada é elaborado junto, para ser apresentado com o estudo da planta baixa.','Formatação do estudo|Gerar o PDF com as informações pertinentes do estudo preliminar. Para clientes + projetos, gerar também as imagens da fachada para a apresentação.','Notificação da finalização|Ao finalizar o estudo, informar no canal oficial a finalização e que o Administrativo entrará em contato para o agendamento da reunião.']},
+ '8':{n:'08',l:'Agendamento',t:'Agendamento da apresentação da planta baixa',w:['ad','cl'],i:'Aviso de finalização do Setor de Projetos',f:'Agenda com o cliente, define a modalidade e confirma perto da data',o:'Reunião de apresentação marcada',r:'A modalidade (presencial ou online) é combinada com o cliente no agendamento',d:CICLO_AGEND('planta baixa')},
+ '9':{n:'09',l:'Apresentação',t:'Apresentação da planta baixa',w:['pj','cl'],i:'Estudo preliminar em PDF',f:'Apresenta em reunião, registra em ata e conduz os ajustes pedidos',o:'Aprovação do cliente',r:'Até 3 rodadas de ajuste. Prazo mínimo informado: 7 dias (simples) e 15 (significativas)',d:CICLO_APRES('PDF'),doc:['Ata reunião presencial padrão 2026_REV02|ATA_CAXXXXXX_ESTD_DATA','Projeto preliminar — planta baixa']},
+ '10':{n:'10',l:'Aceite',k:'ok',t:'Aceite formal da planta baixa',w:['pj','ad','cl'],i:'Cliente de acordo, sem novas alterações',f:'O Setor de Projetos elabora o aceite e o Administrativo envia para assinatura',o:'Aceite assinado',r:'Sem assinatura, nada avança',
+  d:['Quando|Assim que o cliente concorda com o estudo, sem necessidade de novas alterações.','Como|O Setor de Projetos elabora o documento de Aceite Formal da Etapa de Estudo Preliminar — Planta Baixa e solicita ao Administrativo o envio para assinatura do cliente.','Fluxo|Estudo apresentado, cliente aprova, documento de aceite, cliente assina, etapa concluída.','Regra|Só depois da formalização a equipe avança para o estudo de fachada.'],doc:['Mensagem sobre os estudos_REVIN|sem necessidade de salvamento','Aceite da planta baixa — ESTD_REVIN|ESTD_CAXXXXXX_REVIN']},
+ '11':{n:'11',l:'Fachada',t:'Estudo de fachada',w:['pj'],i:'Aceite da planta baixa',f:'Desenvolve a fachada a partir da planta aprovada e do briefing',o:'Estudo de fachada em imagem',r:'Ao finalizar, informa no canal oficial que o Administrativo fará o agendamento',
+  d:['Início|Inicia após a aprovação formal da planta baixa.','Base|Briefing inicial, informações das reuniões, necessidades do cliente, características do projeto, planta baixa aprovada e demais informações pertinentes.','Clientes + projetos|O estudo da fachada é elaborado junto com o estudo de planta baixa (etapa 07) e apresentado na mesma reunião.','Formatação do estudo|A formatação do estudo de fachada é em imagem. O PDF é gerado apenas para a assinatura do aceite da fachada.','Notificação da finalização|Ao finalizar o estudo, informar no canal oficial a finalização e que o Administrativo entrará em contato para o agendamento da reunião.']},
+ '12':{n:'12',l:'Agendamento',t:'Agendamento da apresentação da fachada',w:['ad','cl'],i:'Aviso de finalização do Setor de Projetos',f:'Agenda com o cliente, define a modalidade e confirma perto da data',o:'Reunião de apresentação marcada',r:'A modalidade (presencial ou online) é combinada com o cliente no agendamento',d:CICLO_AGEND('fachada')},
+ '13':{n:'13',l:'Apresentação',t:'Apresentação da fachada',w:['pj','cl'],i:'Estudo de fachada em imagem',f:'Apresenta em reunião, registra em ata e conduz os ajustes pedidos',o:'Aprovação do cliente',r:'Até 3 rodadas de ajuste. Prazo mínimo informado: 7 dias (simples) e 15 (significativas)',d:CICLO_APRES('arquivo'),doc:['Ata reunião presencial padrão 2026_REV02|ATA_CAXXXXXX_FACH_DATA','Projeto preliminar — fachada']},
+ '14':{n:'14',l:'Aceite',k:'ok',t:'Aceite formal da fachada',w:['pj','ad','cl'],i:'Cliente de acordo, sem novas alterações',f:'O Setor de Projetos elabora o aceite e o Administrativo envia para assinatura',o:'Aceite assinado',r:'Sem assinatura, nada avança',
+  d:['Quando|Assim que o cliente concorda com o estudo, sem necessidade de novas alterações.','Como|O Setor de Projetos elabora o documento de Aceite Formal da Etapa de Estudo de Fachada e solicita ao Administrativo o envio para assinatura do cliente.','Fluxo|Estudo apresentado, cliente aprova, documento de aceite, cliente assina, etapa concluída.','Regra|Só depois da formalização a equipe avança para o projeto arquitetônico.'],doc:['Mensagem sobre os estudos_REVIN|sem necessidade de salvamento','Termo de aceite do estudo de fachada_REV02|ACT_CAXXXXXX_FACH_REVXX']},
+ '15':{n:'15',l:'Arquitetônico',t:'Projeto arquitetônico',w:['pj'],i:'Estudos aprovados',f:'Desenvolve o projeto e emite o registro de conclusão',o:'Projeto conferido',r:'Outro profissional confere com o checklist antes de seguir para a próxima etapa',
+  d:['Início|Após a aprovação formal do estudo preliminar de planta baixa e fachada.','Desenvolvimento|Considera todas as informações, definições e soluções aprovadas pelo cliente.','Liberação|Ao terminar, o projeto não vai direto para a próxima etapa nem para o cliente: o profissional emite o registro de conclusão para análise interna.','Análise interna|Feita por outro profissional do escritório, que não seja o responsável direto, usando o checklist.','Resultado|Sem apontamentos: prossegue. Com pendências: volta ao responsável, é corrigido e passa por nova análise. Só segue após a aprovação interna.','Próxima etapa|Sem outros projetos contratados: segue para a etapa de entrega do projeto ao cliente. Com outros projetos contratados: segue para eles e depois para a entrega.'],doc:['Registro de conclusão de etapa para análise interna_REVIN|RDCE_CAXXXXXX_ARQ_REVXX','CHECKLIST_ARQ_CON_DOCS_REVIN|CHCK_CAXXXXXX_ARQ_REVXX']},
+ '16':{n:'16',l:'Legal',k:'opt',t:'Projeto legal',w:['pj','tr'],i:'Projeto arquitetônico conferido',f:'Desenvolve o projeto legal, prepara a documentação e protocola na prefeitura e no condomínio (quando necessário)',o:'Projeto aprovado',r:'Entregar ao cliente assim que a aprovação sair',
+  d:['Quando|Se o contrato prevê aprovação na Prefeitura. Começa após a conclusão do projeto arquitetônico.','Desenvolvimento|Documentação preparada a partir do projeto arquitetônico e dos requisitos do processo de aprovação.','Análise interna|Registro de conclusão e conferência por outro profissional com o checklist antes de protocolar na prefeitura e no condomínio. Pendências voltam para correção e nova análise.','Fluxo|Elaboração, análise interna, protocolo na Prefeitura, notificação de entrada ao cliente, acompanhamento diário, aprovação, agendamento da entrega e entrega ao cliente.','Entrega|Assim que a aprovação sair, sem acumular com outras etapas, de acordo com o escopo em contrato.','Condomínio|Enviar o projeto arquitetônico em paralelo com a aprovação da prefeitura. O projeto arquitetônico deve conter todos os itens obrigatórios do condomínio.','Escopo|Se o contrato termina nesta etapa, segue para a etapa de entrega do projeto ao cliente.','Documentos por tipo de aprovação|No servidor há 5 tipos de aprovação: residencial, comercial, habite-se, unificação e averbação. Conforme o tipo, entram também a declaração de obra comercial sem uso definido (DCD), o termo de habite-se (TDH), a declaração de CTRS (CTR), a isenção da CTRS (ICTR) e o requerimento para averbação de construção (RDA).'],doc:['Registro de conclusão de etapa para análise interna_REVIN|RDCE_CAXXXXXX_CON_REVXX','CHECKLIST_ARQ_CON_DOCS_REVIN|CHCK_CAXXXXXX_CON_REVXX','Procuração (pessoa física ou jurídica)|PRC_CAXXXXXX_REVXX','Memorial descritivo|MMD_CAXXXXXX_REVXX','Termo de compromisso|TDC_CAXXXXXX_REVXX','Termo de veracidade (unifamiliar ou multifamiliar)|TDV_CAXXXXXX_REVXX','Protocolo_de_acompanhamento_REV01|PDAC_CAXXXXXX','RRT de projeto e/ou gestão']},
+ '17':{n:'17',l:'Estudo de interiores',k:'opt',t:'Estudo de interiores',w:['pj','ad','cl'],i:'Aceites do estudo preliminar',f:'Briefing, reunião, estudo, apresentação e ajustes',o:'Aceite assinado',r:'Mesmo ciclo de ajustes da planta baixa',
+  d:['Quando|Se contratado. Começa após os aceites do estudo preliminar ou, havendo projeto legal, após o protocolo na prefeitura.','Briefing|Após os aceites do estudo preliminar, o Setor de Projetos envia o briefing de interiores e orienta o preenchimento. Resultado esperado: briefing preenchido.','Agendamento|O Administrativo recebe a notificação do preenchimento do briefing de interiores, agenda a reunião combinando com o cliente a modalidade (presencial ou online) e confirma a reunião perto da data agendada.','Reunião de briefing|Esclarecer dúvidas, aprofundar necessidades e expectativas, avaliar necessidades específicas e registrar os pontos técnicos em ata preenchida em reunião, redigida posteriormente e enviada para assinatura do cliente. Havendo complementares, a reunião de pontos técnicos acontece junto.','Desenvolvimento|Com base no briefing e nos alinhamentos. Ao finalizar a elaboração, informar no canal oficial e solicitar ao Administrativo o agendamento da reunião.','Consolidação|O projeto deve estar consolidado e aprovado pelo cliente para ser iniciado o detalhamento de interiores e os detalhamentos pertinentes aos projetos complementares.','Apresentação|Cenário A: aprova e segue para o aceite. Cenário B: alterações simples pelo grupo oficial ou significativas com reunião e nova apresentação, como na planta baixa.','Aceite formal|O Setor de Projetos elabora o Aceite Formal da Etapa de Interiores e solicita ao Administrativo o envio para assinatura. Só depois da assinatura avança para o detalhamento.','Escopo|A entrega ao cliente é feita após a finalização da etapa de detalhamento.'],doc:['Briefing de interiores','Ata reunião presencial padrão 2026_REV02|ATA_CAXXXXXX_INTR_DATA','Mensagem sobre os estudos_REVIN|sem necessidade de salvamento','Termo de aceite do estudo de projeto de interiores_REVIN|ACT_CAXXXXXX_INTR_REVXX']},
+ '18':{n:'18',l:'Detalhamento',k:'opt',t:'Detalhamento de interiores',w:['pj'],i:'Estudo de interiores aprovado',f:'Detalha os elementos criados e aplicados no estudo para sua execução',o:'Detalhamento conferido',r:'Análise interna antes da entrega',
+  d:['Início|Após o aceite formal do estudo de interiores, considerando todas as definições e soluções adotadas na etapa do estudo de interiores.','Detalhamento para complementares|Antes do detalhamento para execução, é feito o detalhamento que será enviado aos complementares, quando fizerem parte do escopo contratado. Vem primeiro porque outro profissional usará esse material para executar a etapa dele.','Desenvolvimento|Detalhamento necessário para a execução, com informações, especificações e as definições e soluções adotadas na etapa do estudo de interiores.','Análise interna|Ao finalizar a elaboração de todos os detalhamentos, outro profissional confere as informações antes da apresentação ao cliente.','Resultado|Com pendências: volta ao responsável, é corrigido e passa por nova análise. Aprovado: segue para a entrega.']},
+ '19':{n:'19',l:'Complementares',k:'opt',t:'Projetos complementares',w:['pj','tr'],i:'Arquitetônico ou estudo de interiores consolidado',f:'Repassa as informações técnicas aos profissionais dos complementares',o:'Projetos complementares contratados',r:'Antes, reunião de pontos técnicos com o cliente',
+  d:['Início e liberação|Dependem de haver ou não projeto de interiores.','Sem interiores|Com o arquitetônico finalizado, é agendada uma nova reunião com o cliente para alinhar os pontos técnicos de elétrica e hidrossanitário. Com esse alinhamento é feito um projeto de pontos técnicos com todas as informações, encaminhado ao profissional responsável pelos complementares junto com os demais arquivos pertinentes.','Com interiores|Começam quando o estudo de interiores está consolidado e aprovado, junto com o detalhamento de pontos técnicos. A reunião de pontos técnicos acontece junto com a reunião de briefing de interiores.','Encaminhamento|O Setor de Projetos repassa aos profissionais dos complementares todas as informações técnicas levantadas nas reuniões e no desenvolvimento de interiores.','Entrega|Possui complementares ou interiores? Não: agendar a entrega. Sim: desenvolvimento, aprovação ou análise e detalhamentos.'],doc:['Ata reunião presencial padrão 2026_REV02|ATA_CAXXXXXX_PTEC_DATA','Checklist dos complementares|CHCK_CAXXXXXX_COM_REVXX']},
+ '20':{n:'20',l:'Conferência',t:'Conferência final',w:['pj'],i:'Etapas independentes concluídas',f:'Confere os materiais e avisa o cliente no grupo oficial',o:'Pedido de agendamento',r:'Cada etapa, quando independente, é entregue assim que é concluída',dt:'Cenários de entregas',
+  d:['Arquitetônico|Sem aprovação legal: entregue ao finalizar. Com Prefeitura ou condomínio: entregue só depois da aprovação.','Complementares|Sem interiores: a entrega é feita após a conferência e conclusão dos projetos complementares. Com interiores: entregues juntos, após conferência e conclusão.','Interiores|Sem complementares: a entrega é feita após a conferência e conclusão do detalhamento. Com complementares: entregues juntos, após conferência e conclusão.','Entrega|Após a conferência final dos materiais, o Setor de Projetos informa ao cliente a conclusão da etapa independente e solicita ao Administrativo o agendamento da entrega dessa etapa.']},
+ '21':{n:'21',l:'Agendamento',t:'Agendamento da entrega',w:['ad','cl'],i:'Solicitação do Setor de Projetos',f:'Confirma data, horário e modalidade com o cliente',o:'Reunião de entrega marcada',r:'O contato com o cliente é feito pelo canal oficial criado no WhatsApp',
+  d:['Disponibilidade|Verifica a disponibilidade do cliente.','Agendamento|Agenda a reunião de entrega.','Confirmação|Confirma data, horário e modalidade.','Retorno|Comunica ao Setor de Projetos a confirmação do agendamento.']},
+ '22':{n:'22',l:'Preparação',t:'Preparação da entrega',w:['pj'],i:'Reunião de entrega marcada',f:'Imprime, organiza, emite o termo e prepara e-mail e arquivos',o:'Materiais conferidos e separados',r:'Pendrive apenas em projetos premium',
+  d:['Impressão|Arquivos e documentos elaborados pelo escritório, como projeto arquitetônico, projeto legal, documentos para a prefeitura e documentos aprovados pela prefeitura. Estudos, interiores e complementares não são impressos.','Originais|Organização dos documentos e conferência dos que serão devolvidos ao cliente.','Termo|Emissão do termo de retirada de documentos em duas vias.','Digitais|Preparação do e-mail de entrega e organização dos arquivos conforme as diretrizes de retirada, para todos os tipos de cliente, inclusive os premium.','Premium|Pendrive com os arquivos digitais quando o projeto é da categoria premium.','Conferência|Revisão final dos materiais físicos e digitais antes da reunião.'],doc:['Termo de retirada de documento_REV04|TDRD_CAXXXXXX_REVXX','Corpo do e-mail de entrega por e-mail_REV01|sem necessidade de salvamento','Diretrizes para retirada de documentos_REVIN|sem necessidade de salvamento']},
+ '23':{n:'23',l:'Entrega',t:'Reunião de entrega',w:['pj','cl'],i:'Materiais conferidos e separados',f:'Entrega físico e digital e esclarece dúvidas',o:'Termo assinado e foto com o cliente',r:'Documentação da Prefeitura só depois da aprovação',
+  d:['Entrega|Documentos e materiais previstos.','Físicos|Apresentação dos arquivos entregues em papel.','Digitais|Apresentação e orientação sobre os arquivos disponibilizados digitalmente.','Dúvidas|Esclarecimento sobre os materiais entregues.','Formalização|Assinatura do Termo de Retirada de Documentos.','Registro|Foto com o cliente ao final, como comprovação da entrega.'],doc:['Termo de retirada de documento_REV04|TDRD_CAXXXXXX_REVXX']},
+ '24':{n:'24',l:'Encerramento',t:'Encerramento',w:['pj'],i:'Entrega realizada',f:'Arquiva documentos e marca como finalizado no Vobi',o:'Projeto fora do Quadro de Projetos',
+  d:['Arquivamento|Separar os documentos que ficaram com o escritório e arquivar apenas os que forem pertinentes.','Vobi|Atualizar o projeto como finalizado.','Quadro de Projetos|Remover o projeto, encerrando formalmente seu ciclo no setor.']},
+ 'P1':{n:'P1',l:'A pedido',t:'Pausa a pedido do cliente',w:['pj','cl'],i:'Pedido do cliente',f:'Registra e emite o termo de pausa',o:'Termo assinado',r:'O projeto fica parado até a retomada formal',
+  d:['Quando|Em qualquer etapa, a pedido do cliente.','Fluxo|Cliente solicita, o Setor de Projetos registra, emite o documento de pausa, o cliente assina e o projeto é pausado.','Durante a pausa|O projeto não avança até a retomada ser solicitada formalmente.'],doc:['Termo de solicitação de pausa de projeto_REVIN|TDSP_CAXXXXXX_REVXX']},
+ 'P2':{n:'P2',l:'Sem retorno',t:'Pausa por falta de retorno',w:['ad'],i:'3 semanas sem resposta',f:'Envia a notificação por e-mail e avisa no WhatsApp',o:'Projeto pausado',
+  d:['Quando|O cliente deixa de dar retorno.','Fluxo|O Administrativo tenta contato por 3 semanas, envia a notificação de pausa por e-mail, avisa o envio pelo WhatsApp e o projeto é pausado.','Detalhe|O passo a passo completo está nas diretrizes de notificação de pausa.'],doc:['Notificação de pausa de projeto_REVIN|NDPP_CAXXXXXX_REVXX']},
+ 'P3':{n:'P3',l:'Retomada',t:'Retomada do projeto',w:['pj','cl'],i:'Pedido de retorno',f:'Confere a etapa, envia o aditivo e revisa as informações',o:'Aditivo assinado',r:'Possível em até 180 dias de pausa',
+  d:['Fluxo|Cliente pede o retorno, confere-se a etapa em que o projeto parou, envia-se o aditivo, o cliente assina, o projeto é reativado e continua.','Revisão|Se passou um período significativo, as informações do projeto são reanalisadas e replanejadas antes de seguir.','Prazo|A retomada só é possível se a pausa não passar de 180 dias.'],doc:['Termo de retomada projeto_REVIN|TDRP_CAXXXXXX_REVXX','Aditivo de retomada de projeto_REVIN|ADRP_CAXXXXXX_REVXX']},
+ 'P4':{n:'P4',l:'Rescisão',t:'Prazo de pausa esgotado',w:['ad'],i:'181º dia de pausa',f:'Envia o termo de rescisão de contrato por ausência de retomada',o:'Contrato encerrado',
+  d:['Quando|A pausa passou de 180 dias sem pedido de retomada.','Ação|No 181º dia deve ser enviado o termo de rescisão de contrato por ausência de retomada.'],doc:['Rescisão de contrato por ausência de retorno']}
+};
+var PH=[
+ {n:1,id:'f1',t:'Abertura e briefing',d:'Do contrato à primeira reunião',s:['1','2','3','4','5']},
+ {n:2,id:'f2',t:'Estudos e aprovações',d:'Planta baixa e fachada, cada uma com agendamento, apresentação e aceite',s:['6','7','8','9','10','11','12','13','14']},
+ {n:3,id:'f3',t:'Desenvolvimento',d:'Tracejado: só quando contratado',s:['15','16','17','18','19']},
+ {n:4,id:'f4',t:'Entrega e encerramento',d:'Cada etapa é entregue assim que fica pronta',s:['20','21','22','23','24']},
+ {n:5,id:'f5',t:'Pausa e retomada',d:'Pode ocorrer em qualquer etapa',s:['P1','P2','P3','P4']}
+];
+function phaseOf(id){for(var i=0;i<PH.length;i++)if(PH[i].s.indexOf(id)>-1)return PH[i];}
+
+/* ---------- mapa ---------- */
+var NS='http://www.w3.org/2000/svg',svg=$('map');
+function el(tag,a,p){var e=document.createElementNS(NS,tag);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e;}
+function tx(p,x,y,cls,str,anc){var t=el('text',{x:x,y:y,'class':cls,'text-anchor':anc||'middle','dominant-baseline':'central'},p);t.textContent=str;return t;}
+var defs=el('defs',{},svg),mk=el('marker',{id:'ah',viewBox:'0 0 10 10',refX:'8',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'},defs);
+el('path',{d:'M1 1L8 5L1 9','class':'mkp'},mk);
+
+var X=[90,274,458,642,826,1010];
+[[40,1,'Abertura e briefing'],[230,2,'Estudos e aprovações'],[740,3,'Desenvolvimento'],[1100,4,'Entrega e encerramento']].forEach(function(p){
+  el('circle',{cx:124,cy:p[0],r:11,'class':'pc'},svg);tx(svg,124,p[0],'pn',p[1]);tx(svg,144,p[0],'pl',p[2],'start');
+});
+tx(svg,144,258,'cap','Planta baixa','start');
+tx(svg,144,494,'cap','Fachada','start');
+tx(svg,760,794,'cap','sem outros projetos contratados, segue para a entrega','start');
+el('rect',{x:16,y:1234,width:1108,height:162,rx:16,'class':'pzb'},svg);
+tx(svg,40,1262,'pzt','Pausa e retomada','start');tx(svg,172,1262,'pzm','pode ocorrer em qualquer etapa','start');
+
+var E=[
+ ['M164 112 H222'],['M322 112 H380'],['M532 112 H564'],['M716 112 H748'],['M900 112 H932'],['M274 80 V62 H120 V82'],
+ ['M1010 138 V190 H90 V270','rt'],
+ ['M164 300 H196'],['M348 300 H380'],['M532 300 H564'],['M716 300 H774'],['M874 300 H932'],['M826 332 V386'],['M752 414 H642 V330'],
+ ['M1010 326 V470 H90 V510','rt'],
+ ['M164 540 H196'],['M348 540 H380'],['M532 540 H590'],['M690 540 H748'],['M642 572 V626'],['M568 654 H458 V570'],
+ ['M900 540 H1010 V700 H90 V776','rt'],
+ ['M164 806 H222'],['M322 806 H396'],['M274 774 V760 H120 V776'],['M458 838 V886'],
+ ['M516 806 H1110 V1070 H90 V1136'],
+ ['M532 916 H564'],['M716 916 H748'],['M900 916 H932'],['M1084 916 H1110','','','nm'],['M458 942 V986','','b'],['M1010 942 V986','','b'],
+ ['M164 1166 H196'],['M348 1166 H380'],['M532 1166 H564'],['M716 1166 H748'],['M900 1166 H932'],
+ ['M204 1322 H252'],['M404 1322 H488'],['M588 1322 H640 V1290 H672'],['M640 1322 V1356 H672']
+];
+E.forEach(function(e){var a={d:e[0],'class':'ed '+(e[1]||'')};if(!e[3])a['marker-end']='url(#ah)';if(e[2])a['marker-start']='url(#ah)';el('path',a,svg);});
+
+var N=[
+ {x:X[0],y:112,t:'Contrato',n:'01',sb:'Comercial',s:'cm',st:'1'},
+ {k:'dec',x:X[1],y:112,t:'Dossiê ok?',s:'pj cm',st:'1'},
+ {x:X[2],y:112,t:'Pasta e grupo',n:'02',sb:'Administrativo',s:'ad',st:'2'},
+ {x:X[3],y:112,t:'Envio do briefing',n:'03',sb:'Setor de Projetos',s:'pj cl',st:'3'},
+ {x:X[4],y:112,t:'Agendamento',n:'04',sb:'Administrativo',s:'ad cl',st:'4'},
+ {x:X[5],y:112,t:'Reunião de briefing',n:'05',sb:'Setor de Projetos',s:'pj cl',st:'5'},
+ {x:X[0],y:300,t:'Levantamento',n:'06',sb:'Setor de Projetos',s:'pj cl',st:'6'},
+ {x:X[1],y:300,t:'Estudo planta baixa',n:'07',sb:'Setor de Projetos',s:'pj',st:'7'},
+ {x:X[2],y:300,t:'Agendamento',n:'08',sb:'Administrativo',s:'ad cl',st:'8'},
+ {x:X[3],y:300,t:'Apresentação',n:'09',sb:'Setor de Projetos',s:'pj cl',st:'9'},
+ {k:'dec',x:X[4],y:300,t:'Aprovou?',s:'cl',st:'9'},
+ {k:'loop',x:X[4],y:414,h:48,t:'Ciclo de alterações',sb:'até 3 rodadas',s:'pj cl',st:'9'},
+ {k:'ok',x:X[5],y:300,t:'Aceite formal',n:'10',sb:'planta baixa',s:'pj ad cl',st:'10'},
+ {x:X[0],y:540,t:'Estudo de fachada',n:'11',sb:'Setor de Projetos',s:'pj',st:'11'},
+ {x:X[1],y:540,t:'Agendamento',n:'12',sb:'Administrativo',s:'ad cl',st:'12'},
+ {x:X[2],y:540,t:'Apresentação',n:'13',sb:'Setor de Projetos',s:'pj cl',st:'13'},
+ {k:'dec',x:X[3],y:540,t:'Aprovou?',s:'cl',st:'13'},
+ {k:'loop',x:X[3],y:654,h:48,t:'Ciclo de alterações',sb:'até 3 rodadas',s:'pj cl',st:'13'},
+ {k:'ok',x:X[4],y:540,t:'Aceite formal',n:'14',sb:'fachada',s:'pj ad cl',st:'14'},
+ {x:X[0],y:806,t:'Arquitetônico',n:'15',sb:'Setor de Projetos',s:'pj',st:'15'},
+ {k:'dec',x:X[1],y:806,t:'Conferido?',s:'pj',st:'15'},
+ {k:'dec',hw:58,x:X[2],y:806,t:'Mais projetos?',s:'pj',st:'15'},
+ {k:'opt',x:X[2],y:916,t:'Projeto legal',n:'16',sb:'Setor de Projetos',s:'pj',st:'16'},
+ {k:'opt',x:X[3],y:916,t:'Estudo de interiores',n:'17',sb:'Setor de Projetos',s:'pj ad cl',st:'17'},
+ {k:'opt',x:X[4],y:916,t:'Detalhamento',n:'18',sb:'interiores',s:'pj',st:'18'},
+ {k:'opt',x:X[5],y:916,t:'Complementares',n:'19',sb:'Setor de Projetos',s:'pj',st:'19'},
+ {k:'ext',x:X[2],y:1012,h:44,t:'Prefeitura',sb:'e condomínio',s:'tr',st:'16'},
+ {k:'ext',x:X[5],y:1012,h:44,t:'Profissionais',sb:'complementares',s:'tr',st:'19'},
+ {x:X[0],y:1166,t:'Conferência final',n:'20',sb:'Setor de Projetos',s:'pj',st:'20'},
+ {x:X[1],y:1166,t:'Agendamento',n:'21',sb:'Administrativo',s:'ad cl',st:'21'},
+ {x:X[2],y:1166,t:'Preparação',n:'22',sb:'Setor de Projetos',s:'pj',st:'22'},
+ {x:X[3],y:1166,t:'Reunião de entrega',n:'23',sb:'Setor de Projetos',s:'pj cl',st:'23'},
+ {x:X[4],y:1166,t:'Encerramento',n:'24',sb:'Setor de Projetos',s:'pj',st:'24'},
+ {k:'end',x:X[5],y:1166,t:'Projeto finalizado',s:'pj',st:'24'},
+ {x:130,y:1322,h:44,t:'Pausa',sb:'termo ou 3 semanas',s:'pj ad cl',st:'P1'},
+ {x:330,y:1322,h:44,t:'Até 180 dias',sb:'sem avanço',s:'pj',st:'P1'},
+ {k:'dec',x:540,y:1322,t:'Retomou?',s:'cl',st:'P3'},
+ {x:750,y:1290,h:44,t:'Aditivo e revisão',sb:'segue da etapa',s:'pj cl',st:'P3'},
+ {k:'ext',x:750,y:1356,h:44,t:'Rescisão',sb:'no 181º dia',s:'tr',st:'P4'}
+];
+N.forEach(function(n){
+  var g=el('g',{'class':'nd '+(n.k||''),'data-s':n.s,'data-st':n.st,tabindex:'0',role:'button','aria-label':n.t},svg);
+  if(n.k==='dec'){var hw=n.hw||48;el('polygon',{points:n.x+','+(n.y-32)+' '+(n.x+hw)+','+n.y+' '+n.x+','+(n.y+32)+' '+(n.x-hw)+','+n.y},g);tx(g,n.x,n.y,'dl',n.t);}
+  else{
+    var h=n.h||52;
+    el('rect',{x:n.x-74,y:n.y-h/2,width:148,height:h,rx:n.k==='end'?h/2:10},g);
+    if(n.k!=='end'){var c=el('circle',{cx:n.x-74,cy:n.y,r:4.5,'class':'pin'},g);c.style.fill='var(--s-'+n.s.split(' ')[0]+')';}
+    if(n.sb){
+      tx(g,n.x,n.y-8,'lb',n.t);
+      var t=el('text',{x:n.x,y:n.y+12,'class':'sb','text-anchor':'middle','dominant-baseline':'central'},g);
+      if(n.n){var a=el('tspan',{'class':'num'},t);a.textContent=n.n;var b=el('tspan',{dx:'6'},t);b.textContent=n.sb;}else t.textContent=n.sb;
+    } else tx(g,n.x,n.y,'lb',n.t);
+  }
+  g.addEventListener('click',function(){go(n.st);});
+  g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(n.st);}});
+});
+[[200,76,'não'],[352,100,'sim'],[838,362,'não','start'],[904,288,'sim'],[654,602,'não','start'],[720,528,'sim'],[292,766,'não','start'],[352,794,'sim'],[470,862,'sim','start'],[530,794,'não','start'],[646,1278,'sim','start'],[646,1374,'não','start']].forEach(function(l){tx(svg,l[0],l[1],'el',l[2],l[3]);});
+
+/* ---------- processo ---------- */
+var host=$('phases');
+function dots(w){return w.map(function(s){return '<i class="s-'+s+'"></i>';}).join('');}
+PH.forEach(function(p){
+  var sec=document.createElement('section');sec.className='phase';sec.id=p.id;
+  var h='<div class="ph-h"><span class="ph-n">'+p.n+'</span><h3>'+p.t+'</h3><span>'+p.d+'</span></div><div class="track" style="--n:'+p.s.length+'">';
+  p.s.forEach(function(id){var s=S[id];
+    h+='<button class="st '+(s.k||'')+'" data-id="'+id+'" data-s="'+s.w.join(' ')+'" aria-pressed="false"'+(s.k==='ok'?' aria-label="'+s.t+'"':'')+'><span class="c">'+s.n+'</span><span class="l">'+s.l+'</span><span class="ws">'+dots(s.w)+'</span></button>';
+  });
+  h+='</div><p class="hint">Arraste para o lado para ver todas as etapas.</p><div class="det" aria-live="polite"></div>';
+  sec.innerHTML=h;host.appendChild(sec);
+  sec.querySelectorAll('.st').forEach(function(b){b.addEventListener('click',function(){sel(b.getAttribute('data-id'));});});
+  sel(p.s[0],true);
+});
+function tracks(){root.querySelectorAll('.phase').forEach(function(sec){var t=sec.querySelector('.track');sec.classList.toggle('sc',t.scrollWidth>t.clientWidth+4);});}
+tracks();window.addEventListener('resize',tracks);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(tracks);
+function detail(s){
+  if(!s.d)return '';
+  var li=s.d.map(function(t){var p=t.split('|');return '<li><b>'+p[0]+'</b><span>'+p[1]+'</span></li>';}).join('');
+  var docs=s.doc?'<div class="docs"><small>Documentos utilizados nesta etapa</small>'+s.doc.map(function(d){var p=d.split('|');return '<button type="button" data-doc="'+slug(p[0])+'" title="Ver no índice de documentos">'+p[0]+(p[1]?'<em>'+p[1]+'</em>':'')+'</button>';}).join('')+'</div>':'';
+  return '<div class="more'+(s.doc?'':' solo')+'"><small>'+(s.dt||'Detalhamento da etapa')+'</small><ul>'+li+'</ul>'+docs+'</div>';
+}
+function sel(id,init){
+  var p=phaseOf(id),sec=$(p.id),s=S[id];
+  sec.querySelectorAll('.st').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-id')===id?'true':'false');});
+  var who=s.w.length?s.w.map(function(w){return '<span class="s-'+w+'"><i class="dotc"></i>'+SET[w]+'</span>';}).join(''):'<span class="tbd">Responsável não definido no documento</span>';
+  sec.querySelector('.det').innerHTML='<div class="dh"><b>'+s.n+'  '+s.t+'</b><div class="who">'+who+'</div></div>'+
+   '<div class="io"><div><small>Entra</small><p>'+s.i+'</p></div><span class="ar"></span><div><small>Faz</small><p>'+s.f+'</p></div><span class="ar"></span><div class="o"><small>Sai</small><p>'+s.o+'</p></div></div>'+
+   (s.r?'<p class="rule">'+s.r+'</p>':'')+detail(s);
+  if(!init){
+    svg.querySelectorAll('.nd').forEach(function(g){g.classList.toggle('sel',g.getAttribute('data-st')===id);});
+    var tr=sec.querySelector('.track'),bt=sec.querySelector('.st[data-id="'+id+'"]');
+    if(tr&&bt&&tr.scrollWidth>tr.clientWidth+4)tr.scrollTo({left:bt.offsetLeft-tr.clientWidth/2+bt.offsetWidth/2,behavior:'smooth'});
+  }
+}
+function go(id){sel(id);$(phaseOf(id).id).scrollIntoView({block:'start'});}
+
+/* ---------- índice de documentos ---------- */
+function slug(t){return 'doc-'+t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+var DESC={
+ 'Dossiê com as informações do cliente (app do Comercial)':'Consolida as informações coletadas na contratação e orienta a transferência do projeto para o Setor de Projetos.',
+ 'Texto padrão para grupo de WhatsApp (cliente A para cima)_REV01':'Orientativo de criação do grupo e mensagem enviada logo após a abertura, no padrão do cliente A.',
+ 'Texto padrão para grupo de WhatsApp (cliente B para baixo)_REV01':'Orientativo de criação do grupo e mensagem enviada logo após a abertura, no padrão do cliente B.',
+ 'Texto padrão para grupo de WhatsApp (cliente + projetos)_REVIN':'Orientativo de criação do grupo e mensagem enviada logo após a abertura, no padrão do cliente + projetos.',
+ 'Envio do briefing de projeto_REVIN':'Mensagem com o link do briefing e a orientação de preenchimento.',
+ 'Imagem briefing':'Imagem que acompanha o envio do briefing ao cliente.',
+ 'Briefing respondido pelo cliente (Forms)':'Informações do cliente sobre o projeto, fornecidas pelo formulário.',
+ 'Ata reunião presencial padrão 2026_REV02':'Ata padrão de todas as reuniões: briefing, apresentações dos estudos e pontos técnicos. O código de salvamento muda conforme a reunião.',
+ 'Documentação do terreno ou imóvel':'Documentos necessários para a análise técnica, a elaboração e a aprovação do projeto junto aos órgãos competentes.',
+ 'Projeto preliminar — planta baixa':'Estudo preliminar apresentado ao cliente em PDF.',
+ 'Projeto preliminar — fachada':'Estudo de fachada apresentado ao cliente em imagem. O PDF é gerado apenas para a assinatura do aceite.',
+ 'Mensagem sobre os estudos_REVIN':'Mensagem que acompanha o envio dos aceites ao cliente.',
+ 'Aceite da planta baixa — ESTD_REVIN':'Formaliza a aprovação do estudo preliminar de planta baixa.',
+ 'Termo de aceite do estudo de fachada_REV02':'Formaliza a aprovação do estudo de fachada.',
+ 'Briefing de interiores':'Levantamento das necessidades e referências para o estudo de interiores.',
+ 'Termo de aceite do estudo de projeto de interiores_REVIN':'Formaliza a aprovação do estudo de interiores.',
+ 'Registro de conclusão de etapa para análise interna_REVIN':'Documento interno que formaliza a conclusão da etapa e libera os materiais para conferência e análise técnica interna.',
+ 'CHECKLIST_ARQ_CON_DOCS_REVIN':'Documento de validação técnica usado para aprovar, reprovar ou solicitar correções antes da apresentação ao cliente.',
+ 'Procuração (pessoa física ou jurídica)':'Autoriza o escritório a atuar em nome do cliente nos assuntos de aprovação.',
+ 'Memorial descritivo':'Descreve a forma da construção. Não se aplica ao processo de habite-se.',
+ 'Termo de compromisso':'Afirma que a obra seguirá as áreas apresentadas no projeto de aprovação. Não se aplica ao processo de habite-se.',
+ 'Termo de veracidade (unifamiliar ou multifamiliar)':'Declara a veracidade das informações apresentadas para a aprovação legal.',
+ 'Protocolo_de_acompanhamento_REV01':'Encaminha ao cliente o protocolo de acompanhamento do processo na prefeitura.',
+ 'RRT de projeto e/ou gestão':'Registro de responsabilidade técnica do projeto e da gestão, conforme o escopo contratado.',
+ 'Checklist dos complementares':'Utilizado na análise e na compatibilização dos projetos complementares.',
+ 'Termo de retirada de documento_REV04':'Registra a retirada dos documentos do projeto pelo cliente, em duas vias.',
+ 'Corpo do e-mail de entrega por e-mail_REV01':'Texto padrão do e-mail que acompanha o envio digital dos projetos.',
+ 'Diretrizes para retirada de documentos_REVIN':'Orientativo para a entrega dos projetos finalizados.',
+ 'Termo de solicitação de pausa de projeto_REVIN':'Formaliza a pausa pedida pelo cliente e as condições para a futura retomada.',
+ 'Notificação de pausa de projeto_REVIN':'Notifica a pausa do projeto quando não há retorno do cliente.',
+ 'Termo de retomada projeto_REVIN':'Formaliza o pedido de retomada feito pelo cliente.',
+ 'Aditivo de retomada de projeto_REVIN':'Formaliza valores, cronograma, condições financeiras e eventuais reaberturas de etapas aplicáveis à retomada.',
+ 'Rescisão de contrato por ausência de retorno':'Rescisão aplicada quando a pausa passa dos 180 dias sem pedido de retomada.'
+};
+var EXTRA=[
+ ['Aprovação em prefeitura, conforme o tipo de processo',[
+  ['Declaração de obra comercial sem uso definido','Para projetos comerciais sem uso já definido.','DCD_CAXXXXXX_REVXX',['16']],
+  ['Termo de habite-se','Integra o processo de habite-se.','TDH_CAXXXXXX_REVXX',['16']],
+  ['Declaração de CTRS','Integra o processo de habite-se.','CTR_CAXXXXXX_REVXX',['16']],
+  ['Isenção da CTRS','Integra o processo de habite-se.','ICTR_CAXXXXXX_REVXX',['16']],
+  ['Requerimento para averbação de construção','Usado no processo de averbação em cartório, com mutirão.','RDA_CAXXXXXX_REVXX',['16']]
+ ]],
+ ['Uso esporádico',[
+  ['Atualização de clientes_REV03','Mensagens padrão para atualizar os clientes sobre o andamento dos projetos, toda segunda-feira ou no começo da semana.','sem necessidade de salvamento',[]],
+  ['Nomenclaturas e abreviações para uso interno_REV05','Orientativo sobre a estrutura das nomenclaturas e o significado das abreviações usadas nos documentos.','sem necessidade de salvamento',[]]
+ ]],
+ ['Situações específicas',[
+  ['Aditivo de adicional de área de projeto_REVIN','Formaliza valores, cronograma e condições financeiras quando há ajuste da área de projeto contratada.','AADA_CAXXXXXX_REVXX',[]],
+  ['Reabertura de etapas','Quando o cliente deseja reabrir uma etapa já concluída e com o aceite formalmente feito.','',[]]
+ ]]
+];
+var ORDER=[];PH.forEach(function(p){p.s.forEach(function(id){ORDER.push(id);});});
+var MAP={},LIST=[];
+ORDER.forEach(function(id){var s=S[id];if(!s.doc)return;
+ s.doc.forEach(function(d){var p=d.split('|'),t=p[0],c=p[1]||'';
+  if(!MAP[t]){MAP[t]={t:t,d:DESC[t]||'',c:[],st:[]};LIST.push(MAP[t]);}
+  if(MAP[t].st.indexOf(id)<0)MAP[t].st.push(id);
+  if(c&&MAP[t].c.indexOf(c)<0)MAP[t].c.push(c);
+ });
+});
+function card(o){
+ var g=o.st.length?o.st.map(function(id){return '<button type="button" class="gt" data-go="'+id+'"><b>'+S[id].n+'</b>'+S[id].l+'</button>';}).join(''):'<em>Sem etapa fixa no fluxo</em>';
+ return '<div class="dc" id="'+slug(o.t)+'"><b>'+o.t+'</b>'+(o.d?'<span>'+o.d+'</span>':'')+
+  (o.c.length?'<i>'+o.c.join('<br>')+'</i>':'')+'<div class="gts">'+g+'</div></div>';
+}
+var ix=$('docindex');
+var out='<p class="imp" style="margin:0 0 20px">Cada documento mostra o nome do arquivo, o código de salvamento e a etapa em que é utilizado. Clique na etapa para ir direto até ela.</p>'+
+ '<h4>Documentos das etapas</h4><div class="dl2">'+LIST.map(card).join('')+'</div>';
+EXTRA.forEach(function(g){
+ out+='<h4>'+g[0]+'</h4><div class="dl2">'+g[1].map(function(a){return card({t:a[0],d:a[1],c:a[2]?[a[2]]:[],st:a[3]});}).join('')+'</div>';
+});
+ix.innerHTML=out;
+ix.addEventListener('click',function(e){var b=e.target.closest('[data-go]');if(b)go(b.getAttribute('data-go'));});
+$('phases').addEventListener('click',function(e){
+ var b=e.target.closest('[data-doc]');if(!b)return;
+ var c=$(b.getAttribute('data-doc'));if(!c)return;
+ c.scrollIntoView({block:'center'});c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash');
+});
+
+/* ---------- filtro ---------- */
+var chips=[].slice.call(root.querySelectorAll('.chip'));
+chips.forEach(function(c){c.addEventListener('click',function(){
+  chips.forEach(function(x){x.setAttribute('aria-pressed','false');});c.setAttribute('aria-pressed','true');
+  var f=c.getAttribute('data-f');
+  svg.querySelectorAll('.nd').forEach(function(g){g.classList.remove('sel');});
+  root.querySelectorAll('.nd[data-s], .st[data-s]').forEach(function(e){
+    var ok=e.getAttribute('data-s').split(' ').indexOf(f)>-1;
+    e.classList.toggle('dim',f!=='all'&&!ok);
+    if(e.classList.contains('nd'))e.classList.toggle('hit',f!=='all'&&ok);
+  });
+});});
+
+return function(){window.removeEventListener('resize',tracks);};
+}

@@ -1,0 +1,78 @@
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Fluxo do Setor de Projetos</h1>
+      <p class="rev" style="margin:6px 0 0;font-size:13px;color:var(--ink-3)">Revisão de 22/09/2026</p>
+      <p>Do contrato fechado à entrega final. Veja o mapa inteiro ou clique em qualquer etapa.</p>
+    </div>
+    <div class="facts">
+      <div><b>24</b><span>etapas</span></div>
+      <div><b>3</b><span>aceites formais</span></div>
+      <div><b>3</b><span>rodadas de ajuste incluídas</span></div>
+      <div><b>180</b><span>dias máximos de pausa</span></div>
+    </div>
+  </section>
+</div>
+
+<div class="bar">
+  <div class="wrap" role="group" aria-label="Filtrar por setor">
+    <button class="chip" data-f="all" aria-pressed="true">Todos</button>
+    <button class="chip s-cm" data-f="cm" aria-pressed="false"><i class="dotc"></i>Comercial</button>
+    <button class="chip s-ad" data-f="ad" aria-pressed="false"><i class="dotc"></i>Administrativo</button>
+    <button class="chip s-pj" data-f="pj" aria-pressed="false"><i class="dotc"></i>Setor de Projetos</button>
+    <button class="chip s-cl" data-f="cl" aria-pressed="false"><i class="dotc"></i>Cliente</button>
+    <button class="chip s-tr" data-f="tr" aria-pressed="false"><i class="dotc"></i>Terceiros</button>
+    <div class="key"><span><i class="k-ok"></i>Aceite formal</span><span><i class="k-dec"></i>Decisão</span><span><i class="k-opt"></i>Se contratado</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="sec-h" id="mapa"><h2>Mapa geral</h2><span>Clique numa etapa para abrir o detalhe</span></div>
+  <div class="mapbox"><svg id="map" viewBox="0 0 1140 1414" role="img" aria-labelledby="mt md"><title id="mt">Fluxograma geral do Setor de Projetos</title><desc id="md">Quatro fases do contrato à entrega, com decisões, ciclos de alteração, etapas opcionais e o bloco de pausa e retomada.</desc></svg></div>
+  <p class="hint">Arraste para o lado para ver o mapa completo.</p>
+
+  <div class="sec-h" id="processo"><h2>Processo por fase</h2><span>Entra, faz e sai em cada etapa</span></div>
+  <div id="phases"></div>
+
+  <div class="sec-h" id="regras"><h2>Regras, papéis e documentos</h2><span>O que vale para todo o fluxo</span></div>
+  <section class="close">
+    <h3>Princípios de gestão do projeto</h3>
+    <ol class="pr">
+      <li><div><b>Centralização das informações</b>Todas as informações, decisões e alinhamentos relevantes são registrados nos canais oficiais e documentos do escritório.</div></li>
+      <li><div><b>Formalização das aprovações</b>Toda etapa que depende da validação do cliente possui aceite formal antes do avanço para a próxima fase.</div></li>
+      <li><div><b>Clareza na comunicação</b>Alterações, decisões e alinhamentos relevantes são comunicados e registrados de forma clara e rastreável.</div></li>
+      <li><div><b>Controle das etapas</b>Cada etapa possui critérios de conclusão e aprovação que devem ser atendidos antes do avanço do projeto.</div></li>
+      <li><div><b>Entregas organizadas</b>Cada etapa é apresentada, validada e encerrada individualmente, garantindo organização e previsibilidade ao longo do processo.</div></li>
+      <li><div><b>Controle das alterações</b>As solicitações de alteração são analisadas conforme sua complexidade e impactos antes da definição do tratamento adequado.</div></li>
+      <li><div><b>Flexibilidade com controle</b>Sempre que necessário, reuniões adicionais poderão ser realizadas para tratar alterações significativas ou decisões relevantes do projeto.</div></li>
+      <li><div><b>Formalização das pausas</b>Toda pausa de projeto é formalizada por meio de documento específico, garantindo clareza das condições para futura retomada.</div></li>
+      <li><div><b>Continuidade controlada</b>Projetos retomados passam por reanálise e replanejamento antes da continuidade das atividades.</div></li>
+      <li><div><b>Responsabilidade compartilhada</b>O desenvolvimento do projeto depende da colaboração entre escritório e cliente, por meio do fornecimento de informações, documentos e aprovações necessárias para cada etapa.</div></li>
+      <li><div><b>Reabertura de etapas</b>Etapas aprovadas permanecem válidas. Alterações posteriores poderão exigir reabertura da etapa e revisão das etapas subsequentes.</div></li>
+      <li><div><b>Validação técnica</b>Antes de cada apresentação ou entrega, o projeto passa por processos internos de conferência e validação para garantir qualidade e consistência das informações.</div></li>
+    </ol>
+  </section>
+  <section class="close">
+    <h3>Responsabilidades por setor</h3>
+    <dl class="rs">
+      <div><dt class="s-cm"><i class="dotc"></i>Comercial</dt><dd>Negociação, fechamento do contrato, elaboração do dossiê do cliente e transferência das informações ao Setor de Projetos.</dd></div>
+      <div><dt class="s-ad"><i class="dotc"></i>Atendimento e administrativo</dt><dd>Criação e gestão dos grupos de WhatsApp, organização das comunicações administrativas, controle documental, agendamento e confirmação das reuniões.</dd></div>
+      <div><dt class="s-pj"><i class="dotc"></i>Setor de Projetos</dt><dd>Condução técnica do projeto: briefings, levantamentos, estudos, apresentações, alterações, aprovações, compatibilizações e acompanhamento das etapas.</dd></div>
+      <div><dt class="s-cl"><i class="dotc"></i>Cliente</dt><dd>Fornecimento de informações e documentos, participação nas reuniões, análise dos estudos, aprovações e assinatura dos documentos necessários para a continuidade do projeto.</dd></div>
+      <div><dt class="s-tr"><i class="dotc"></i>Complementares</dt><dd>Desenvolvimento dos projetos complementares com base nas informações técnicas fornecidas e integração com o projeto arquitetônico.</dd></div>
+      <div><dt class="s-tr"><i class="dotc"></i>Prefeitura e órgãos</dt><dd>Análise dos processos protocolados, emissão de exigências e aprovação dos projetos submetidos, quando aplicável.</dd></div>
+    </dl>
+    <p class="imp"><b>Importante:</b> o desenvolvimento do projeto depende da atuação conjunta entre escritório e cliente. A continuidade das etapas está condicionada ao fornecimento das informações, documentos, definições e aprovações necessárias por todas as partes envolvidas.</p>
+  </section>
+  <div class="sec-h" id="documentos"><h2>Índice de documentos</h2><span>Clique no documento para ir à etapa em que ele é usado</span></div>
+  <section class="close">
+    <div id="docindex"></div>
+  </section>
+</div>
+
+<div class="foot">
+  <div class="wrap">
+    <p>contato@cariati.com.br · 015 99841-9295<br>www.cariatiarquitetura.com.br</p>
+  </div>
+</div>
+

@@ -62,11 +62,11 @@ export default function ProjetoDetalhe() {
       {erro && <p className="erro">{erro}</p>}
 
       <section className="card">
-        <div className="chips">
-          {projeto.tem_legal && <span className="chip">Legal{projeto.tipo_aprovacao ? ` · ${projeto.tipo_aprovacao}` : ''}</span>}
-          {projeto.tem_interiores && <span className="chip">Interiores</span>}
-          {projeto.tem_complementares && <span className="chip">Complementares</span>}
-          {!projeto.tem_legal && !projeto.tem_interiores && !projeto.tem_complementares && <span className="chip">Somente arquitetônico</span>}
+        <div className="etiquetas">
+          {projeto.tem_legal && <span className="etiqueta">Legal{projeto.tipo_aprovacao ? ` · ${projeto.tipo_aprovacao}` : ''}</span>}
+          {projeto.tem_interiores && <span className="etiqueta">Interiores</span>}
+          {projeto.tem_complementares && <span className="etiqueta">Complementares</span>}
+          {!projeto.tem_legal && !projeto.tem_interiores && !projeto.tem_complementares && <span className="etiqueta">Somente arquitetônico</span>}
         </div>
         {pausado && (
           <p className={dias > MAX_DIAS_PAUSA ? 'erro' : 'aviso'}>
@@ -99,7 +99,7 @@ export default function ProjetoDetalhe() {
               return (
                 <li key={m.codigo} className={`et ${e.status}`}>
                   <div className="linha" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)}>
-                    <span className="num">{m.codigo}</span>
+                    <span className="et-num">{m.codigo}</span>
                     <div className="grow">
                       <b>{m.titulo}</b>
                       <div className="pequeno mudo">
