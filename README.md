@@ -15,6 +15,10 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 4. `cp .env.example .env` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Settings → API).
 5. `npm install && npm run dev`. Para publicar: `npm run build` (pasta `dist`, ex.: Vercel).
 
+## Ver o app sem Supabase (modo demonstração)
+
+`VITE_DEMO=1 npm run dev` abre o app com 5 projetos de exemplo (nada é salvo e nenhum banco é usado).
+
 ## O que já existe
 
 - **Painel**: projetos por fase, protocolos com exigência ou prazo em até 3 dias, pausas perto dos 180 dias.

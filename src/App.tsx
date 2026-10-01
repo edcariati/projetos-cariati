@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
-import { configurado, supabase } from './lib/supabase';
+import { configurado, demo, supabase } from './lib/supabase';
 import Login from './pages/Login';
 import Painel from './pages/Painel';
 import Projetos from './pages/Projetos';
@@ -31,6 +31,7 @@ export default function App() {
 
   return (
     <div className="app">
+      {demo && <div className="demo">Modo demonstração: dados de exemplo, nada é salvo.</div>}
       <header className="topo">
         <strong>Projetos Cariati</strong>
         <nav>
