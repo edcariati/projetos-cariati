@@ -7,7 +7,7 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 ## Como colocar para rodar
 
 1. Crie um projeto em <https://supabase.com>.
-2. No **SQL Editor**, rode na ordem os arquivos de `supabase/migrations/` (`0001` a `0005`)
+2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0005` de `supabase/migrations/`)
    (ou use `supabase db push` com a CLI).
 3. Em **Authentication → Providers → Email**, desative "Allow new users to sign up" e crie os usuários da
    equipe em **Authentication → Users**. Para tornar alguém admin:
