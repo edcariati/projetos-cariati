@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface Modelo { id: string; nome: string; padrao_arquivo: string | null }
-interface Doc { id: string; modelo_id: string | null; nome: string; codigo_arquivo: string | null; arquivo_path: string; arquivo_nome: string; created_at: string }
+interface Doc { id: string; modelo_id: string | null; nome: string; codigo_arquivo: string | null; arquivo_path: string; arquivo_nome: string; created_at: string; visivel_cliente: boolean }
 
 const limpar = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_');
 
@@ -46,6 +46,16 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
     window.open(data.signedUrl, '_blank', 'noopener');
   }
 
+  async function liberar(d: Doc, valor: boolean) {
+    setErro('');
+    const { error } = await supabase.from('projeto_documentos').update({ visivel_cliente: valor }).eq('id', d.id);
+    if (error) setErro(error.message);
+    await carregar();
+  }
+  const Liberar = ({ d }: { d: Doc }) => (
+    <label className="check pequeno liberar"><input type="checkbox" checked={d.visivel_cliente} onChange={(e) => liberar(d, e.target.checked)} />Liberado para o cliente</label>
+  );
+
   const Envio = ({ modelo, rotulo }: { modelo: Modelo | null; rotulo: string }) => (
     <label className="upload">
       {busy === (modelo?.id ?? 'avulso') ? 'Enviando…' : rotulo}
@@ -65,14 +75,14 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
             <div className="grow">
               <div>{m.nome}</div>
               <div className="pequeno mudo">{codigo ? <code>{codigo}</code> : 'sem necessidade de salvamento'}</div>
-              {feitos.map((d) => <div key={d.id} className="pequeno"><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button></div>)}
+              {feitos.map((d) => <div key={d.id} className="pequeno"><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button><Liberar d={d} /></div>)}
             </div>
             {m.padrao_arquivo && <Envio modelo={m} rotulo={feitos.length ? '+ Nova versão' : 'Anexar'} />}
           </div>
         );
       })}
       {docs.filter((d) => !d.modelo_id).map((d) => (
-        <div className="anexo" key={d.id}><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button></div>
+        <div className="anexo" key={d.id}><div><button className="link" onClick={() => abrir(d)}>📎 {d.arquivo_nome}</button><Liberar d={d} /></div></div>
       ))}
       <Envio modelo={null} rotulo="+ Outro arquivo" />
     </div>

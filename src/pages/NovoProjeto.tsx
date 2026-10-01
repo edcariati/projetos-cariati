@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO } from '../lib/labels';
+import { usePerfil } from '../lib/perfil';
 
 export default function NovoProjeto() {
   const nav = useNavigate();
+  const eu = usePerfil();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [equipe, setEquipe] = useState<Profile[]>([]);
   const [clienteId, setClienteId] = useState('');
@@ -21,7 +23,7 @@ export default function NovoProjeto() {
 
   useEffect(() => {
     supabase.from('clientes').select('*').order('nome').then(({ data }) => setClientes((data as Cliente[]) ?? []));
-    supabase.from('profiles').select('*').order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
+    supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
   }, []);
 
   async function salvar(e: FormEvent) {
@@ -79,11 +81,13 @@ export default function NovoProjeto() {
           </fieldset>
         )}
         <label>Nome do projeto<input required value={nome} onChange={(e) => setNome(e.target.value)} /></label>
-        <label>Responsável
-          <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)}>
-            <option value="">—</option>{equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-        </label>
+        {eu.perfil === 'admin' ? (
+          <label>Responsável
+            <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)}>
+              <option value="">—</option>{equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+          </label>
+        ) : <p className="mudo pequeno">Você será o responsável por este projeto.</p>}
         <fieldset>
           <legend>Escopo contratado (além do arquitetônico)</legend>
           <label className="check"><input type="checkbox" checked={legal} onChange={(e) => setLegal(e.target.checked)} />Projeto legal (aprovação na Prefeitura)</label>

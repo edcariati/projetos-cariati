@@ -5,7 +5,20 @@ export type ProtocoloTipo = 'prefeitura' | 'condominio' | 'outro_orgao' | 'entre
 export type ProtocoloStatus =
   | 'a_protocolar' | 'protocolado' | 'em_analise' | 'exigencia' | 'aprovado' | 'entregue_ao_cliente';
 
-export interface Profile { id: string; nome: string; setor: Setor; papel: 'admin' | 'membro' }
+export type PerfilTipo = 'admin' | 'profissional' | 'cliente';
+export type Especialidade = 'arquitetonico' | 'interiores' | 'legal' | 'complementares';
+export interface Profile {
+  id: string; nome: string; setor: Setor; perfil: PerfilTipo; especialidades: Especialidade[];
+  cliente_id: string | null; ativo: boolean;
+}
+export interface ProjetoEquipe {
+  id: string; projeto_id: string; usuario_id: string; especialidade: Especialidade; profiles?: { nome: string } | null;
+}
+export type EtapaCliente = Pick<EtapaModelo, 'codigo' | 'ordem' | 'fase' | 'titulo' | 'rotulo' | 'cliente_participa' | 'opcional' | 'aceite_formal' | 'escopo'>;
+export interface Documento {
+  id: string; projeto_id: string; etapa_codigo: string; modelo_id: string | null; nome: string;
+  codigo_arquivo: string | null; arquivo_path: string; arquivo_nome: string; created_at: string; visivel_cliente: boolean;
+}
 export interface Cliente {
   id: string; codigo: string | null; nome: string; categoria: string | null; premium: boolean;
   telefone: string | null; email: string | null; observacoes: string | null;
@@ -19,7 +32,7 @@ export interface Projeto {
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
   status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
-  created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null;
+  created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null; profiles?: { nome: string } | null;
   projeto_etapas?: Pick<ProjetoEtapa, 'etapa_codigo' | 'status'>[];
 }
 export interface ProjetoEtapa {

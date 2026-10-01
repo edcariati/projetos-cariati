@@ -4,8 +4,10 @@ import { supabase } from '../lib/supabase';
 import type { EtapaModelo, Tempo } from '../lib/types';
 import { FASES, fmtData, fmtDur } from '../lib/labels';
 import { segundosEntre } from '../lib/tempo';
+import { usePerfil } from '../lib/perfil';
 
 export default function Tempos() {
+  const eu = usePerfil();
   const [tempos, setTempos] = useState<Tempo[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
 
@@ -41,8 +43,8 @@ export default function Tempos() {
 
   return (
     <>
-      <div className="titulo"><h1>Tempos por etapa</h1></div>
-      <p className="mudo">Cada vez que alguém inicia e para o cronômetro de uma etapa, o tempo entra aqui. Com o tempo, as médias mostram quanto cada etapa realmente leva.</p>
+      <div className="titulo"><h1>{eu.perfil === 'admin' ? 'Tempos por etapa' : 'Meus tempos'}</h1></div>
+      <p className="mudo">Cada vez que alguém inicia e para o cronômetro de uma etapa, o tempo entra aqui. Com o tempo, as médias mostram quanto cada etapa realmente leva.{eu.perfil !== 'admin' && ' Aqui aparecem só os seus registros; o administrador vê os de toda a equipe.'}</p>
 
       <div className="kpis">
         <div className="kpi"><b>{fechados.length}</b><span>registros de tempo</span></div>

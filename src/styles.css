@@ -110,3 +110,20 @@ main.largo{max-width:1240px}
 .cod{display:inline-block;min-width:2.2ch;color:var(--blue);font-weight:500}
 .barra-col{width:22%;min-width:90px}
 .mini{height:6px;background:var(--soft);border-radius:4px;overflow:hidden}.mini i{display:block;height:100%;background:var(--blue)}
+.demo{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+.demo select{width:auto;max-width:100%;min-height:34px;padding:4px 8px;background:#fff;color:#23262A;border-color:#d9c590}
+.quem{font-size:13px;color:var(--ink2);white-space:nowrap}
+.pessoa.inativa{opacity:.6}
+.sem-clique{cursor:default}
+.lista-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);justify-content:space-between}
+.lista li:first-child .lista-item{border-top:0}
+.card.agora{border-color:var(--blue);background:var(--tint)}
+.card.agora h2{margin:2px 0 6px}
+.sua-vez{margin:0}
+
+.pessoa-linha{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.pessoa-linha:first-of-type{border-top:0}
+.pessoa-linha select{max-width:260px}
+.liberar{margin-top:2px}
+.equipe .nota{margin-top:10px;margin-bottom:0;flex-wrap:wrap}
+.equipe .nota select{flex:1;min-width:150px}

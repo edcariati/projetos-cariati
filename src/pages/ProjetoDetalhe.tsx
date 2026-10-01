@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { EtapaModelo, Historico, Projeto, ProjetoEtapa, Protocolo, ProtocoloTipo } from '../lib/types';
-import { ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, fmtData } from '../lib/labels';
+import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, Protocolo, ProtocoloTipo } from '../lib/types';
+import { usePerfil } from '../lib/perfil';
+import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, fmtData } from '../lib/labels';
 import {
   MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, pausarProjeto, reabrirEtapa,
   registrarRodada, rescindirProjeto, retomarProjeto,
@@ -16,6 +17,8 @@ const COM_RODADAS = new Set(['09', '13', '17']);
 
 export default function ProjetoDetalhe() {
   const { id } = useParams();
+  const eu = usePerfil();
+  const admin = eu.perfil === 'admin';
   const [projeto, setProjeto] = useState<Projeto | null>(null);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
   const [etapas, setEtapas] = useState<ProjetoEtapa[]>([]);
@@ -24,19 +27,25 @@ export default function ProjetoDetalhe() {
   const [aberta, setAberta] = useState<string | null>(null);
   const [nota, setNota] = useState('');
   const [erro, setErro] = useState('');
+  const [equipe, setEquipe] = useState<ProjetoEquipe[]>([]);
+  const [pessoas, setPessoas] = useState<Profile[]>([]);
+  const [novoMembro, setNovoMembro] = useState<{ usuario: string; esp: Especialidade }>({ usuario: '', esp: 'arquitetonico' });
   const [novoProt, setNovoProt] = useState<{ tipo: ProtocoloTipo; orgao: string; numero: string } | null>(null);
 
   const carregar = useCallback(async () => {
-    const [p, m, e, h, pr] = await Promise.all([
-      supabase.from('projetos').select('*, clientes(nome,codigo)').eq('id', id!).single(),
+    const [p, m, e, h, pr, eq, pe] = await Promise.all([
+      supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
       supabase.from('etapa_modelos').select('*').order('ordem'),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
       supabase.from('historico').select('*, profiles(nome)').eq('projeto_id', id!).order('created_at', { ascending: false }).limit(50),
       supabase.from('protocolos').select('*').eq('projeto_id', id!).order('created_at', { ascending: false }),
+      supabase.from('projeto_equipe').select('*, profiles(nome)').eq('projeto_id', id!),
+      supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome'),
     ]);
     setProjeto(p.data as Projeto); setModelos((m.data as EtapaModelo[]) ?? []);
     setEtapas((e.data as ProjetoEtapa[]) ?? []); setHist((h.data as Historico[]) ?? []);
     setProtocolos((pr.data as Protocolo[]) ?? []);
+    setEquipe((eq.data as ProjetoEquipe[]) ?? []); setPessoas((pe.data as Profile[]) ?? []);
   }, [id]);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -49,6 +58,8 @@ export default function ProjetoDetalhe() {
   const pausado = projeto.status === 'pausado';
   const dias = diasDePausa(projeto.pausado_em);
   const etapaDe = (cod: string) => etapas.find((e) => e.etapa_codigo === cod);
+  /** Quem pode agir na etapa: administrador, responsável pelo projeto ou alguém do setor da etapa. */
+  const podeAgir = (m: EtapaModelo) => admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor);
 
   return (
     <>
@@ -88,6 +99,42 @@ export default function ProjetoDetalhe() {
         </div>
       </section>
 
+      <section className="card equipe">
+        <h3>Equipe do projeto</h3>
+        <div className="pessoa-linha">
+          <span className="mudo">Responsável</span>
+          {admin
+            ? <select id="responsavel" value={projeto.responsavel_id ?? ''} onChange={(e) => run(async () => { await supabase.from('projetos').update({ responsavel_id: e.target.value || null }).eq('id', projeto.id); })}>
+                <option value="">— sem responsável —</option>
+                {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+              </select>
+            : <b>{projeto.profiles?.nome ?? '—'}</b>}
+        </div>
+        {equipe.map((m) => (
+          <div className="pessoa-linha" key={m.id}>
+            <span><b>{m.profiles?.nome}</b> <span className="mudo">· {ESPECIALIDADE[m.especialidade]}</span></span>
+            {admin && <button className="link" onClick={() => run(async () => { await supabase.from('projeto_equipe').delete().eq('id', m.id); })}>Remover</button>}
+          </div>
+        ))}
+        {equipe.length === 0 && <p className="mudo pequeno">Nenhum outro profissional na equipe.</p>}
+        {admin && (
+          <div className="nota">
+            <select id="equipe-pessoa" value={novoMembro.usuario} onChange={(e) => setNovoMembro({ ...novoMembro, usuario: e.target.value })}>
+              <option value="">Adicionar profissional…</option>
+              {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+            </select>
+            <select id="equipe-esp" value={novoMembro.esp} onChange={(e) => setNovoMembro({ ...novoMembro, esp: e.target.value as Especialidade })}>
+              {Object.entries(ESPECIALIDADE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <button disabled={!novoMembro.usuario} onClick={() => run(async () => {
+              const { error } = await supabase.from('projeto_equipe').insert({ projeto_id: projeto.id, usuario_id: novoMembro.usuario, especialidade: novoMembro.esp });
+              if (error) throw error;
+              setNovoMembro({ ...novoMembro, usuario: '' });
+            })}>Adicionar</button>
+          </div>
+        )}
+      </section>
+
       <h2>Etapas</h2>
       {[1, 2, 3, 4].map((fase) => (
         <section className="card" key={fase}>
@@ -123,16 +170,17 @@ export default function ProjetoDetalhe() {
                         <div className="rodadas">
                           Rodadas de ajuste: <b className={e.rodadas_ajuste > MAX_RODADAS ? 'alerta' : ''}>{e.rodadas_ajuste}</b> / {MAX_RODADAS}
                           {e.rodadas_ajuste >= MAX_RODADAS - 1 && ativa && <span className="aviso inline"> {e.rodadas_ajuste >= MAX_RODADAS ? 'Próximas rodadas têm custo adicional.' : 'Lembrar o cliente do limite na próxima reunião.'}</span>}
-                          {ativa && !pausado && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
+                          {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
-                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} bloqueado={pausado} />}
+                      {ativa && !podeAgir(m) && <p className="aviso pequeno">Esta etapa cabe a: {m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode agir nela.</p>}
+                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} bloqueado={pausado || !podeAgir(m)} />}
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
-                        {ativa && !pausado && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>
+                        {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>
                           {m.aceite_formal ? 'Aceite assinado — concluir' : 'Concluir etapa'}
                         </button>}
-                        {e.status === 'concluida' && !pausado && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
+                        {e.status === 'concluida' && !pausado && podeAgir(m) && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
                       </div>
                     </div>
                   )}

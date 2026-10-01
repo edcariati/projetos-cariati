@@ -46,9 +46,28 @@ const dia = (d: number) => new Date(Date.now() + d * 86_400_000);
 const iso = (d: number) => dia(d).toISOString();
 const data = (d: number) => dia(d).toISOString().slice(0, 10);
 
+/* ---------- quem está "logado" na demonstração ---------- */
+export const personas = [
+  { id: 'demo', nome: 'Edson Cariati', rotulo: 'Administrador (vê tudo)' },
+  { id: 'marina', nome: 'Marina Souza', rotulo: 'Arquiteta (Residência Silva, Casa de Praia, Apto. Lima)' },
+  { id: 'rafael', nome: 'Rafael Lima', rotulo: 'Arq. de interiores (Loja Centro, Sobrado Costa)' },
+  { id: 'julia', nome: 'Júlia Prado', rotulo: 'Administrativo (agendamentos, vê todos os projetos)' },
+  { id: 'cliente', nome: 'Ana Oliveira', rotulo: 'Cliente (Casa de Praia Oliveira)' },
+];
+let eu = 'demo';
+export const personaAtual = () => eu;
+export const trocarPersona = (id: string) => { eu = id; window.dispatchEvent(new Event('persona-mudou')); };
+export const aoMudarPersona = (fn: () => void) => { window.addEventListener('persona-mudou', fn); return () => window.removeEventListener('persona-mudou', fn); };
+
 const db: Record<string, Row[]> = {
-  profiles: [{ id: 'demo', nome: 'Equipe Projetos', setor: 'projetos', papel: 'admin' }],
-  clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [],
+  profiles: [
+    { id: 'demo', nome: 'Edson Cariati', setor: 'projetos', perfil: 'admin', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true },
+    { id: 'marina', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true },
+    { id: 'rafael', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true },
+    { id: 'julia', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true },
+    { id: 'cliente', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true },
+  ],
+  clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
   protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [],
 };
 
@@ -56,11 +75,41 @@ const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'c
 db.etapa_modelos = parseTuples(sqlEtapas).map((t) => Object.fromEntries(COLS_ETAPA.map((c, k) => [c, t[k]])));
 db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codigo: t[0], nome: t[1], padrao_arquivo: t[2], ordem: t[3] }));
 
+/* ---------- regras de acesso (espelham o RLS do banco) ---------- */
+const perfilEu = () => db.profiles.find((p) => p.id === eu)!;
+function verProjeto(pid: string) {
+  const pr = db.projetos.find((x) => x.id === pid); const p = perfilEu();
+  if (!pr) return false;
+  if (p.perfil === 'admin') return true;
+  if (p.perfil === 'cliente') return pr.cliente_id === p.cliente_id;
+  return pr.responsavel_id === eu || db.projeto_equipe.some((e) => e.projeto_id === pid && e.usuario_id === eu)
+    || ['administrativo', 'comercial'].includes(p.setor);
+}
+function ver(t: string, r: Row): boolean {
+  const p = perfilEu(); const cli = p.perfil === 'cliente';
+  switch (t) {
+    case 'projetos': return verProjeto(r.id);
+    case 'clientes': return cli ? r.id === p.cliente_id : true;
+    case 'projeto_etapas': case 'protocolos': return verProjeto(r.projeto_id);
+    case 'projeto_equipe': case 'historico': return !cli && verProjeto(r.projeto_id);
+    case 'protocolo_andamentos': return !cli;
+    case 'projeto_documentos': return verProjeto(r.projeto_id) && (!cli || r.visivel_cliente);
+    case 'tempos': return p.perfil === 'admin' || r.usuario_id === eu;
+    case 'etapa_modelos': case 'documento_modelos': return !cli;
+    case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
+    default: return true;
+  }
+}
+
 const REL: Record<string, Record<string, { t: string; fk: string; many: boolean }>> = {
-  projetos: { clientes: { t: 'clientes', fk: 'cliente_id', many: false }, projeto_etapas: { t: 'projeto_etapas', fk: 'projeto_id', many: true } },
+  projetos: {
+    clientes: { t: 'clientes', fk: 'cliente_id', many: false }, projeto_etapas: { t: 'projeto_etapas', fk: 'projeto_id', many: true },
+    profiles: { t: 'profiles', fk: 'responsavel_id', many: false },
+  },
   protocolos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false } },
   historico: { profiles: { t: 'profiles', fk: 'autor_id', many: false } },
   tempos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false }, profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
+  projeto_equipe: { profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
 };
 
 function splitTop(s: string): string[] {
@@ -82,8 +131,8 @@ function expand(table: string, row: Row, sel: string): Row {
     const rel = REL[table]?.[m[1]];
     if (!rel) continue;
     out[m[1]] = rel.many
-      ? db[rel.t].filter((r) => r[rel.fk] === row.id).map((r) => expand(rel.t, r, m[2]))
-      : (() => { const r = db[rel.t].find((x) => x.id === row[rel.fk]); return r ? expand(rel.t, r, m[2]) : null; })();
+      ? db[rel.t].filter((r) => r[rel.fk] === row.id && ver(rel.t, r)).map((r) => expand(rel.t, r, m[2]))
+      : (() => { const r = db[rel.t].find((x) => x.id === row[rel.fk]); return r && ver(rel.t, r) ? expand(rel.t, r, m[2]) : null; })();
   }
   return out;
 }
@@ -99,29 +148,32 @@ function instanciarEtapas(p: Row) {
   }
   const e1 = db.projeto_etapas.find((e) => e.projeto_id === p.id && e.etapa_codigo === '01')!;
   e1.status = 'em_andamento'; e1.iniciada_em = new Date().toISOString();
-  db.historico.push({ id: uid(), projeto_id: p.id, etapa_codigo: '01', tipo: 'etapa_iniciada', texto: 'Projeto criado', autor_id: 'demo', created_at: new Date().toISOString() });
+  db.historico.push({ id: uid(), projeto_id: p.id, etapa_codigo: '01', tipo: 'etapa_iniciada', texto: 'Projeto criado', autor_id: eu, created_at: new Date().toISOString() });
 }
 
 const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({ codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null }),
-  projetos: () => ({ codigo: null, responsavel_id: null, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
-  historico: () => ({ etapa_codigo: null, autor_id: 'demo' }),
-  protocolo_andamentos: () => ({ autor_id: 'demo' }),
-  projeto_documentos: () => ({ modelo_id: null, codigo_arquivo: null }),
-  tempos: () => ({ usuario_id: 'demo', iniciado_em: new Date().toISOString(), finalizado_em: null }),
+  historico: () => ({ etapa_codigo: null, autor_id: eu }),
+  protocolo_andamentos: () => ({ autor_id: eu }),
+  projeto_documentos: () => ({ modelo_id: null, codigo_arquivo: null, visivel_cliente: false }),
+  tempos: () => ({ usuario_id: eu, iniciado_em: new Date().toISOString(), finalizado_em: null }),
 };
+const NEGADO = { data: null, error: { message: 'new row violates row-level security policy' } };
+const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos']);
 
 class Q implements PromiseLike<any> {
   op: 'select' | 'insert' | 'update' | 'delete' = 'select';
-  payload: any; sel = '*'; one = false; lim = Infinity;
+  payload: any; sel = '*'; one = false; lim = Infinity; tabela: string; visaoCliente: boolean;
   filtros: ((r: Row) => boolean)[] = []; ordem: [string, boolean, boolean][] = [];
-  constructor(public table: string) {}
+  constructor(public table: string) { this.visaoCliente = table === 'etapas_cliente'; this.tabela = this.visaoCliente ? 'etapa_modelos' : table; }
   select(s = '*') { this.sel = s; return this; }
   insert(p: any) { this.op = 'insert'; this.payload = p; return this; }
   update(p: any) { this.op = 'update'; this.payload = p; return this; }
   delete() { this.op = 'delete'; return this; }
   eq(c: string, v: any) { this.filtros.push((r) => r[c] === v); return this; }
+  neq(c: string, v: any) { this.filtros.push((r) => r[c] !== v); return this; }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   in(c: string, vs: any[]) { this.filtros.push((r) => vs.includes(r[c])); return this; }
   not(c: string, _o: string, v: string) { const vs = v.replace(/[()]/g, '').split(','); this.filtros.push((r) => !vs.includes(String(r[c]))); return this; }
@@ -134,22 +186,30 @@ class Q implements PromiseLike<any> {
     return Promise.resolve(this.run()).then(ok, ko);
   }
   run() {
-    const tabela = db[this.table];
-    const casa = (r: Row) => this.filtros.every((f) => f(r));
+    const t = this.tabela, tabela = db[t], p = perfilEu();
+    const casa = (r: Row) => this.filtros.every((f) => f(r)) && (this.visaoCliente || ver(t, r));
     let alvo: Row[];
+    if (this.op !== 'select') {
+      if (p.perfil === 'cliente') return NEGADO;
+      if (SO_ADMIN.has(t) && p.perfil !== 'admin') return NEGADO;
+    }
     if (this.op === 'insert') {
       const itens = Array.isArray(this.payload) ? this.payload : [this.payload];
       alvo = itens.map((i: Row) => {
-        const r = { id: uid(), created_at: new Date().toISOString(), ...(DEFAULTS[this.table]?.() ?? {}), ...i };
+        const r: Row = { id: uid(), created_at: new Date().toISOString(), ...(DEFAULTS[t]?.() ?? {}), ...i };
+        if (t === 'projetos' && r.responsavel_id == null && p.perfil !== 'admin') r.responsavel_id = eu;
         tabela.push(r);
-        if (this.table === 'projetos') instanciarEtapas(r);
+        if (t === 'projetos') instanciarEtapas(r);
         return r;
       });
     } else if (this.op === 'update') {
-      tabela.filter(casa).forEach((r) => Object.assign(r, this.payload));
+      const campos = { ...this.payload };
+      if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades']) delete campos[k];
+      tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => Object.assign(r, campos));
       return { data: null, error: null };
     } else if (this.op === 'delete') {
-      db[this.table] = tabela.filter((r) => !casa(r));
+      if (p.perfil !== 'admin') return { data: null, error: null };
+      db[t] = tabela.filter((r) => !casa(r));
       return { data: null, error: null };
     } else alvo = tabela.filter(casa);
     for (const [c, asc, nf] of [...this.ordem].reverse()) {
@@ -159,7 +219,8 @@ class Q implements PromiseLike<any> {
         return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1);
       });
     }
-    const dados = alvo.slice(0, this.lim).map((r) => expand(this.table, r, this.sel));
+    let dados = alvo.slice(0, this.lim).map((r) => expand(t, r, this.sel));
+    if (this.visaoCliente) dados = dados.map(({ entrada, saida, regra, setores, ...resto }) => { void entrada; void saida; void regra; void setores; return resto; });
     if (this.one) return dados[0] ? { data: dados[0], error: null } : { data: null, error: { message: 'Registro não encontrado' } };
     return { data: dados, error: null };
   }
@@ -167,7 +228,7 @@ class Q implements PromiseLike<any> {
 
 /* ---------- dados de exemplo ---------- */
 const MIN_BASE: Record<string, number> = { '01': 20, '02': 15, '03': 25, '04': 10, '05': 70, '06': 60, '07': 240, '08': 10, '09': 75, '10': 15, '11': 200, '12': 10, '13': 70, '14': 15, '15': 480, '16': 300, '17': 360, '18': 420, '19': 120, '20': 45, '21': 10, '22': 60, '23': 50, '24': 20 };
-function semearTempos(projetoId: string) {
+function semearTempos(projetoId: string, responsavel: string) {
   const k = db.projetos.length - 1;
   for (const e of db.projeto_etapas.filter((x) => x.projeto_id === projetoId && ['concluida', 'em_andamento'].includes(x.status))) {
     const feito = e.status === 'concluida';
@@ -176,14 +237,14 @@ function semearTempos(projetoId: string) {
     for (let s = 0; s < sessoes; s++) {
       const dur = (min / sessoes) * 60_000;
       const fim = new Date(e.concluida_em ?? iso(-1)).getTime() - s * 4 * 3_600_000;
-      db.tempos.push({ id: uid(), projeto_id: projetoId, etapa_codigo: e.etapa_codigo, usuario_id: 'demo', iniciado_em: new Date(fim - dur).toISOString(), finalizado_em: new Date(fim).toISOString() });
+      db.tempos.push({ id: uid(), projeto_id: projetoId, etapa_codigo: e.etapa_codigo, usuario_id: responsavel, iniciado_em: new Date(fim - dur).toISOString(), finalizado_em: new Date(fim).toISOString() });
     }
   }
 }
 
 function novoProjeto(cliente: Row, p: Row, ate: string, rodadas = 0) {
   const c = { id: uid(), created_at: iso(-90), ...DEFAULTS.clientes(), ...cliente }; db.clientes.push(c);
-  const pr: Row = { id: uid(), created_at: iso(-90), cliente_id: c.id, ...DEFAULTS.projetos(), responsavel_id: 'demo', ...p };
+  const pr: Row = { id: uid(), created_at: iso(-90), cliente_id: c.id, ...DEFAULTS.projetos(), ...p };
   db.projetos.push(pr); instanciarEtapas(pr);
   db.historico = db.historico.filter((h) => h.projeto_id !== pr.id);
   const alvo = db.etapa_modelos.find((m) => m.codigo === ate)!;
@@ -195,31 +256,40 @@ function novoProjeto(cliente: Row, p: Row, ate: string, rodadas = 0) {
     else if (m.ordem === alvo.ordem) { e.status = 'em_andamento'; e.iniciada_em = iso(-2); e.concluida_em = null; e.rodadas_ajuste = rodadas; }
     else { e.status = 'pendente'; e.iniciada_em = null; e.concluida_em = null; }
   }
-  semearTempos(pr.id);
-  db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: ate, tipo: 'etapa_iniciada', texto: 'Etapa iniciada', autor_id: 'demo', created_at: iso(-2) });
-  db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: null, tipo: 'nota', texto: 'Cliente prefere reuniões online às terças.', autor_id: 'demo', created_at: iso(-10) });
+  semearTempos(pr.id, pr.responsavel_id);
+  db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: ate, tipo: 'etapa_iniciada', texto: 'Etapa iniciada', autor_id: pr.responsavel_id, created_at: iso(-2) });
+  db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: null, tipo: 'nota', texto: 'Cliente prefere reuniões online às terças.', autor_id: pr.responsavel_id, created_at: iso(-10) });
   return pr;
 }
 const proto = (projeto_id: string, p: Row) => db.protocolos.push({ id: uid(), projeto_id, created_at: iso(-5), ...DEFAULTS.protocolos(), ...p });
+const doc = (projeto_id: string, etapa: string, nome: string, arquivo: string, liberado: boolean) =>
+  db.projeto_documentos.push({ id: uid(), projeto_id, etapa_codigo: etapa, modelo_id: null, nome, codigo_arquivo: null, arquivo_path: `${projeto_id}/${etapa}/${arquivo}`, arquivo_nome: arquivo, created_at: iso(-3), visivel_cliente: liberado });
 
-novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A', premium: true, telefone: '(15) 99999-0101' },
-  { nome: 'Residência Silva', tem_legal: true, tem_interiores: true, tipo_aprovacao: 'residencial' }, '09', 2);
+const silva = novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A', premium: true, telefone: '(15) 99999-0101' },
+  { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tipo_aprovacao: 'residencial' }, '09', 2);
+db.projeto_equipe.push({ id: uid(), projeto_id: silva.id, usuario_id: 'rafael', especialidade: 'interiores' });
 const oliveira = novoProjeto({ nome: 'Ana Oliveira', codigo: 'CA000102', categoria: 'B' },
-  { nome: 'Casa de Praia Oliveira', tem_legal: true, tipo_aprovacao: 'residencial' }, '16');
+  { nome: 'Casa de Praia Oliveira', responsavel_id: 'marina', tem_legal: true, tipo_aprovacao: 'residencial' }, '16');
 proto(oliveira.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/48213', status: 'exigencia', data_protocolo: data(-18), prazo: data(2), cliente_notificado: true });
 proto(oliveira.id, { tipo: 'condominio', orgao: 'Condomínio Praia Azul', status: 'em_analise', data_protocolo: data(-9), prazo: data(12), cliente_notificado: true });
-const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'C' }, { nome: 'Loja Centro' }, '23');
+doc(oliveira.id, '05', 'Ata da reunião de briefing', 'ATA_CA000102_BRF.pdf', true);
+doc(oliveira.id, '10', 'Aceite da planta baixa', 'ESTD_CA000102_REV01.pdf', true);
+doc(oliveira.id, '14', 'Termo de aceite da fachada', 'ACT_CA000102_FACH_REV01.pdf', true);
+doc(oliveira.id, '15', 'Checklist interno do projeto arquitetônico', 'CHCK_CA000102_ARQ.pdf', false);
+db.profiles.find((x) => x.id === 'cliente')!.cliente_id = oliveira.cliente_id;
+const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'C' }, { nome: 'Loja Centro', responsavel_id: 'rafael' }, '23');
 proto(rocha.id, { tipo: 'entrega_cliente', status: 'protocolado', prazo: data(3), cliente_notificado: true });
 novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
-  { nome: 'Sobrado Costa', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
-novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', tem_interiores: true }, '03');
+  { nome: 'Sobrado Costa', responsavel_id: 'rafael', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
+novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '03');
 
 function rpc(nome: string, args: any = {}) {
   const agora = new Date().toISOString();
-  const parar = () => db.tempos.filter((t) => t.usuario_id === 'demo' && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
+  const parar = () => db.tempos.filter((t) => t.usuario_id === eu && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
   if (nome === 'iniciar_cronometro') {
+    if (!verProjeto(args.p_projeto)) return Promise.resolve(NEGADO);
     parar();
-    const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: 'demo', iniciado_em: agora, finalizado_em: null };
+    const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: eu, iniciado_em: agora, finalizado_em: null };
     db.tempos.push(r);
     return Promise.resolve({ data: r, error: null });
   }
@@ -231,8 +301,8 @@ export const demoClient: any = {
   from: (t: string) => new Q(t),
   rpc,
   auth: {
-    getUser: async () => ({ data: { user: { id: 'demo' } } }),
-    getSession: async () => ({ data: { session: { user: { id: 'demo' } } } }),
+    getUser: async () => ({ data: { user: { id: eu } } }),
+    getSession: async () => ({ data: { session: { user: { id: eu } } } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
     signInWithPassword: async () => ({ error: null }),
     signOut: async () => { location.reload(); },
@@ -240,7 +310,7 @@ export const demoClient: any = {
   storage: {
     from: () => ({
       upload: async () => ({ error: null }),
-      createSignedUrl: async () => ({ data: null, error: { message: 'Download indisponível no modo demonstração.' } }),
+      createSignedUrl: async () => ({ data: null, error: { message: 'Abrir arquivos não funciona na demonstração.' } }),
     }),
   },
 };

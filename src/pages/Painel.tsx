@@ -4,14 +4,16 @@ import { supabase } from '../lib/supabase';
 import type { EtapaModelo, Projeto, Protocolo } from '../lib/types';
 import { FASES, diasAte, fmtData, statusProtocolo } from '../lib/labels';
 import { MAX_DIAS_PAUSA, diasDePausa } from '../lib/flow';
+import { usePerfil } from '../lib/perfil';
 
 export default function Painel() {
+  const eu = usePerfil();
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
 
   useEffect(() => {
-    supabase.from('projetos').select('*, clientes(nome,codigo), projeto_etapas(etapa_codigo,status)')
+    supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome), projeto_etapas(etapa_codigo,status)')
       .in('status', ['ativo', 'pausado']).order('created_at', { ascending: false })
       .then(({ data }) => setProjetos((data as Projeto[]) ?? []));
     supabase.from('etapa_modelos').select('*').order('ordem').then(({ data }) => setModelos((data as EtapaModelo[]) ?? []));
@@ -27,18 +29,40 @@ export default function Painel() {
   const ativos = projetos.filter((p) => p.status === 'ativo');
   const pausados = projetos.filter((p) => p.status === 'pausado');
   const porFase = [1, 2, 3, 4].map((f) => ({ fase: f, itens: ativos.filter((p) => etapaAtual(p)?.fase === f) }));
+  const porPessoa = [...new Set(projetos.map((p) => p.responsavel_id).filter(Boolean) as string[])].map((rid) => {
+    const meus = projetos.filter((p) => p.responsavel_id === rid);
+    return {
+      id: rid, nome: meus[0].profiles?.nome ?? '—', ativos: meus.filter((p) => p.status === 'ativo').length,
+      pausados: meus.filter((p) => p.status === 'pausado').length,
+      etapas: meus.filter((p) => p.status === 'ativo').map((p) => `${p.nome}: ${etapaAtual(p)?.codigo ?? '—'} ${etapaAtual(p)?.rotulo ?? ''}`.trim()),
+    };
+  }).sort((a, b) => b.ativos - a.ativos);
   const atencao = protocolos.filter((p) => p.status === 'exigencia' || (diasAte(p.prazo) ?? 99) <= 3);
   const pausaCritica = pausados.filter((p) => diasDePausa(p.pausado_em) > MAX_DIAS_PAUSA - 30);
 
   return (
     <>
-      <div className="titulo"><h1>Painel</h1><Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link></div>
+      <div className="titulo"><h1>{eu.perfil === 'admin' ? 'Painel geral' : 'Meu painel'}</h1><Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link></div>
       <div className="kpis">
         <div className="kpi"><b>{ativos.length}</b><span>projetos ativos</span></div>
         <div className="kpi"><b>{pausados.length}</b><span>pausados</span></div>
         <div className="kpi"><b>{protocolos.length}</b><span>protocolos abertos</span></div>
         <div className="kpi"><b className={atencao.length ? 'alerta' : ''}>{atencao.length}</b><span>pedem atenção</span></div>
       </div>
+
+      {eu.perfil === 'admin' && porPessoa.length > 0 && (
+        <section className="card">
+          <h2>Por profissional</h2>
+          <ul className="lista">
+            {porPessoa.map((x) => (
+              <li key={x.id}><Link to={`/projetos?resp=${x.id}`}>
+                <b>{x.nome}</b> <span className="mudo">· {x.ativos} ativo{x.ativos === 1 ? '' : 's'}{x.pausados ? `, ${x.pausados} pausado${x.pausados === 1 ? '' : 's'}` : ''}</span>
+                <span className="etapa">{x.etapas.join(' · ') || 'sem etapa em andamento'}</span>
+              </Link></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {(atencao.length > 0 || pausaCritica.length > 0) && (
         <section className="card">

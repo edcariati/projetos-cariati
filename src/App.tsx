@@ -1,27 +1,41 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { Session } from '@supabase/supabase-js';
 import { configurado, demo, supabase } from './lib/supabase';
+import { aoMudarPersona } from './lib/demo';
+import { PerfilCtx } from './lib/perfil';
+import type { Profile } from './lib/types';
 import Login from './pages/Login';
-import Painel from './pages/Painel';
-import Projetos from './pages/Projetos';
-import ProjetoDetalhe from './pages/ProjetoDetalhe';
-import NovoProjeto from './pages/NovoProjeto';
-import Protocolos from './pages/Protocolos';
-import Fluxo from './pages/Fluxo';
-import Tempos from './pages/Tempos';
-import BarraCronometro from './components/BarraCronometro';
+import AppEquipe from './AppEquipe';
+import AppCliente from './AppCliente';
+import DemoBarra from './components/DemoBarra';
 import { DialogHost } from './components/Dialogo';
 
 export default function App() {
-  const { pathname } = useLocation();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [perfil, setPerfil] = useState<Profile | null | undefined>(undefined);
+  const [versao, setVersao] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Na demonstração, trocar de perfil reinicia a área exibida
+  useEffect(() => {
+    if (!demo) return;
+    return aoMudarPersona(() => {
+      supabase.auth.getSession().then(({ data }) => { setSession(data.session); setVersao((v) => v + 1); });
+    });
+  }, []);
+
+  const uid = session?.user.id;
+  useEffect(() => {
+    if (!uid) return;
+    setPerfil(undefined);
+    supabase.from('profiles').select('*').eq('id', uid).single()
+      .then(({ data }) => setPerfil((data as Profile) ?? null));
+  }, [uid, versao]);
 
   if (!configurado) {
     return (
@@ -33,35 +47,24 @@ export default function App() {
   }
   if (session === undefined) return <div className="centro">Carregando…</div>;
   if (!session) return <Login />;
+  if (perfil === undefined) return <div className="centro">Carregando…</div>;
+  if (!perfil || !perfil.ativo) {
+    return (
+      <div className="centro"><div className="card">
+        <h2>Acesso ainda não liberado</h2>
+        <p>Seu login existe, mas o escritório ainda não definiu o que você pode ver. Fale com o administrador.</p>
+        <button onClick={() => supabase.auth.signOut()}>Sair</button>
+      </div></div>
+    );
+  }
 
   return (
-    <div className="app">
-      <DialogHost />
-      {demo && <div className="demo">Modo demonstração: dados de exemplo, nada é salvo.</div>}
-      <header className="topo">
-        <strong>Projetos Cariati</strong>
-        <nav>
-          <NavLink to="/" end>Painel</NavLink>
-          <NavLink to="/projetos">Projetos</NavLink>
-          <NavLink to="/protocolos">Protocolos</NavLink>
-          <NavLink to="/tempos">Tempos</NavLink>
-          <NavLink to="/fluxo">Fluxo</NavLink>
-        </nav>
-        <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
-      </header>
-      <BarraCronometro />
-      <main className={pathname === '/fluxo' ? 'largo' : ''}>
-        <Routes>
-          <Route path="/" element={<Painel />} />
-          <Route path="/projetos" element={<Projetos />} />
-          <Route path="/projetos/novo" element={<NovoProjeto />} />
-          <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
-          <Route path="/protocolos" element={<Protocolos />} />
-          <Route path="/tempos" element={<Tempos />} />
-          <Route path="/fluxo" element={<Fluxo />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-    </div>
+    <PerfilCtx.Provider value={perfil}>
+      <div className="app" key={versao}>
+        <DialogHost />
+        {demo && <DemoBarra />}
+        {perfil.perfil === 'cliente' ? <AppCliente /> : <AppEquipe />}
+      </div>
+    </PerfilCtx.Provider>
   );
 }
