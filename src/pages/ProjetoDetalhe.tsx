@@ -9,6 +9,7 @@ import {
 } from '../lib/flow';
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
+import { confirmar, pedirTexto } from '../components/Dialogo';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
 
@@ -77,11 +78,11 @@ export default function ProjetoDetalhe() {
         )}
         <div className="acoes">
           {projeto.status === 'ativo' && <>
-            <button onClick={() => { const m = prompt('Motivo da pausa (a pedido do cliente / sem retorno por 3 semanas):'); if (m) run(() => pausarProjeto(projeto.id, m)); }}>Pausar projeto</button>
+            <button onClick={async () => { const m = await pedirTexto('Motivo da pausa (a pedido do cliente / sem retorno por 3 semanas):'); if (m) run(() => pausarProjeto(projeto.id, m)); }}>Pausar projeto</button>
           </>}
           {pausado && <>
             <button className="primario" onClick={() => run(() => retomarProjeto(projeto.id))}>Retomar (aditivo assinado)</button>
-            {dias > MAX_DIAS_PAUSA && <button className="perigo" onClick={() => confirm('Marcar como rescindido?') && run(() => rescindirProjeto(projeto.id))}>Rescindir contrato</button>}
+            {dias > MAX_DIAS_PAUSA && <button className="perigo" onClick={async () => (await confirmar('Marcar como rescindido?')) && run(() => rescindirProjeto(projeto.id))}>Rescindir contrato</button>}
           </>}
         </div>
       </section>
@@ -129,7 +130,7 @@ export default function ProjetoDetalhe() {
                         {ativa && !pausado && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>
                           {m.aceite_formal ? 'Aceite assinado — concluir' : 'Concluir etapa'}
                         </button>}
-                        {e.status === 'concluida' && !pausado && <button onClick={() => confirm('Reabrir esta etapa? As etapas seguintes devem ser revistas.') && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
+                        {e.status === 'concluida' && !pausado && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
                       </div>
                     </div>
                   )}

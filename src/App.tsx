@@ -8,6 +8,7 @@ import Projetos from './pages/Projetos';
 import ProjetoDetalhe from './pages/ProjetoDetalhe';
 import NovoProjeto from './pages/NovoProjeto';
 import Protocolos from './pages/Protocolos';
+import { DialogHost } from './components/Dialogo';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <DialogHost />
       {demo && <div className="demo">Modo demonstração: dados de exemplo, nada é salvo.</div>}
       <header className="topo">
         <strong>Projetos Cariati</strong>

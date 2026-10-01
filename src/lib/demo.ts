@@ -41,7 +41,7 @@ function parseTuples(sql: string): any[][] {
   return rows;
 }
 
-const uid = () => crypto.randomUUID();
+const uid = () => globalThis.crypto?.randomUUID?.() ?? 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
 const dia = (d: number) => new Date(Date.now() + d * 86_400_000);
 const iso = (d: number) => dia(d).toISOString();
 const data = (d: number) => dia(d).toISOString().slice(0, 10);
