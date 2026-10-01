@@ -53,22 +53,31 @@ export async function registrarRodada(projetoId: string, etapa: ProjetoEtapa) {
     etapa.etapa_codigo);
 }
 
-export async function pausarProjeto(projetoId: string, motivo: string) {
+async function abrirChecklist(projetoId: string, etapa: string) {
+  const { error } = await supabase.rpc('instanciar_tarefas_etapa', { p_projeto: projetoId, p_etapa: etapa });
+  if (error) throw error;
+}
+
+/** tipo: 'P1' pausa a pedido do cliente · 'P2' pausa por falta de retorno (tentativas de contato) */
+export async function pausarProjeto(projetoId: string, motivo: string, tipo: 'P1' | 'P2') {
   const rodando = await cronometroAtivo();
   if (rodando && rodando.projeto_id === projetoId) await pararCronometro();
   const hoje = new Date().toISOString().slice(0, 10);
   await supabase.from('projetos').update({ status: 'pausado', pausado_em: hoje, motivo_pausa: motivo }).eq('id', projetoId);
   await log(projetoId, 'pausa', motivo);
+  await abrirChecklist(projetoId, tipo);
 }
 
 export async function retomarProjeto(projetoId: string) {
   await supabase.from('projetos').update({ status: 'ativo', pausado_em: null, motivo_pausa: null }).eq('id', projetoId);
   await log(projetoId, 'retomada', 'Projeto retomado — reanalisar e replanejar antes de seguir');
+  await abrirChecklist(projetoId, 'P3');
 }
 
 export async function rescindirProjeto(projetoId: string) {
   await supabase.from('projetos').update({ status: 'rescindido' }).eq('id', projetoId);
   await log(projetoId, 'nota', 'Rescisão por ausência de retomada (pausa acima de 180 dias)');
+  await abrirChecklist(projetoId, 'P4');
 }
 
 export const diasDePausa = (pausado_em: string | null) =>

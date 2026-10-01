@@ -58,3 +58,15 @@ export const PERFIL: Record<string, string> = { admin: 'Administrador', profissi
 export const ESPECIALIDADE: Record<string, string> = {
   arquitetonico: 'Arquitetônico', interiores: 'Interiores', legal: 'Legal (aprovações)', complementares: 'Complementares',
 };
+
+export const TIPO_ESTUDO: Record<string, string> = { padrao: 'Estudo padrão', ampliacao: 'Ampliação', mais_projetos: '+ Projetos' };
+export const TIPO_ESTUDO_DESC: Record<string, string> = {
+  padrao: 'Construção nova: briefing, estudo de planta baixa e estudo de fachada, cada um com apresentação e aceite.',
+  ampliacao: 'O cliente já tem espaço construído: aferição no espaço, estudo de layout e estudo 3D no lugar da fachada.',
+  mais_projetos: 'Cliente C e D (estudo + projetos): croqui e fachadas juntos, apresentados numa só reunião.',
+};
+/** Na ampliação, as etapas de fachada (11 a 14) são o estudo 3D. */
+const ETAPAS_3D: Record<string, string> = {
+  '11': 'Estudo 3D', '12': 'Agendamento da apresentação do estudo 3D', '13': 'Apresentação do estudo 3D', '14': 'Aceite formal do estudo 3D',
+};
+export const tituloEtapa = (codigo: string, titulo: string, tipo?: string) => (tipo === 'ampliacao' && ETAPAS_3D[codigo]) || titulo;

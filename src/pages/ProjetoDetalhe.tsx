@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, Protocolo, ProtocoloTipo } from '../lib/types';
+import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
-import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, fmtData } from '../lib/labels';
+import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
   MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, pausarProjeto, reabrirEtapa,
   registrarRodada, rescindirProjeto, retomarProjeto,
@@ -11,7 +11,8 @@ import {
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
 import Cronometro from '../components/Cronometro';
-import { confirmar, pedirTexto } from '../components/Dialogo';
+import { confirmar, escolher } from '../components/Dialogo';
+import Checklist from '../components/Checklist';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
 
@@ -28,12 +29,14 @@ export default function ProjetoDetalhe() {
   const [nota, setNota] = useState('');
   const [erro, setErro] = useState('');
   const [equipe, setEquipe] = useState<ProjetoEquipe[]>([]);
+  const [tarefas, setTarefas] = useState<ProjetoTarefa[]>([]);
+  const [itens, setItens] = useState<ProjetoItem[]>([]);
   const [pessoas, setPessoas] = useState<Profile[]>([]);
   const [novoMembro, setNovoMembro] = useState<{ usuario: string; esp: Especialidade }>({ usuario: '', esp: 'arquitetonico' });
   const [novoProt, setNovoProt] = useState<{ tipo: ProtocoloTipo; orgao: string; numero: string } | null>(null);
 
   const carregar = useCallback(async () => {
-    const [p, m, e, h, pr, eq, pe] = await Promise.all([
+    const [p, m, e, h, pr, eq, pe, ta, it] = await Promise.all([
       supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
       supabase.from('etapa_modelos').select('*').order('ordem'),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
@@ -41,11 +44,14 @@ export default function ProjetoDetalhe() {
       supabase.from('protocolos').select('*').eq('projeto_id', id!).order('created_at', { ascending: false }),
       supabase.from('projeto_equipe').select('*, profiles(nome)').eq('projeto_id', id!),
       supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome'),
+      supabase.from('projeto_tarefas').select('*').eq('projeto_id', id!).order('ordem'),
+      supabase.from('projeto_tarefa_itens').select('*').eq('projeto_id', id!).order('ordem'),
     ]);
     setProjeto(p.data as Projeto); setModelos((m.data as EtapaModelo[]) ?? []);
     setEtapas((e.data as ProjetoEtapa[]) ?? []); setHist((h.data as Historico[]) ?? []);
     setProtocolos((pr.data as Protocolo[]) ?? []);
     setEquipe((eq.data as ProjetoEquipe[]) ?? []); setPessoas((pe.data as Profile[]) ?? []);
+    setTarefas((ta.data as ProjetoTarefa[]) ?? []); setItens((it.data as ProjetoItem[]) ?? []);
   }, [id]);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -57,6 +63,9 @@ export default function ProjetoDetalhe() {
   if (!projeto) return <p className="mudo">Carregando…</p>;
   const pausado = projeto.status === 'pausado';
   const dias = diasDePausa(projeto.pausado_em);
+  const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
+  const pendentes = (cod: string) => { const ids = tarefas.filter((t) => t.etapa_codigo === cod).map((t) => t.id); return itens.filter((i) => ids.includes(i.tarefa_id) && !i.feito).length; };
+  const temPausa = tarefas.some((t) => t.etapa_codigo.startsWith('P'));
   const etapaDe = (cod: string) => etapas.find((e) => e.etapa_codigo === cod);
   /** Quem pode agir na etapa: administrador, responsável pelo projeto ou alguém do setor da etapa. */
   const podeAgir = (m: EtapaModelo) => admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor);
@@ -75,6 +84,7 @@ export default function ProjetoDetalhe() {
 
       <section className="card">
         <div className="etiquetas">
+          <span className="etiqueta" title="Tipo de estudo preliminar">{TIPO_ESTUDO[projeto.tipo_estudo]}</span>
           {projeto.tem_legal && <span className="etiqueta">Legal{projeto.tipo_aprovacao ? ` · ${projeto.tipo_aprovacao}` : ''}</span>}
           {projeto.tem_interiores && <span className="etiqueta">Interiores</span>}
           {projeto.tem_complementares && <span className="etiqueta">Complementares</span>}
@@ -90,7 +100,10 @@ export default function ProjetoDetalhe() {
         )}
         <div className="acoes">
           {projeto.status === 'ativo' && <>
-            <button onClick={async () => { const m = await pedirTexto('Motivo da pausa (a pedido do cliente / sem retorno por 3 semanas):'); if (m) run(() => pausarProjeto(projeto.id, m)); }}>Pausar projeto</button>
+            <button onClick={async () => {
+              const tipo = await escolher('Qual o motivo da pausa?', [['P1', 'A pedido do cliente (termo de pausa)'], ['P2', 'Falta de retorno do cliente (3 tentativas de contato)']]);
+              if (tipo) run(() => pausarProjeto(projeto.id, tipo === 'P1' ? 'Pausa a pedido do cliente' : 'Pausa por falta de retorno do cliente', tipo as 'P1' | 'P2'));
+            }}>Pausar projeto</button>
           </>}
           {pausado && <>
             <button className="primario" onClick={() => run(() => retomarProjeto(projeto.id))}>Retomar (aditivo assinado)</button>
@@ -98,6 +111,16 @@ export default function ProjetoDetalhe() {
           </>}
         </div>
       </section>
+
+      {temPausa && (
+        <section className="card">
+          <h3>Pausa e retomada</h3>
+          {(['P1', 'P2', 'P3', 'P4'] as const).map((c) => (
+            <Checklist key={c} etapa={c} titulo={{ P1: 'Pausa a pedido do cliente', P2: 'Pausa por falta de retorno', P3: 'Retomada do projeto', P4: 'Rescisão' }[c]}
+              tarefas={tarefas} itens={itens} nomes={nomes} editavel onChange={carregar} aberto />
+          ))}
+        </section>
+      )}
 
       <section className="card equipe">
         <h3>Equipe do projeto</h3>
@@ -149,7 +172,7 @@ export default function ProjetoDetalhe() {
                   <div className="linha" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)}>
                     <span className="et-num">{m.codigo}</span>
                     <div className="grow">
-                      <b>{m.titulo}</b>
+                      <b>{tituloEtapa(m.codigo, m.titulo, projeto.tipo_estudo)}</b>
                       <div className="pequeno mudo">
                         {m.setores.map((s) => SETOR[s]).join(' · ')}{m.cliente_participa ? ' · Cliente' : ''}
                         {m.aceite_formal ? ' · aceite formal' : ''}
@@ -173,12 +196,17 @@ export default function ProjetoDetalhe() {
                           {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
+                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aberto={ativa} />
                       {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
                         pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
                           : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />}
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
-                        {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>
+                        {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={async () => {
+                          const p = pendentes(m.codigo);
+                          if (p > 0 && !(await confirmar(`Ainda há ${p} item(ns) pendente(s) no checklist desta etapa. Concluir mesmo assim?`))) return;
+                          run(() => concluirEtapa(projeto.id, e, modelos, etapas));
+                        }}>
                           {m.aceite_formal ? 'Aceite assinado — concluir' : 'Concluir etapa'}
                         </button>}
                         {e.status === 'concluida' && !pausado && podeAgir(m) && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}

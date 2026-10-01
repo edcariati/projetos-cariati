@@ -1,4 +1,5 @@
 export type Setor = 'comercial' | 'administrativo' | 'projetos' | 'terceiros';
+export type TipoEstudo = 'padrao' | 'ampliacao' | 'mais_projetos';
 export type ProjetoStatus = 'ativo' | 'pausado' | 'finalizado' | 'rescindido';
 export type EtapaStatus = 'pendente' | 'em_andamento' | 'concluida' | 'nao_aplicavel';
 export type ProtocoloTipo = 'prefeitura' | 'condominio' | 'outro_orgao' | 'entrega_cliente';
@@ -31,7 +32,7 @@ export interface EtapaModelo {
 export interface Projeto {
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
-  status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
+  tipo_estudo: TipoEstudo; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
   created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null; profiles?: { nome: string } | null;
   projeto_etapas?: Pick<ProjetoEtapa, 'etapa_codigo' | 'status'>[];
 }
@@ -56,4 +57,10 @@ export interface Tempo {
 }
 export interface BancoAjuste {
   id: string; usuario_id: string; data: string; minutos: number; motivo: string; criado_por: string | null; created_at: string;
+}
+export interface ProjetoTarefa {
+  id: string; projeto_id: string; etapa_codigo: string; ordem: number; titulo: string; descricao: string | null; prioridade: 'Alta' | 'Média' | 'Baixa';
+}
+export interface ProjetoItem {
+  id: string; tarefa_id: string; projeto_id: string; ordem: number; texto: string | null; feito: boolean; feito_por: string | null; feito_em: string | null;
 }

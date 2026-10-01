@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { Documento, EtapaCliente, Projeto, ProjetoEtapa, Protocolo } from '../../lib/types';
-import { ETAPA_STATUS, FASES, PROJETO_STATUS, diasAte, fmtData, statusProtocolo, PROTOCOLO_TIPO } from '../../lib/labels';
+import { ETAPA_STATUS, FASES, PROJETO_STATUS, diasAte, fmtData, statusProtocolo, PROTOCOLO_TIPO, tituloEtapa } from '../../lib/labels';
 
 /** O que se espera do cliente em cada etapa em que ele participa. */
 const ACAO: Record<string, string> = {
@@ -67,7 +67,7 @@ export default function ClienteProjeto() {
       {!pausado && atual && (
         <section className="card agora">
           <div className="pequeno mudo">Agora</div>
-          <h2>{atual.titulo}</h2>
+          <h2>{tituloEtapa(atual.codigo, atual.titulo, projeto.tipo_estudo)}</h2>
           {atual.cliente_participa
             ? <p className="sua-vez"><b>Sua participação:</b> {ACAO[atual.codigo] ?? 'O escritório avisará pelo grupo de WhatsApp quando precisar de você.'}</p>
             : <p className="mudo">O escritório está trabalhando nesta etapa. Não precisamos de nada de você agora.</p>}
@@ -89,7 +89,7 @@ export default function ClienteProjeto() {
                     <div className="linha sem-clique">
                       <span className="et-num">{e.status === 'concluida' ? '✓' : m.codigo}</span>
                       <div className="grow">
-                        <b>{m.titulo}</b>
+                        <b>{tituloEtapa(m.codigo, m.titulo, projeto.tipo_estudo)}</b>
                         <div className="pequeno mudo">
                           {m.cliente_participa ? 'Com a sua participação' : 'Trabalho do escritório'}{m.aceite_formal ? ' · aceite formal' : ''}
                           {e.concluida_em ? ` · concluída em ${fmtData(e.concluida_em)}` : ''}

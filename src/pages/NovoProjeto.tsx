@@ -2,7 +2,8 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile } from '../lib/types';
-import { TIPOS_APROVACAO } from '../lib/labels';
+import { TIPOS_APROVACAO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
+import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
 
 export default function NovoProjeto() {
@@ -14,6 +15,7 @@ export default function NovoProjeto() {
   const [novoCliente, setNovoCliente] = useState({ nome: '', codigo: '', categoria: '', premium: false, telefone: '', email: '' });
   const [nome, setNome] = useState('');
   const [responsavel, setResponsavel] = useState('');
+  const [tipoEstudo, setTipoEstudo] = useState<TipoEstudo>('padrao');
   const [legal, setLegal] = useState(false);
   const [interiores, setInteriores] = useState(false);
   const [compl, setCompl] = useState(false);
@@ -25,6 +27,10 @@ export default function NovoProjeto() {
     supabase.from('clientes').select('*').order('nome').then(({ data }) => setClientes((data as Cliente[]) ?? []));
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
   }, []);
+
+  // cliente C ou D (estudo + projetos) sugere o estudo "+ Projetos"; dá para trocar
+  const categoria = clienteId ? clientes.find((c) => c.id === clienteId)?.categoria : novoCliente.categoria;
+  useEffect(() => { if (categoria === 'C' || categoria === 'D') setTipoEstudo('mais_projetos'); }, [categoria]);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -41,7 +47,7 @@ export default function NovoProjeto() {
       }
       const { data, error } = await supabase.from('projetos').insert({
         cliente_id: cid, nome, responsavel_id: responsavel || null, tem_legal: legal,
-        tem_interiores: interiores, tem_complementares: compl, tipo_aprovacao: legal ? aprovacao || null : null,
+        tem_interiores: interiores, tem_complementares: compl, tipo_estudo: tipoEstudo, tipo_aprovacao: legal ? aprovacao || null : null,
       }).select('id').single();
       if (error) throw error;
       nav(`/projetos/${data.id}`);
@@ -88,6 +94,12 @@ export default function NovoProjeto() {
             </select>
           </label>
         ) : <p className="mudo pequeno">Você será o responsável por este projeto.</p>}
+        <label>Tipo de estudo preliminar
+          <select id="tipo-estudo" value={tipoEstudo} onChange={(e) => setTipoEstudo(e.target.value as TipoEstudo)}>
+            {Object.entries(TIPO_ESTUDO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <span className="pequeno mudo">{TIPO_ESTUDO_DESC[tipoEstudo]}</span>
+        </label>
         <fieldset>
           <legend>Escopo contratado (além do arquitetônico)</legend>
           <label className="check"><input type="checkbox" checked={legal} onChange={(e) => setLegal(e.target.checked)} />Projeto legal (aprovação na Prefeitura)</label>

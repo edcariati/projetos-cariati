@@ -138,3 +138,24 @@ main.largo{max-width:1240px}
 .mini-tab td{padding:5px 6px;font-size:13px}
 .detalhe-linha h3{margin:0 0 6px}
 .titulo button{white-space:nowrap}
+
+.acoes.colunas{flex-direction:column;align-items:stretch}
+.checklist{border-top:1px solid var(--line);padding-top:10px}
+.checklist>summary{cursor:pointer;font-size:14px;display:flex;gap:10px;align-items:center;list-style:none}
+.checklist>summary::-webkit-details-marker{display:none}
+.checklist>summary::before{content:"▸";color:var(--ink3)}
+.checklist[open]>summary::before{content:"▾"}
+.ck-prog{margin-left:auto;font-size:12px;color:var(--ink2);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 10px}
+.ck-prog.ok{color:var(--green);border-color:var(--green)}
+.ck-tarefa{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px}
+.ck-tarefa h4{margin:0;font-size:14px;font-weight:500;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ck-tarefa p{margin:4px 0 0;font-size:12.5px;color:var(--ink2)}
+.ck-item{display:flex;align-items:flex-start;gap:10px;padding:5px 0;font-size:14px}
+.ck-item input{width:20px;min-height:20px;height:20px;margin-top:1px;flex:none}
+.ck-item.feito .ck-texto{color:var(--ink3);text-decoration:line-through}
+.ck-quem{font-size:12px;color:var(--ink3);margin-left:auto;white-space:nowrap}
+.ck-prio{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--soft);color:var(--ink2)}
+.ck-prio.Alta{background:#F5D5D0;color:#8A2A20}.ck-prio.Média{background:#F6E7C8;color:#7A5410}
+.ck-nota{font-size:12px;color:var(--ink3);margin:6px 0 0}
+.ck-item{flex-direction:row;align-items:flex-start;color:var(--ink);cursor:pointer}
+.ck-item .ck-texto{flex:1;min-width:0}

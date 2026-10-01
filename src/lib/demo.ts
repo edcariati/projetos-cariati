@@ -2,6 +2,7 @@
    Imita só o que o app usa do supabase-js. Nada é salvo e nada sai do navegador. */
 import sqlEtapas from '../../supabase/migrations/0002_seed_etapas.sql?raw';
 import sqlDocs from '../../supabase/migrations/0004_seed_documentos.sql?raw';
+import { TAREFAS } from './protocolos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>;
@@ -68,11 +69,13 @@ const db: Record<string, Row[]> = {
     { id: 'cliente', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
   clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
-  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [],
+  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [], projeto_tarefas: [], projeto_tarefa_itens: [],
 };
 
 const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'cliente_participa', 'entrada', 'saida', 'regra', 'opcional', 'aceite_formal', 'escopo'];
 db.etapa_modelos = parseTuples(sqlEtapas).map((t) => Object.fromEntries(COLS_ETAPA.map((c, k) => [c, t[k]])));
+// ajustes feitos pela migration 0009 sobre os modelos de etapa
+Object.assign(db.etapa_modelos.find((m) => m.codigo === '01')!, { titulo: 'Levantamento de dados e contrato', entrada: 'Primeiro contato do cliente', saida: 'Contrato assinado e oportunidade promovida a projeto' });
 db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codigo: t[0], nome: t[1], padrao_arquivo: t[2], ordem: t[3] }));
 
 /* ---------- regras de acesso (espelham o RLS do banco) ---------- */
@@ -97,6 +100,7 @@ function ver(t: string, r: Row): boolean {
     case 'projeto_documentos': return verProjeto(r.projeto_id) && (!cli || r.visivel_cliente);
     case 'tempos': return podeBanco() || r.usuario_id === eu;
     case 'banco_horas_ajustes': return podeBanco() || r.usuario_id === eu;
+    case 'projeto_tarefas': case 'projeto_tarefa_itens': return !cli && verProjeto(r.projeto_id);
     case 'etapa_modelos': case 'documento_modelos': return !cli;
     case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
     default: return true;
@@ -142,7 +146,8 @@ function expand(table: string, row: Row, sel: string): Row {
 function instanciarEtapas(p: Row) {
   for (const m of db.etapa_modelos) {
     const naoAplic = m.fase === 5 || (m.escopo === 'legal' && !p.tem_legal) ||
-      (m.escopo === 'interiores' && !p.tem_interiores) || (m.escopo === 'complementares' && !p.tem_complementares);
+      (m.escopo === 'interiores' && !p.tem_interiores) || (m.escopo === 'complementares' && !p.tem_complementares) ||
+      (p.tipo_estudo === 'mais_projetos' && ['11', '12', '13', '14'].includes(m.codigo));
     db.projeto_etapas.push({
       id: uid(), projeto_id: p.id, etapa_codigo: m.codigo, status: naoAplic ? 'nao_aplicavel' : 'pendente',
       responsavel_id: null, iniciada_em: null, concluida_em: null, rodadas_ajuste: 0, observacao: null,
@@ -151,11 +156,28 @@ function instanciarEtapas(p: Row) {
   const e1 = db.projeto_etapas.find((e) => e.projeto_id === p.id && e.etapa_codigo === '01')!;
   e1.status = 'em_andamento'; e1.iniciada_em = new Date().toISOString();
   db.historico.push({ id: uid(), projeto_id: p.id, etapa_codigo: '01', tipo: 'etapa_iniciada', texto: 'Projeto criado', autor_id: eu, created_at: new Date().toISOString() });
+  for (const e of db.projeto_etapas.filter((x) => x.projeto_id === p.id && x.status !== 'nao_aplicavel')) {
+    if (db.etapa_modelos.find((m) => m.codigo === e.etapa_codigo)!.fase <= 4) inserirTarefas(p.id, e.etapa_codigo, ['todas', p.tipo_estudo ?? 'padrao']);
+  }
+}
+
+/** Copia as tarefas do protocolo para o projeto (uma vez por etapa), como a função do banco. */
+function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): number {
+  if (db.projeto_tarefas.some((t) => t.projeto_id === projetoId && t.etapa_codigo === etapa)) return 0;
+  let n = 0;
+  for (const m of TAREFAS.filter((t) => t.etapa === etapa && variantes.includes(t.variante)).sort((a, b) => a.ordem - b.ordem)) {
+    const tid = uid();
+    db.projeto_tarefas.push({ id: tid, projeto_id: projetoId, etapa_codigo: etapa, ordem: m.ordem, titulo: m.titulo, descricao: m.descricao, prioridade: m.prioridade });
+    const textos: (string | null)[] = m.itens.length ? m.itens : [null];
+    textos.forEach((texto, k) => db.projeto_tarefa_itens.push({ id: uid(), tarefa_id: tid, projeto_id: projetoId, ordem: k + 1, texto, feito: false, feito_por: null, feito_em: null }));
+    n++;
+  }
+  return n;
 }
 
 const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({ codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null }),
-  projetos: () => ({ codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ tipo_estudo: 'padrao', codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),
@@ -212,7 +234,11 @@ class Q implements PromiseLike<any> {
     } else if (this.op === 'update') {
       const campos = { ...this.payload };
       if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades', 'carga_semanal_horas']) delete campos[k];
-      tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => Object.assign(r, campos));
+      tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => {
+        if (t === 'projeto_tarefa_itens' && 'feito' in campos) {
+          Object.assign(r, campos, campos.feito ? (r.feito ? {} : { feito_por: eu, feito_em: new Date().toISOString() }) : { feito_por: null, feito_em: null });
+        } else Object.assign(r, campos);
+      });
       return { data: null, error: null };
     } else if (this.op === 'delete') {
       if (p.perfil !== 'admin' && !(t === 'banco_horas_ajustes' && podeBanco())) return { data: null, error: null };
@@ -265,6 +291,12 @@ function novoProjeto(cliente: Row, p: Row, ate: string, rodadas = 0) {
     else { e.status = 'pendente'; e.iniciada_em = null; e.concluida_em = null; }
   }
   semearTempos(pr.id, pr.responsavel_id);
+  for (const e of db.projeto_etapas.filter((x) => x.projeto_id === pr.id && ['concluida', 'em_andamento'].includes(x.status))) {
+    const ids = db.projeto_tarefas.filter((t) => t.projeto_id === pr.id && t.etapa_codigo === e.etapa_codigo).map((t) => t.id);
+    const its = db.projeto_tarefa_itens.filter((i) => ids.includes(i.tarefa_id)).sort((a, b) => a.ordem - b.ordem);
+    const quantos = e.status === 'concluida' ? its.length : Math.floor(its.length / 2);
+    its.slice(0, quantos).forEach((i) => { i.feito = true; i.feito_por = pr.responsavel_id; i.feito_em = e.concluida_em ?? e.iniciada_em ?? iso(-1); });
+  }
   db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: ate, tipo: 'etapa_iniciada', texto: 'Etapa iniciada', autor_id: pr.responsavel_id, created_at: iso(-2) });
   db.historico.push({ id: uid(), projeto_id: pr.id, etapa_codigo: null, tipo: 'nota', texto: 'Cliente prefere reuniões online às terças.', autor_id: pr.responsavel_id, created_at: iso(-10) });
   return pr;
@@ -285,11 +317,11 @@ doc(oliveira.id, '10', 'Aceite da planta baixa', 'ESTD_CA000102_REV01.pdf', true
 doc(oliveira.id, '14', 'Termo de aceite da fachada', 'ACT_CA000102_FACH_REV01.pdf', true);
 doc(oliveira.id, '15', 'Checklist interno do projeto arquitetônico', 'CHCK_CA000102_ARQ.pdf', false);
 db.profiles.find((x) => x.id === 'cliente')!.cliente_id = oliveira.cliente_id;
-const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'C' }, { nome: 'Loja Centro', responsavel_id: 'rafael' }, '23');
+const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'C' }, { nome: 'Loja Centro', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '23');
 proto(rocha.id, { tipo: 'entrega_cliente', status: 'protocolado', prazo: data(3), cliente_notificado: true });
 novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
-  { nome: 'Sobrado Costa', responsavel_id: 'rafael', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
-novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '04');
+  { nome: 'Sobrado Costa', responsavel_id: 'rafael', tipo_estudo: 'ampliacao', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa por falta de retorno do cliente' }, '05');
+const lima = novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '04');
 
 /** 40 dias de trabalho recentes por pessoa, nas etapas em andamento, para o banco de horas ter o que analisar. */
 function semearDias() {
@@ -323,6 +355,15 @@ function semearDias() {
 }
 semearDias();
 
+// Sobrado Costa: pausa por falta de retorno, com as 3 tentativas de contato já feitas e a notificação enviada
+{
+  const costa = db.projetos.find((x) => x.nome === 'Sobrado Costa')!;
+  inserirTarefas(costa.id, 'P2', ['todas', 'ampliacao']);
+  const ids = db.projeto_tarefas.filter((t) => t.projeto_id === costa.id && t.etapa_codigo === 'P2').sort((a, b) => a.ordem - b.ordem).slice(0, 4).map((t) => t.id);
+  db.projeto_tarefa_itens.filter((i) => ids.includes(i.tarefa_id)).forEach((i) => { i.feito = true; i.feito_por = 'rafael'; i.feito_em = iso(-160); });
+}
+void lima;
+
 function rpc(nome: string, args: any = {}) {
   const agora = new Date().toISOString();
   const parar = () => db.tempos.filter((t) => t.usuario_id === eu && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
@@ -332,6 +373,14 @@ function rpc(nome: string, args: any = {}) {
     const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: eu, iniciado_em: agora, finalizado_em: null };
     db.tempos.push(r);
     return Promise.resolve({ data: r, error: null });
+  }
+  if (nome === 'instanciar_tarefas_etapa') {
+    if (perfilEu().perfil === 'cliente' || !verProjeto(args.p_projeto)) return Promise.resolve({ data: null, error: { message: 'Sem permissão para este projeto' } });
+    const pr = db.projetos.find((x) => x.id === args.p_projeto)!;
+    const v = args.p_etapa === 'P3'
+      ? ['todas', db.projeto_tarefas.some((t) => t.projeto_id === pr.id && t.etapa_codigo === 'P2') ? 'apos_ausencia' : 'apos_solicitacao']
+      : ['todas', pr.tipo_estudo ?? 'padrao'];
+    return Promise.resolve({ data: inserirTarefas(pr.id, args.p_etapa, v), error: null });
   }
   if (nome === 'parar_cronometro') { parar(); return Promise.resolve({ data: null, error: null }); }
   return Promise.resolve({ data: null, error: { message: 'Função não disponível na demonstração' } });
