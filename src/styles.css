@@ -127,3 +127,6 @@ main.largo{max-width:1240px}
 .liberar{margin-top:2px}
 .equipe .nota{margin-top:10px;margin-bottom:0;flex-wrap:wrap}
 .equipe .nota select{flex:1;min-width:150px}
+
+.bloqueio{color:var(--amber)}
+.cronometro button:disabled{opacity:.5;cursor:not-allowed}

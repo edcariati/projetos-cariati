@@ -173,8 +173,9 @@ export default function ProjetoDetalhe() {
                           {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
-                      {ativa && !podeAgir(m) && <p className="aviso pequeno">Esta etapa cabe a: {m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode agir nela.</p>}
-                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} bloqueado={pausado || !podeAgir(m)} />}
+                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
+                        pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
+                          : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />}
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
                         {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={() => run(() => concluirEtapa(projeto.id, e, modelos, etapas))}>

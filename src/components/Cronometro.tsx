@@ -4,8 +4,8 @@ import type { Tempo } from '../lib/types';
 import { fmtDur, fmtRelogio } from '../lib/labels';
 import { aoMudar, cronometroAtivo, iniciarCronometro, pararCronometro, segundosEntre } from '../lib/tempo';
 
-export default function Cronometro({ projetoId, etapaCodigo, bloqueado }: {
-  projetoId: string; etapaCodigo: string; bloqueado?: boolean;
+export default function Cronometro({ projetoId, etapaCodigo, motivoBloqueio }: {
+  projetoId: string; etapaCodigo: string; motivoBloqueio?: string;
 }) {
   const [registros, setRegistros] = useState<Tempo[]>([]);
   const [ativo, setAtivo] = useState<Tempo | null>(null);
@@ -32,6 +32,7 @@ export default function Cronometro({ projetoId, etapaCodigo, bloqueado }: {
     .reduce((s, t) => s + segundosEntre(t.iniciado_em, t.finalizado_em), 0);
   const sessaoSeg = rodandoAqui ? segundosEntre(ativo!.iniciado_em, null, agora) : 0;
   const outroRodando = ativo && !rodandoAqui;
+  const bloqueado = Boolean(motivoBloqueio) && !rodandoAqui;
 
   async function alternar() {
     setErro('');
@@ -47,10 +48,11 @@ export default function Cronometro({ projetoId, etapaCodigo, bloqueado }: {
           Tempo acumulado nesta etapa: <b>{fmtDur(fechadoSeg + sessaoSeg)}</b>
           {registros.filter((t) => t.finalizado_em).length > 0 && <span className="mudo"> · {registros.filter((t) => t.finalizado_em).length} registro(s)</span>}
         </div>
-        {outroRodando && <div className="pequeno mudo">Ao iniciar, o cronômetro de “{ativo.projetos?.nome ?? 'outro projeto'}” será parado.</div>}
+        {bloqueado && <div className="pequeno bloqueio">{motivoBloqueio}</div>}
+        {!bloqueado && outroRodando && <div className="pequeno mudo">Ao iniciar, o cronômetro de “{ativo.projetos?.nome ?? 'outro projeto'}” será parado.</div>}
         {erro && <div className="pequeno erro">{erro}</div>}
       </div>
-      <button className={rodandoAqui ? 'perigo' : 'primario'} onClick={alternar} disabled={bloqueado && !rodandoAqui}>
+      <button className={rodandoAqui ? 'perigo' : 'primario'} onClick={alternar} disabled={bloqueado} title={bloqueado ? motivoBloqueio : undefined}>
         {rodandoAqui ? '■ Parar' : '▶ Iniciar'}
       </button>
     </div>

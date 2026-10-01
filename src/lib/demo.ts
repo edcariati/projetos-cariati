@@ -281,7 +281,7 @@ const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categor
 proto(rocha.id, { tipo: 'entrega_cliente', status: 'protocolado', prazo: data(3), cliente_notificado: true });
 novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
   { nome: 'Sobrado Costa', responsavel_id: 'rafael', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa a pedido do cliente' }, '05');
-novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '03');
+novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '04');
 
 function rpc(nome: string, args: any = {}) {
   const agora = new Date().toISOString();
