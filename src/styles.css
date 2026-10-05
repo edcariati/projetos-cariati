@@ -264,3 +264,19 @@ a.quem{text-decoration:none}a.quem:hover,a.quem.active{color:var(--blue)}
 
 .viz-tiles{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 @media(max-width:520px){.viz-tiles{grid-template-columns:1fr 1fr}}
+
+/* calendário */
+.calendario{margin-top:4px}
+.cal-topo{display:flex;align-items:center;gap:12px;margin-bottom:10px}.cal-topo b{flex:1;font-weight:500;font-size:17px}.cal-topo button{min-height:40px;min-width:40px;padding:0 12px}
+.cal-grade{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-dia-nome{font-size:12px;color:var(--ink3);text-align:center;padding:4px 0;text-transform:uppercase}
+.cal-dia{min-height:84px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--card);display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:3px;text-align:left;overflow:hidden}
+.cal-dia.fora{opacity:.45}.cal-dia.hoje{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.cal-dia.sel{background:var(--tint)}
+.cal-num{font-size:12px;font-weight:600;color:var(--ink2)}
+.cal-ev{font-size:11px;line-height:1.25;padding:1px 4px;border-radius:5px;background:var(--soft);color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cal-ev.protocolo{background:color-mix(in srgb,var(--amber) 22%,transparent)}.cal-ev.entrega{background:color-mix(in srgb,var(--green) 22%,transparent)}
+.cal-ev.vencido{background:color-mix(in srgb,var(--red) 22%,transparent);font-weight:600}
+.cal-mais{font-size:11px;color:var(--ink3)}
+.cal-detalhe{margin-top:10px}
+@media(max-width:640px){.cal-dia{min-height:58px;padding:4px}.cal-ev{font-size:0;padding:0;height:6px;width:6px;border-radius:50%;display:inline-block;margin-right:2px;background:var(--blue)}.cal-ev.protocolo{background:var(--amber)}.cal-ev.entrega{background:var(--green)}.cal-ev.vencido{background:var(--red)}}
+.cal-detalhe h3{text-transform:none}

@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 import type { EtapaModelo, Profile, Protocolo } from './types';
 import { buscarTudo } from './banco';
-import type { Bruto, ItemK, ProjetoK, TempoK } from './kpis';
+import { Bruto, ItemK, ProjetoK, TempoK, refEtapas } from './kpis';
+import { montarCronograma, montarEventos } from './cronograma';
 
 /** Tudo que os painéis de gestão precisam: projetos com etapas, tempos, checklists concluídos, equipe e protocolos. */
 export async function carregarBruto(): Promise<Bruto> {
@@ -19,4 +20,17 @@ export async function carregarBruto(): Promise<Bruto> {
     supabase.from('protocolos').select('*, projetos(nome, clientes(nome))').order('prazo', { ascending: true, nullsFirst: false }),
   ]);
   return { projetos, tempos, itens, modelos: (m.data as EtapaModelo[]) ?? [], pessoas: (p.data as Profile[]) ?? [], protocolos: (pr.data as Protocolo[]) ?? [] };
+}
+
+/** Dados do cronograma e do calendário: projetos com etapas, modelos de etapa e protocolos. */
+export async function carregarCronograma() {
+  const [projetos, m, pr] = await Promise.all([
+    buscarTudo<ProjetoK>((de, ate) => supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome), projeto_etapas(etapa_codigo,status,iniciada_em,concluida_em,rodadas_ajuste)').order('created_at', { ascending: false }).range(de, ate)),
+    supabase.from('etapa_modelos').select('*').order('ordem'),
+    supabase.from('protocolos').select('*, projetos(nome, clientes(nome))'),
+  ]);
+  const modelos = (m.data as EtapaModelo[]) ?? [];
+  const ref = refEtapas(projetos);
+  const crono = montarCronograma(projetos, modelos, ref);
+  return { crono, eventos: montarEventos(crono, (pr.data as Protocolo[]) ?? []) };
 }

@@ -8,9 +8,13 @@ import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
 import Checklist from '../components/Checklist';
 import { REF_PADRAO } from '../lib/kpis';
 import { Medidor } from '../components/graficos';
+import Cronograma from '../components/Cronograma';
+import Calendario from '../components/Calendario';
+import { carregarCronograma } from '../lib/carga';
+import type { Crono, Evento } from '../lib/cronograma';
 
-type Vista = 'checklists' | 'lista' | 'quadro';
-const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro']];
+type Vista = 'checklists' | 'lista' | 'quadro' | 'cronograma' | 'calendario';
+const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['cronograma', 'Cronograma'], ['calendario', 'Calendário']];
 
 /** Fluxo de trabalho do profissional: as tarefas dos protocolos, já provisionadas e atribuídas a ele. */
 export default function Tarefas() {
@@ -22,6 +26,8 @@ export default function Tarefas() {
   const [vista, setVista] = useState<Vista>('checklists');
   const [mostrarTudo, setMostrarTudo] = useState<Record<string, boolean>>({});
   const todas = alvoId === 'todas';
+  const [agenda, setAgenda] = useState<{ crono: Crono; eventos: Evento[] } | null>(null);
+  useEffect(() => { if ((vista === 'cronograma' || vista === 'calendario') && !agenda) carregarCronograma().then(setAgenda).catch(() => setAgenda({ crono: { linhas: [], inicio: Date.now(), fim: Date.now() }, eventos: [] })); }, [vista, agenda]);
 
   useEffect(() => {
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome')
@@ -86,6 +92,16 @@ export default function Tarefas() {
 
       {grupos === null && <p className="mudo">Carregando…</p>}
       {grupos && grupos.length === 0 && <section className="card"><p className="mudo">Nenhuma tarefa para {todas ? 'os projetos visíveis' : alvoId === eu.id ? 'você' : alvo?.nome} no momento.</p></section>}
+
+      {(vista === 'cronograma' || vista === 'calendario') && (
+        <section className="card viz">
+          <h2>{vista === 'cronograma' ? 'Cronograma dos projetos em andamento' : 'Calendário de prazos'}</h2>
+          <p className="mudo pequeno">Mostra todos os projetos que você pode ver, sem filtrar por pessoa. O prazo de cada etapa vem do prazo de referência (mediana da equipe ou padrão); as etapas seguintes são projetadas em sequência a partir de hoje.</p>
+          {!agenda ? <p className="mudo">Carregando…</p> : vista === 'cronograma'
+            ? (agenda.crono.linhas.length === 0 ? <p className="mudo">Nenhum projeto em andamento.</p> : <Cronograma crono={agenda.crono} />)
+            : <Calendario eventos={agenda.eventos} />}
+        </section>
+      )}
 
       {vista === 'lista' && grupos && grupos.length > 0 && (
         <div className="viz-tab card"><table className="tab-projetos">
