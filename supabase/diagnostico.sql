@@ -10,4 +10,5 @@ select
   case when to_regclass('public.tarefa_modelos') is null then false
        else (xpath('/row/c/text()', query_to_xml('select count(*) > 0 as c from tarefa_modelos where etapa_codigo = ''24''', false, true, '')))[1]::text::boolean end as tem_0012_finalizacao,
   exists (select 1 from pg_enum e join pg_type t on t.oid=e.enumtypid where t.typname='setor' and e.enumlabel='financeiro') as tem_0013_financeiro,
+  exists (select 1 from information_schema.columns where table_name='projetos' and column_name='horas_estimadas') as tem_0014_horas_estimadas,
   (select count(*) from auth.users where email like '%@cariati.com.br')             as usuarios_cariati;

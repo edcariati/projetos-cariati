@@ -232,3 +232,35 @@ main.largo{max-width:1240px}
 @media(max-width:520px){.viz-mini{display:none}.viz-tile-v b{font-size:26px;white-space:nowrap}.viz-tile{padding:12px}.viz-resp{flex:1;min-width:140px}}
 .viz-tile-v b{white-space:nowrap}
 a.quem{text-decoration:none}a.quem:hover,a.quem.active{color:var(--blue)}
+
+/* abas da área de horas */
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 0 14px;overflow-x:auto}
+.abas a{padding:10px 14px;color:var(--ink2);border-bottom:2px solid transparent;white-space:nowrap}
+.abas a.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.num-edit{width:90px;min-height:34px;padding:4px 8px}
+.viz-pct{display:flex;align-items:center;gap:8px;min-width:130px}.viz-pct em{font-style:normal;font-size:12px;min-width:48px;white-space:nowrap}
+.viz-card.largo{grid-column:1/-1}
+
+/* projetos: quadro e lista */
+.filtros-linha{flex-wrap:wrap;align-items:center}.filtros-linha select{width:auto;min-width:170px}
+.vistas{margin-left:auto;display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.vistas button{border:0;border-radius:0;min-height:44px;background:transparent;color:var(--ink2);padding:0 14px}
+.vistas button.on{background:var(--tint);color:var(--blue);font-weight:600}
+.quadro{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(270px,1fr);gap:12px;overflow-x:auto;padding-bottom:12px;overscroll-behavior-x:contain;scroll-snap-type:x proximity}
+.coluna{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px;scroll-snap-align:start;min-width:0}
+.coluna header{display:flex;align-items:center;gap:8px;margin-bottom:10px}.coluna header i{width:12px;height:12px;border-radius:3px;flex:none}.coluna header b{font-weight:500;flex:1;min-width:0}
+.coluna-corpo{display:flex;flex-direction:column;gap:8px}
+.cartao-quadro{display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--ink)}
+.cartao-quadro:hover{border-color:var(--blue)}
+.rodape-cartao{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px;margin-top:2px}
+.avatares{display:inline-flex}.avatar{width:26px;height:26px;border-radius:50%;background:var(--tint);color:var(--blue);border:2px solid var(--card);font-style:normal;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;margin-left:-6px}
+.avatar:first-child{margin-left:0}.avatar.mais{background:var(--soft);color:var(--ink2)}
+.situ{font-size:12px;white-space:nowrap}.situ.ok{color:var(--bom,var(--green))}.situ.atrasada{color:var(--amber)}.situ.grave,.situ.critica{color:var(--red);font-weight:600}
+.tab-projetos{width:100%;border-collapse:collapse;font-size:14px}.tab-projetos th,.tab-projetos td{text-align:left;padding:10px 8px;border-top:1px solid var(--line);vertical-align:middle}
+.tab-projetos th{color:var(--ink2);font-weight:500;border-top:0;white-space:nowrap}
+.etiquetas{display:flex;flex-wrap:wrap;gap:4px}
+
+.horas-linha{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:10px}.horas-linha div{display:flex;flex-direction:column}.horas-linha b{font-size:24px;font-weight:600}
+
+.viz-tiles{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+@media(max-width:520px){.viz-tiles{grid-template-columns:1fr 1fr}}

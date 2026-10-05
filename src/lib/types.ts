@@ -27,12 +27,12 @@ export interface Cliente {
 export interface EtapaModelo {
   codigo: string; ordem: number; fase: number; titulo: string; rotulo: string; setores: Setor[];
   cliente_participa: boolean; entrada: string | null; saida: string | null; regra: string | null;
-  opcional: boolean; aceite_formal: boolean; escopo: string | null;
+  opcional: boolean; aceite_formal: boolean; escopo: string | null; horas_padrao: number;
 }
 export interface Projeto {
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
-  tipo_estudo: TipoEstudo; tem_habitese: boolean; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
+  tipo_estudo: TipoEstudo; tem_habitese: boolean; horas_estimadas: number | null; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
   created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null; profiles?: { nome: string } | null;
   projeto_etapas?: Pick<ProjetoEtapa, 'etapa_codigo' | 'status'>[];
 }

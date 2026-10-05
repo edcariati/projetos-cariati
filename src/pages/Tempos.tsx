@@ -5,6 +5,7 @@ import type { EtapaModelo, Tempo } from '../lib/types';
 import { FASES, fmtData, fmtDur } from '../lib/labels';
 import { segundosEntre } from '../lib/tempo';
 import { podeBancoHoras, usePerfil } from '../lib/perfil';
+import AbasHoras from '../components/AbasHoras';
 
 export default function Tempos() {
   const eu = usePerfil();
@@ -47,6 +48,7 @@ export default function Tempos() {
 
   return (
     <>
+      <AbasHoras />
       <div className="titulo"><h1>{podeBancoHoras(eu) ? 'Tempos por etapa' : 'Meus tempos'}</h1></div>
       <p className="mudo">Cada vez que alguém inicia e para o cronômetro de uma etapa, o tempo entra aqui. Com o tempo, as médias mostram quanto cada etapa realmente leva.{!podeBancoHoras(eu) && ' Aqui aparecem só os seus registros; o administrador e o Administrativo veem os de toda a equipe.'} As médias consideram só etapas já concluídas.</p>
 

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import type { EtapaModelo, Profile, Protocolo } from '../lib/types';
+import { carregarBruto } from '../lib/carga';
+import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
+import { calcularHoras, intervalo } from '../lib/gestaohoras';
 import { PROTOCOLO_STATUS, fmtData } from '../lib/labels';
-import { buscarTudo, dataLocal } from '../lib/banco';
+import { dataLocal } from '../lib/banco';
 import { MAX_DIAS_PAUSA } from '../lib/flow';
-import { Bruto, ItemK, PERIODOS, ProjetoK, TempoK, calcular, nivelDe, refEtapas, Delta } from '../lib/kpis';
+import { Bruto, PERIODOS, calcular, nivelDe, refEtapas, Delta } from '../lib/kpis';
 import { BarrasH, Calor, Cartao, Colunas, Legenda, Linhas, Medidor, Mini, SERIE, STATUS_COR, STATUS_ICONE, STATUS_ROTULO, fmtN } from '../components/graficos';
 
 const NIVEL_TEXTO: Record<string, string> = { ok: 'var(--bom)', atrasada: 'var(--amber)', grave: 'var(--ruim)', critica: 'var(--ruim)' };
@@ -36,6 +37,7 @@ function Tile({ rotulo, valor, sub, delta, boaQuandoSobe = true, unidade = '', a
 export default function Visao() {
   const nav = useNavigate();
   const [bruto, setBruto] = useState<Bruto | null>(null);
+  const [grupos, setGrupos] = useState<GrupoTarefas[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [periodo, setPeriodo] = useState('90d');
@@ -45,22 +47,10 @@ export default function Visao() {
   const carregar = useCallback(async () => {
     setCarregando(true); setErro('');
     try {
-      const desde = new Date(Date.now() - 740 * 86_400_000).toISOString();
-      const projetos = await buscarTudo<ProjetoK>((de, ate) =>
-        supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome), projeto_etapas(etapa_codigo,status,iniciada_em,concluida_em,rodadas_ajuste)')
-          .order('created_at', { ascending: false }).range(de, ate));
-      const tempos = await buscarTudo<TempoK>((de, ate) =>
-        supabase.from('tempos').select('projeto_id,etapa_codigo,usuario_id,iniciado_em,finalizado_em').gte('iniciado_em', desde).order('iniciado_em').range(de, ate));
-      const itens = await buscarTudo<ItemK>((de, ate) =>
-        supabase.from('projeto_tarefa_itens').select('feito_em,feito_por').not('feito_em', 'is', null).gte('feito_em', desde).order('feito_em').range(de, ate));
-      const [m, p, pr] = await Promise.all([
-        supabase.from('etapa_modelos').select('*').order('ordem'),
-        supabase.from('profiles').select('*').eq('ativo', true),
-        supabase.from('protocolos').select('*, projetos(nome, clientes(nome))').order('prazo', { ascending: true, nullsFirst: false }),
-      ]);
-      setBruto({ projetos, tempos, itens, modelos: (m.data as EtapaModelo[]) ?? [], pessoas: (p.data as Profile[]) ?? [], protocolos: (pr.data as Protocolo[]) ?? [] });
-      setAtualizado(new Date());
-    } catch (e) { setErro((e as Error).message || 'Não foi possível carregar os dados.'); }
+      setBruto(await carregarBruto()); setAtualizado(new Date());
+      carregarTarefas('todas').then(setGrupos).catch(() => setGrupos([]));
+    }
+    catch (e) { setErro((e as Error).message || 'Não foi possível carregar os dados.'); }
     setCarregando(false);
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
@@ -69,6 +59,18 @@ export default function Visao() {
   const ref = useMemo(() => (bruto ? refEtapas(bruto.projetos) : {}), [bruto]);
   const equipe = useMemo(() => (bruto?.pessoas ?? []).filter((p) => p.perfil !== 'cliente'), [bruto]);
   const per = PERIODOS.find((p) => p.id === periodo)!;
+
+  const horasProj = useMemo(() => (bruto ? calcularHoras(bruto, 'projeto', intervalo('tudo', bruto.tempos[0]?.iniciado_em ?? null).ini, intervalo('tudo', null).fim, { somenteAtivos: true, projetoId: '' }) : null), [bruto]);
+  const acima = (horasProj?.linhas ?? []).filter((l) => l.status === 'ativo' && l.pct !== null && l.pct > 100);
+  const tarefasK = useMemo(() => {
+    let pendentes = 0, atrasadas = 0;
+    for (const g of grupos) {
+      const n = g.tarefas.filter((t) => g.itens.some((i) => i.tarefa_id === t.id && !i.feito)).length;
+      if (g.status === 'concluida') atrasadas += n;
+      else if (g.status === 'em_andamento') { pendentes += n; if (g.diasNaEtapa !== null && g.diasNaEtapa > (ref[g.etapa.codigo]?.dias ?? 7)) atrasadas += n; }
+    }
+    return { pendentes, atrasadas };
+  }, [grupos, ref]);
 
   if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={carregar}>Tentar de novo</button></div>;
   if (!v || !bruto) return <div className="mudo">Carregando indicadores…</div>;
@@ -132,6 +134,8 @@ export default function Visao() {
         <Tile rotulo="Novos projetos" valor={String(v.entradas.atual)} delta={v.entradas} serie={v.entradasSerie} />
         <Tile rotulo="Projetos concluídos" valor={String(v.saidas.atual)} delta={v.saidas} serie={v.saidasSerie} />
         <Tile rotulo="Ciclo médio" valor={v.ciclosN ? `${fmtN(v.ciclo.atual, 0)} dias` : '—'} sub={v.ciclosN ? `do contrato à entrega · ${v.ciclosN} projeto${v.ciclosN === 1 ? '' : 's'}` : 'sem projeto concluído no período'} delta={v.ciclosN ? v.ciclo : undefined} boaQuandoSobe={false} abs unidade=" dias" />
+        <Tile rotulo="Tarefas atrasadas" valor={String(tarefasK.atrasadas)} nivel={tarefasK.atrasadas ? 'atrasada' : 'ok'} sub={`${tarefasK.pendentes} pendentes nas etapas em andamento`} />
+        <Tile rotulo="Acima da estimativa" valor={String(acima.length)} nivel={acima.length ? 'atrasada' : 'ok'} sub={acima.length ? `▲ ${acima[0].nome} em ${Math.round(acima[0].pct!)}%` : '✓ Nenhum projeto passou das horas previstas'} />
         <Tile rotulo="Rodadas de ajuste" valor={v.rodadas === null ? '—' : fmtN(v.rodadas, 1)} sub="por apresentação (contrato: até 3)" nivel={v.rodadas !== null && v.rodadas >= 2.5 ? 'grave' : undefined} />
       </div>
 
@@ -177,6 +181,14 @@ export default function Visao() {
               const sobre = p.meta > 0 && p.horas / p.meta > 1.15;
               return { rotulo: p.nome, sub: `meta ${fmtN(p.meta, 0)} h`, valor: p.horas, ref: p.meta, cor: sobre ? 'var(--st-warning)' : SERIE[0], ico: sobre ? '▲' : undefined, texto: `${fmtN(p.horas, 0)} h` };
             })} />
+        </Cartao>
+
+        <Cartao titulo="Horas por projeto" sub="Realizadas × estimadas (acumulado dos projetos em andamento)" nota={<>A marca preta é a estimativa. <Link to="/horas">Abrir a gestão de horas →</Link></>}
+          tabela={{ cab: ['Projeto', 'Estimadas', 'Realizadas', 'Percentual'], linhas: (horasProj?.linhas ?? []).map((l) => [l.nome, fmtN(l.estimadas, 1), fmtN(l.realizadas, 1), l.pct === null ? '—' : `${fmtN(l.pct, 0)}%`]) }}>
+          {!horasProj || horasProj.linhas.length === 0 ? <p className="mudo">Sem horas registradas.</p> : (
+            <BarrasH unidade=" h" refNome="Estimativa" onAbrir={(l) => l.href && nav(l.href)}
+              linhas={horasProj.linhas.slice(0, 6).map((l) => { const n = nivelDe((l.pct ?? 0) / 100); return { rotulo: l.nome, sub: l.sub, valor: l.realizadas, ref: l.estimadas, cor: n === 'ok' ? SERIE[0] : STATUS_COR[n], ico: n === 'ok' ? undefined : STATUS_ICONE[n], texto: `${fmtN(l.realizadas, 0)} h${l.pct === null ? '' : ` · ${fmtN(l.pct, 0)}%`}`, href: l.href }; })} />
+          )}
         </Cartao>
 
         <Cartao titulo="Intensidade de trabalho" sub={`Horas por pessoa, por ${v.gran === 'semana' ? 'semana' : 'mês'} (mais escuro = mais horas)`}

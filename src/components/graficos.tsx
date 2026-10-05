@@ -197,7 +197,8 @@ export function BarrasH({ linhas, unidade = '', refNome = 'Referência', max: ma
 }) {
   const [ref, w] = useLargura<HTMLDivElement>();
   const [dica, setDica] = useState<Dica | null>(null);
-  const rowH = 36, m = { t: 4, r: 64, b: 4 };
+  const maxTxt = Math.max(8, ...linhas.map((l) => (l.texto ?? `${fmtN(l.valor, 1)}${unidade}`).length + (l.ico ? 3 : 0)));
+  const rowH = 36, m = { t: 4, r: Math.min(160, Math.round(maxTxt * 7.2) + 14), b: 4 };
   const lw = Math.min(180, Math.max(110, w * 0.4)), W = Math.max(w, 260), H = m.t + m.b + linhas.length * rowH;
   const max = maxFixo ?? Math.max(1, ...linhas.map((l) => Math.max(l.valor, l.ref ?? 0)));
   const { topo } = escala(max, 4);

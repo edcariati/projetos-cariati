@@ -7,7 +7,7 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 ## Como colocar para rodar
 
 1. Crie um projeto em <https://supabase.com>.
-2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0013` de `supabase/migrations/`)
+2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0014` de `supabase/migrations/`)
    (ou use `supabase db push` com a CLI).
 3. Em **Authentication → Providers → Email**, desative "Allow new users to sign up" e crie os usuários da
    equipe em **Authentication → Users**. Para tornar alguém admin:
@@ -38,6 +38,8 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 - **Banco de horas** (`0008_banco_horas.sql`), para o administrador e o setor Administrativo: horas trabalhadas (cronômetro) × horas previstas (carga semanal de cada pessoa ÷ 5 × dias úteis encerrados) + lançamentos manuais (hora extra, folga, feriado abonado) = saldo, por período, pessoa e projeto, com dia a dia e exportação em CSV. A carga semanal se define na tela Equipe. A view `banco_horas_dia` serve para análise externa.
 - **Protocolo de tarefas por etapa** (`0009_protocolos_etapas.sql`, a partir dos modelos do Vobi): cada etapa traz suas tarefas e checklists (47 tarefas, 110 itens), marcáveis em cada projeto, com registro automático de quem marcou e quando. Concluir uma etapa com itens pendentes pede confirmação.
 - **Acessos e senhas:** cada pessoa entra com e-mail e senha (Supabase Auth). A tela **Minha conta** (clique no nome, no topo) troca a senha. O setor **Financeiro** (`0013`) acompanha todos os projetos sem agir neles, sem acesso a tempos nem banco de horas.
+- **Gestão de horas** (`0014_horas_estimadas.sql`, menu **Horas**): previsto × realizado por **projeto**, **profissional** ou **etapa**, com período, evolução e estimativas editáveis (por projeto e padrão por etapa). Junto, abas com os registros por etapa e o banco de horas.
+- **Projetos** em **Cartões, Quadro (por fase) e Lista**, com etiquetas, responsáveis e situação (no prazo ou atrasada); **Tarefas** em Checklists, Lista e Quadro, com a visão de todas as pessoas para o administrador.
 - **Visão geral** (início do administrador): indicadores e gráficos de gestão com filtro de período (30 dias a 12 meses) e de responsável: carteira, entradas e saídas, horas × carga contratada, etapas atrasadas (frente ao prazo de referência: mediana da equipe ou padrão em `src/lib/kpis.ts`), horas por profissional e por etapa, intensidade de trabalho, tarefas concluídas, protocolos, pausas e uma leitura rápida em texto. Cada gráfico tem tabela alternativa. Não precisa de migration.
 - **Complementares e Finalização** (`0012_complementares_finalizacao.sql`, protocolos 04 e 05): 11 tarefas na etapa 19 (IFC, pontos técnicos, compatibilização, entrega e impressão) e as tarefas de entrega e encerramento das etapas 21 a 24.
 - **Habite-se** (`0010_habitese.sql`, protocolo 02): serviço opcional em paralelo ao fluxo (etapas H1 documentos, H2 entrada na Prefeitura, H3 entrega dos documentos aprovados), com 8 tarefas e checklists. Pode ser contratado na criação do projeto ou iniciado depois (reabre um projeto finalizado).

@@ -3,6 +3,7 @@
 import { REF_PADRAO } from './kpis';
 import sqlEtapas from '../../supabase/migrations/0002_seed_etapas.sql?raw';
 import sqlDocs from '../../supabase/migrations/0004_seed_documentos.sql?raw';
+import sqlHoras from '../../supabase/migrations/0014_horas_estimadas.sql?raw';
 import { TAREFAS } from './protocolos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -82,6 +83,9 @@ db.etapa_modelos.push(
   { codigo: 'H2', ordem: 32, fase: 6, titulo: 'Habite-se: entrada na Prefeitura', rotulo: 'Prefeitura', setores: ['projetos', 'administrativo', 'terceiros'], cliente_participa: false, entrada: 'Documentos prontos', saida: 'Processo deferido', regra: 'Taxas do Habite-se e do ISS seguem para o financeiro; os comprovantes são anexados no Aprova Digital', opcional: true, aceite_formal: false, escopo: 'habitese' },
   { codigo: 'H3', ordem: 33, fase: 6, titulo: 'Habite-se: entrega dos documentos aprovados', rotulo: 'Entrega', setores: ['projetos', 'administrativo'], cliente_participa: true, entrada: 'Processo deferido', saida: 'Documentos entregues com termo de retirada', regra: 'Imprimir os documentos aprovados e os emitidos pela Prefeitura e emitir o termo de retirada', opcional: true, aceite_formal: false, escopo: 'habitese' },
 );
+// horas padrão por etapa: mesma tabela da migration 0014
+const HORAS = new Map([...sqlHoras.matchAll(/\('([A-Z0-9]+)',([\d.]+)\)/g)].map((m) => [m[1], Number(m[2])]));
+db.etapa_modelos.forEach((m) => { m.horas_padrao = HORAS.get(m.codigo) ?? 0; });
 db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codigo: t[0], nome: t[1], padrao_arquivo: t[2], ordem: t[3] }));
 ([['H1', 'Termo de Habite-se', 'TDH_CAXXXXXX_REVXX'], ['H1', 'Declaração de veracidade', 'TDV_CAXXXXXX_REVXX'], ['H1', 'Procuração (pessoa física ou jurídica)', 'PRC_CAXXXXXX_REVXX'],
   ['H1', 'Declaração de CTRS', 'CTR_CAXXXXXX_REVXX'], ['H1', 'Isenção da CTRS', 'ICTR_CAXXXXXX_REVXX'], ['H1', 'Relatório fotográfico', null], ['H3', 'Termo de retirada de documento', 'TDRD_CAXXXXXX_REVXX']] as [string, string, string | null][])
@@ -201,7 +205,7 @@ function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): 
 
 const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({ codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null }),
-  projetos: () => ({ tipo_estudo: 'padrao', tem_habitese: false, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),

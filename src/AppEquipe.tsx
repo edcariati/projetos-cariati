@@ -14,6 +14,7 @@ import Tarefas from './pages/Tarefas';
 import Equipe from './pages/Equipe';
 import Conta from './pages/Conta';
 import BancoHoras from './pages/BancoHoras';
+import GestaoHoras from './pages/GestaoHoras';
 import BarraCronometro from './components/BarraCronometro';
 
 /** Área da equipe (administrador e profissionais). */
@@ -32,16 +33,15 @@ export default function AppEquipe() {
           <NavLink to="/projetos">Projetos</NavLink>
           <NavLink to="/tarefas">Minhas tarefas</NavLink>
           <NavLink to="/protocolos">Protocolos</NavLink>
-          <NavLink to="/tempos">Tempos</NavLink>
+          {banco ? <NavLink to="/horas">Horas</NavLink> : <NavLink to="/tempos">Tempos</NavLink>}
           <NavLink to="/fluxo">Fluxo</NavLink>
-          {banco && <NavLink to="/banco-de-horas">Banco de horas</NavLink>}
           {admin && <NavLink to="/equipe">Equipe</NavLink>}
         </nav>
         <NavLink className="quem" to="/conta" title={`${PERFIL[eu.perfil]} · minha conta`}>{eu.nome}</NavLink>
         <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
       </header>
       <BarraCronometro />
-      <main className={pathname === '/fluxo' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' ? 'largo' : ''}>
+      <main className={pathname === '/fluxo' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' || pathname === '/horas' || pathname === '/projetos' || pathname === '/tarefas' ? 'largo' : ''}>
         <Routes>
           <Route path="/" element={admin ? <Visao /> : <Painel />} />
           {admin && <Route path="/painel" element={<Painel />} />}
@@ -53,6 +53,7 @@ export default function AppEquipe() {
           <Route path="/protocolos" element={<Protocolos />} />
           <Route path="/tempos" element={<Tempos />} />
           <Route path="/fluxo" element={<Fluxo />} />
+          {banco && <Route path="/horas" element={<GestaoHoras />} />}
           {banco && <Route path="/banco-de-horas" element={<BancoHoras />} />}
           {admin && <Route path="/equipe" element={<Equipe />} />}
           <Route path="*" element={<Navigate to="/" />} />

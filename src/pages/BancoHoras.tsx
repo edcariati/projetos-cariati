@@ -5,6 +5,7 @@ import { SETOR, fmtData, fmtDur } from '../lib/labels';
 import { segundosEntre } from '../lib/tempo';
 import { baixarCsv, buscarTudo, dataLocal, fmtSaldo, listaDiasUteis, periodo } from '../lib/banco';
 import { podeBancoHoras, usePerfil } from '../lib/perfil';
+import AbasHoras from '../components/AbasHoras';
 
 const PERIODOS: [string, string][] = [['30d', 'Últimos 30 dias'], ['mes', 'Este mês'], ['mes_anterior', 'Mês anterior'], ['7d', 'Últimos 7 dias'], ['custom', 'Personalizado']];
 const horas = (seg: number) => (seg / 3600).toFixed(1).replace('.', ',');
@@ -82,6 +83,7 @@ export default function BancoHoras() {
 
   return (
     <>
+      <AbasHoras />
       <div className="titulo"><h1>Banco de horas</h1><button onClick={exportar}>Exportar resumo (CSV)</button></div>
       <p className="mudo">Horas registradas pelo cronômetro, comparadas com a carga horária de cada pessoa ({diasUteis.length} dias úteis encerrados no período, de segunda a sexta). Feriados e compensações entram como lançamento manual.</p>
 

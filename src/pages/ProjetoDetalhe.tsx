@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
-import { usePerfil } from '../lib/perfil';
+import { podeBancoHoras, usePerfil } from '../lib/perfil';
 import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
   MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, iniciarHabitese, pausarProjeto, reabrirEtapa,
@@ -11,7 +11,8 @@ import {
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
 import Cronometro from '../components/Cronometro';
-import { confirmar, escolher } from '../components/Dialogo';
+import { confirmar, escolher, pedirTexto } from '../components/Dialogo';
+import { Medidor } from '../components/graficos';
 import Checklist from '../components/Checklist';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
@@ -33,10 +34,11 @@ export default function ProjetoDetalhe() {
   const [itens, setItens] = useState<ProjetoItem[]>([]);
   const [pessoas, setPessoas] = useState<Profile[]>([]);
   const [novoMembro, setNovoMembro] = useState<{ usuario: string; esp: Especialidade }>({ usuario: '', esp: 'arquitetonico' });
+  const [horasReal, setHorasReal] = useState<number | null>(null);
   const [novoProt, setNovoProt] = useState<{ tipo: ProtocoloTipo; orgao: string; numero: string } | null>(null);
 
   const carregar = useCallback(async () => {
-    const [p, m, e, h, pr, eq, pe, ta, it] = await Promise.all([
+    const [p, m, e, h, pr, eq, pe, ta, it, tp] = await Promise.all([
       supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
       supabase.from('etapa_modelos').select('*').order('ordem'),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
@@ -46,7 +48,10 @@ export default function ProjetoDetalhe() {
       supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome'),
       supabase.from('projeto_tarefas').select('*').eq('projeto_id', id!).order('ordem'),
       supabase.from('projeto_tarefa_itens').select('*').eq('projeto_id', id!).order('ordem'),
+      supabase.from('tempos').select('iniciado_em,finalizado_em').eq('projeto_id', id!),
     ]);
+    setHorasReal(((tp.data as { iniciado_em: string; finalizado_em: string | null }[]) ?? [])
+      .reduce((s, t) => s + (new Date(t.finalizado_em ?? Date.now()).getTime() - new Date(t.iniciado_em).getTime()) / 3_600_000, 0));
     setProjeto(p.data as Projeto); setModelos((m.data as EtapaModelo[]) ?? []);
     setEtapas((e.data as ProjetoEtapa[]) ?? []); setHist((h.data as Historico[]) ?? []);
     setProtocolos((pr.data as Protocolo[]) ?? []);
@@ -121,6 +126,38 @@ export default function ProjetoDetalhe() {
           ))}
         </section>
       )}
+
+      {podeBancoHoras(eu) && horasReal !== null && (() => {
+        const padrao = etapas.filter((e) => e.status !== 'nao_aplicavel' && modelos.find((m) => m.codigo === e.etapa_codigo)?.fase !== 5)
+          .reduce((s, e) => s + (modelos.find((m) => m.codigo === e.etapa_codigo)?.horas_padrao ?? 0), 0);
+        const est = projeto.horas_estimadas != null ? Number(projeto.horas_estimadas) : padrao;
+        const pct = est > 0 ? (horasReal / est) * 100 : null;
+        const fmt = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+        return (
+          <section className="card" id="horas-projeto">
+            <h3>Horas do projeto</h3>
+            <div className="horas-linha">
+              <div><b>{fmt(horasReal)} h</b><span className="mudo pequeno">realizadas</span></div>
+              <div><b>{fmt(est)} h</b><span className="mudo pequeno">estimadas · {projeto.horas_estimadas != null ? 'estimativa manual' : 'soma do padrão das etapas'}</span></div>
+              <div><b style={{ color: pct !== null && pct > 100 ? 'var(--red)' : undefined }}>{pct === null ? '—' : `${pct > 100 ? '▲ ' : ''}${fmt(pct)}%`}</b><span className="mudo pequeno">{pct !== null && pct > 100 ? 'acima do previsto' : 'do previsto'}</span></div>
+            </div>
+            {pct !== null && <Medidor valor={Math.min(pct, 100)} max={100} aviso={0.85} perigo={1} rotulo="Horas realizadas sobre as estimadas" />}
+            {admin && (
+              <div className="acoes" style={{ marginTop: 10 }}>
+                <button onClick={async () => {
+                  const t = await pedirTexto(`Horas estimadas para este projeto (sugestão: ${fmt(padrao)} h). Digite 0 para voltar ao padrão.`);
+                  if (t === null) return;
+                  const num = Number(t.replace(',', '.'));
+                  if (!Number.isFinite(num) || num < 0) return setErro('Digite um número de horas válido.');
+                  const n = num === 0 ? null : num;
+                  run(async () => { await supabase.from('projetos').update({ horas_estimadas: n }).eq('id', projeto.id); });
+                }}>Definir estimativa</button>
+                <Link className="btn" to="/horas">Ver gestão de horas</Link>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       <section className="card equipe">
         <h3>Equipe do projeto</h3>

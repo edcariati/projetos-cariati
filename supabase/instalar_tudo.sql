@@ -1,5 +1,5 @@
--- Instalação completa do banco (0001 a 0013). Cole tudo no SQL Editor do Supabase e clique em Run.
--- Se o banco já foi instalado até a 0005, rode, na ordem, apenas 0006 a 0013 de supabase/migrations/. Se já foi até a 0012, rode só a 0013.
+-- Instalação completa do banco (0001 a 0014). Cole tudo no SQL Editor do Supabase e clique em Run.
+-- Se o banco já foi instalado até a 0005, use supabase/atualizar_0006_a_0014.sql. Se já foi até a 0013, rode só a 0014.
 
 -- ===== 0001_schema.sql =====
 -- Setor de Projetos · Cariati — esquema inicial
@@ -1134,4 +1134,15 @@ language sql stable security definer set search_path = public as $$
     )
   )
 $$;
+
+-- ===== 0014_horas_estimadas.sql =====
+-- Horas estimadas: base para comparar previsto × realizado por projeto, etapa e pessoa (Gestão de horas).
+-- Cada etapa tem uma estimativa padrão (editável); cada projeto pode ter a própria estimativa. Sem a do projeto, vale a soma das etapas que se aplicam a ele.
+alter table etapa_modelos add column horas_padrao numeric(6,1) not null default 0 check (horas_padrao >= 0);
+alter table projetos add column horas_estimadas numeric(8,1) check (horas_estimadas is null or horas_estimadas >= 0);
+
+update etapa_modelos m set horas_padrao = v.h
+  from (values ('01',3),('02',0.5),('03',0.5),('04',0.3),('05',2),('06',4),('07',16),('08',0.3),('09',3),('10',0.5),('11',10),('12',0.3),('13',3),('14',0.5),
+               ('15',60),('16',24),('17',30),('18',30),('19',20),('20',2),('21',0.3),('22',3),('23',2),('24',0.5),('H1',6),('H2',6),('H3',2)) as v(c, h)
+ where m.codigo = v.c;
 
