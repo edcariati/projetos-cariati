@@ -1,4 +1,4 @@
-export type Setor = 'comercial' | 'administrativo' | 'projetos' | 'terceiros';
+export type Setor = 'comercial' | 'administrativo' | 'financeiro' | 'projetos' | 'terceiros';
 export type TipoEstudo = 'padrao' | 'ampliacao' | 'mais_projetos';
 export type ProjetoStatus = 'ativo' | 'pausado' | 'finalizado' | 'rescindido';
 export type EtapaStatus = 'pendente' | 'em_andamento' | 'concluida' | 'nao_aplicavel';

@@ -1,5 +1,5 @@
--- Instalação completa do banco (0001 a 0012). Cole tudo no SQL Editor do Supabase e clique em Run.
--- Se o banco já foi instalado até a 0005, rode, na ordem, apenas 0006 a 0012 de supabase/migrations/. Se já foi até a 0011, rode só a 0012.
+-- Instalação completa do banco (0001 a 0013). Cole tudo no SQL Editor do Supabase e clique em Run.
+-- Se o banco já foi instalado até a 0005, rode, na ordem, apenas 0006 a 0013 de supabase/migrations/. Se já foi até a 0012, rode só a 0013.
 
 -- ===== 0001_schema.sql =====
 -- Setor de Projetos · Cariati — esquema inicial
@@ -1115,4 +1115,23 @@ begin
     perform inserir_tarefas(e.projeto_id, e.etapa_codigo, array['todas', e.tipo_estudo]);
   end loop;
 end $$;
+
+-- ===== 0013_setor_financeiro.sql =====
+-- Setor Financeiro: acompanha todos os projetos (só leitura, a menos que seja responsável), sem acesso a tempos nem banco de horas.
+alter type setor add value if not exists 'financeiro';
+
+-- Comparação por texto: o valor novo do enum só pode ser usado depois que esta transação terminar
+create or replace function pode_ver_projeto(p uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from projetos pr where pr.id = p and (
+      is_admin()
+      or (is_equipe() and (
+            pr.responsavel_id = auth.uid()
+            or exists (select 1 from projeto_equipe e where e.projeto_id = pr.id and e.usuario_id = auth.uid())
+            or (select setor::text from profiles where id = auth.uid()) in ('administrativo','comercial','financeiro')))
+      or pr.cliente_id = meu_cliente()
+    )
+  )
+$$;
 

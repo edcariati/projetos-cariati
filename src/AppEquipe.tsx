@@ -12,6 +12,7 @@ import Fluxo from './pages/Fluxo';
 import Tempos from './pages/Tempos';
 import Tarefas from './pages/Tarefas';
 import Equipe from './pages/Equipe';
+import Conta from './pages/Conta';
 import BancoHoras from './pages/BancoHoras';
 import BarraCronometro from './components/BarraCronometro';
 
@@ -36,7 +37,7 @@ export default function AppEquipe() {
           {banco && <NavLink to="/banco-de-horas">Banco de horas</NavLink>}
           {admin && <NavLink to="/equipe">Equipe</NavLink>}
         </nav>
-        <span className="quem" title={PERFIL[eu.perfil]}>{eu.nome}</span>
+        <NavLink className="quem" to="/conta" title={`${PERFIL[eu.perfil]} · minha conta`}>{eu.nome}</NavLink>
         <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
       </header>
       <BarraCronometro />
@@ -48,6 +49,7 @@ export default function AppEquipe() {
           <Route path="/projetos/novo" element={<NovoProjeto />} />
           <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
           <Route path="/tarefas" element={<Tarefas />} />
+          <Route path="/conta" element={<Conta />} />
           <Route path="/protocolos" element={<Protocolos />} />
           <Route path="/tempos" element={<Tempos />} />
           <Route path="/fluxo" element={<Fluxo />} />

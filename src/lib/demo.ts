@@ -96,7 +96,7 @@ function verProjeto(pid: string) {
   if (p.perfil === 'admin') return true;
   if (p.perfil === 'cliente') return pr.cliente_id === p.cliente_id;
   return pr.responsavel_id === eu || db.projeto_equipe.some((e) => e.projeto_id === pid && e.usuario_id === eu)
-    || ['administrativo', 'comercial'].includes(p.setor);
+    || ['administrativo', 'comercial', 'financeiro'].includes(p.setor);
 }
 function ver(t: string, r: Row): boolean {
   const p = perfilEu(); const cli = p.perfil === 'cliente';
@@ -508,6 +508,7 @@ export const demoClient: any = {
     getSession: async () => ({ data: { session: { user: { id: eu } } } }),
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
     signInWithPassword: async () => ({ error: null }),
+    updateUser: async () => ({ error: null }),
     signOut: async () => { location.reload(); },
   },
   storage: {

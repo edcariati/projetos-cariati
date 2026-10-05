@@ -231,3 +231,4 @@ main.largo{max-width:1240px}
 .viz-lista .etapa.alerta{color:var(--red)}
 @media(max-width:520px){.viz-mini{display:none}.viz-tile-v b{font-size:26px;white-space:nowrap}.viz-tile{padding:12px}.viz-resp{flex:1;min-width:140px}}
 .viz-tile-v b{white-space:nowrap}
+a.quem{text-decoration:none}a.quem:hover,a.quem.active{color:var(--blue)}

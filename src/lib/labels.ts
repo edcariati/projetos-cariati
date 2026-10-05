@@ -1,7 +1,7 @@
 import type { EtapaStatus, ProjetoStatus, ProtocoloStatus, ProtocoloTipo, Setor } from './types';
 
 export const SETOR: Record<Setor, string> = {
-  comercial: 'Comercial', administrativo: 'Administrativo', projetos: 'Setor de Projetos', terceiros: 'Terceiros',
+  comercial: 'Comercial', administrativo: 'Administrativo', financeiro: 'Financeiro', projetos: 'Setor de Projetos', terceiros: 'Terceiros',
 };
 export const FASES: Record<number, string> = {
   1: 'Abertura e briefing', 2: 'Estudos e aprovações', 3: 'Desenvolvimento',
