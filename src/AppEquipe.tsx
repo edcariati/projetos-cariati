@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import { podeBancoHoras, usePerfil } from './lib/perfil';
 import { PERFIL } from './lib/labels';
 import Painel from './pages/Painel';
+import Visao from './pages/Visao';
 import Projetos from './pages/Projetos';
 import ProjetoDetalhe from './pages/ProjetoDetalhe';
 import NovoProjeto from './pages/NovoProjeto';
@@ -25,7 +26,8 @@ export default function AppEquipe() {
       <header className="topo">
         <strong>Projetos Cariati</strong>
         <nav>
-          <NavLink to="/" end>Painel</NavLink>
+          {admin && <NavLink to="/" end>Visão geral</NavLink>}
+          <NavLink to={admin ? '/painel' : '/'} end>Painel</NavLink>
           <NavLink to="/projetos">Projetos</NavLink>
           <NavLink to="/tarefas">Minhas tarefas</NavLink>
           <NavLink to="/protocolos">Protocolos</NavLink>
@@ -38,9 +40,10 @@ export default function AppEquipe() {
         <button className="link" onClick={() => supabase.auth.signOut()}>Sair</button>
       </header>
       <BarraCronometro />
-      <main className={pathname === '/fluxo' || pathname === '/equipe' || pathname === '/banco-de-horas' ? 'largo' : ''}>
+      <main className={pathname === '/fluxo' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' ? 'largo' : ''}>
         <Routes>
-          <Route path="/" element={<Painel />} />
+          <Route path="/" element={admin ? <Visao /> : <Painel />} />
+          {admin && <Route path="/painel" element={<Painel />} />}
           <Route path="/projetos" element={<Projetos />} />
           <Route path="/projetos/novo" element={<NovoProjeto />} />
           <Route path="/projetos/:id" element={<ProjetoDetalhe />} />

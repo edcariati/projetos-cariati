@@ -1,5 +1,6 @@
 /* Modo demonstração (VITE_DEMO=1): banco em memória com dados de exemplo.
    Imita só o que o app usa do supabase-js. Nada é salvo e nada sai do navegador. */
+import { REF_PADRAO } from './kpis';
 import sqlEtapas from '../../supabase/migrations/0002_seed_etapas.sql?raw';
 import sqlDocs from '../../supabase/migrations/0004_seed_documentos.sql?raw';
 import { TAREFAS } from './protocolos';
@@ -227,7 +228,9 @@ class Q implements PromiseLike<any> {
   range(a: number, b: number) { this.faixa = [a, b]; return this; }
   is(c: string, v: any) { this.filtros.push((r) => (r[c] ?? null) === v); return this; }
   in(c: string, vs: any[]) { this.filtros.push((r) => vs.includes(r[c])); return this; }
-  not(c: string, _o: string, v: string) { const vs = v.replace(/[()]/g, '').split(','); this.filtros.push((r) => !vs.includes(String(r[c]))); return this; }
+  not(c: string, o: string, v: string | null) {
+    if (o === 'is') { this.filtros.push((r) => (v === null ? r[c] != null : r[c] !== v)); return this; }
+    const vs = String(v).replace(/[()]/g, '').split(','); this.filtros.push((r) => !vs.includes(String(r[c]))); return this; }
   order(c: string, o: { ascending?: boolean; nullsFirst?: boolean } = {}) {
     const asc = o.ascending !== false; this.ordem.push([c, asc, o.nullsFirst ?? !asc]); return this;
   }
@@ -352,27 +355,80 @@ novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
 const lima = novoProjeto({ nome: 'Carla Lima', codigo: 'CA000105', categoria: 'A' }, { nome: 'Apartamento Lima', responsavel_id: 'marina', tem_interiores: true }, '04');
 
 /** 40 dias de trabalho recentes por pessoa, nas etapas em andamento, para o banco de horas ter o que analisar. */
+/** Histórico de 12 meses: projetos já entregues (e dois rescindidos) para os gráficos da Visão geral terem evolução. */
+function semearHistorico() {
+  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const tipos = ['padrao', 'padrao', 'padrao', 'ampliacao', 'mais_projetos'];
+  const nomes = ['Residência Ferraz', 'Sobrado Nogueira', 'Casa Menezes', 'Loja Aurora', 'Cobertura Prado', 'Residência Vieira', 'Clínica Santos', 'Casa Barros', 'Edifício Lopes', 'Residência Cunha', 'Escritório Alba', 'Casa Teixeira'];
+  const cod = (e: Row) => e.etapa_codigo as string;
+  for (let i = 0; i < nomes.length; i++) {
+    const criadoHa = 352 - i * 22 - Math.round(rnd() * 8);
+    const tipo = tipos[i % tipos.length], legal = i % 3 === 0, rescindido = i === 4 || i === 9;
+    const c = { id: uid(), created_at: iso(-criadoHa), ...DEFAULTS.clientes(), nome: 'Cliente ' + nomes[i].split(' ').slice(1).join(' '), codigo: `CA0000${50 + i}`, categoria: 'BC'[i % 2] };
+    db.clientes.push(c);
+    const pr: Row = { id: uid(), created_at: iso(-criadoHa), cliente_id: c.id, ...DEFAULTS.projetos(), nome: nomes[i], codigo: null, responsavel_id: i % 2 ? 'rafael' : 'marina', tipo_estudo: tipo, tem_legal: legal, tem_interiores: i % 4 === 1, status: rescindido ? 'rescindido' : 'finalizado' };
+    db.projetos.push(pr); instanciarEtapas(pr);
+    db.historico = db.historico.filter((h) => h.projeto_id !== pr.id);
+    const etapas = db.projeto_etapas.filter((x) => x.projeto_id === pr.id && x.status !== 'nao_aplicavel' && db.etapa_modelos.find((m) => m.codigo === cod(x))!.fase <= 4)
+      .sort((x, y) => db.etapa_modelos.find((m) => m.codigo === cod(x))!.ordem - db.etapa_modelos.find((m) => m.codigo === cod(y))!.ordem);
+    const REF = REF_PADRAO;
+    const melhora = 1.3 - 0.35 * (i / nomes.length);       // a equipe vai ficando mais rápida ao longo do ano
+    const durs = etapas.map((e) => Math.max(0.5, (REF[cod(e)] ?? 5) * (0.55 + rnd() * 0.9) * melhora));
+    const parar = rescindido ? Math.floor(etapas.length * 0.55) : etapas.length;
+    let total = durs.slice(0, parar).reduce((q, d) => q + d, 0);
+    const k = Math.min(1, (criadoHa - 4 - rnd() * 6) / total); total *= k;
+    let t = criadoHa;
+    etapas.forEach((e, n) => {
+      if (n >= parar) { e.status = 'pendente'; e.iniciada_em = null; e.concluida_em = null; return; }
+      const d = durs[n] * k;
+      e.status = 'concluida'; e.iniciada_em = iso(-t); t -= d; e.concluida_em = iso(-t);
+      e.rodadas_ajuste = ['09', '13'].includes(cod(e)) ? Math.floor(rnd() * 3) : 0;
+    });
+    if (rescindido) { pr.pausado_em = data(-Math.round(t)); pr.motivo_pausa = 'Sem retorno do cliente'; }
+    for (const e of etapas.filter((x) => x.status === 'concluida')) {
+      const ids = db.projeto_tarefas.filter((q) => q.projeto_id === pr.id && q.etapa_codigo === cod(e)).map((q) => q.id);
+      db.projeto_tarefa_itens.filter((q) => ids.includes(q.tarefa_id)).forEach((q) => { q.feito = true; q.feito_por = pr.responsavel_id; q.feito_em = new Date(new Date(e.iniciada_em).getTime() + rnd() * (new Date(e.concluida_em).getTime() - new Date(e.iniciada_em).getTime())).toISOString(); });
+    }
+  }
+  // projetos atuais entraram em datas diferentes, e alguns já passaram do prazo de referência
+  const idade: Record<string, number> = { 'Residência Silva': 24, 'Casa de Praia Oliveira': 78, 'Loja Centro': 42, 'Sobrado Costa': 160, 'Apartamento Lima': 12, 'Casa Duarte': 120 };
+  for (const [nome, ha] of Object.entries(idade)) { const p = db.projetos.find((x) => x.nome === nome); if (p) p.created_at = iso(-ha); }
+  const atrasar = (nome: string, codigo: string, ha: number) => {
+    const p = db.projetos.find((x) => x.nome === nome); const e = p && db.projeto_etapas.find((x) => x.projeto_id === p.id && x.etapa_codigo === codigo && x.status === 'em_andamento');
+    if (e) e.iniciada_em = iso(-ha);
+  };
+  atrasar('Casa de Praia Oliveira', '16', 47); atrasar('Apartamento Lima', '04', 9); atrasar('Loja Centro', '09', 20); atrasar('Galpão Alves', '07', 17);
+}
 function semearDias() {
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const ativos = db.projetos.filter((p) => p.status === 'ativo');
+  const fimDe = (p: Row) => db.projeto_etapas.find((e) => e.projeto_id === p.id && e.etapa_codigo === '24' && e.concluida_em)?.concluida_em ?? (['finalizado', 'rescindido'].includes(p.status) ? db.projeto_etapas.filter((e) => e.projeto_id === p.id && e.concluida_em).map((e) => e.concluida_em).sort().pop() : null);
+  const vivos = (dt: Date) => db.projetos.filter((p) => new Date(p.created_at) <= dt && (!fimDe(p) || new Date(fimDe(p)) >= dt));
   const alvos = [
-    { u: 'marina', h: 8.7, projs: ativos.filter((p) => p.responsavel_id === 'marina') },
-    { u: 'rafael', h: 6.9, projs: ativos.filter((p) => p.responsavel_id === 'rafael' || p.id === db.projeto_equipe[0]?.projeto_id) },
-    { u: 'julia', h: 8.0, projs: ativos },
-    { u: 'demo', h: 2.2, projs: ativos },
+    { u: 'marina', h: 8.3, ok: (p: Row) => p.responsavel_id === 'marina' },
+    { u: 'rafael', h: 7.0, ok: (p: Row) => p.responsavel_id === 'rafael' || p.id === db.projeto_equipe[0]?.projeto_id },
+    { u: 'julia', h: 7.6, ok: () => true },
+    { u: 'demo', h: 2.2, ok: () => true },
   ];
-  const etapaAtiva = (pid: string) => db.projeto_etapas.find((e) => e.projeto_id === pid && e.status === 'em_andamento')?.etapa_codigo ?? '01';
-  for (let d = -40; d <= -1; d++) {
+  const etapaEm = (p: Row, dt: Date) => {
+    const es = db.projeto_etapas.filter((e) => e.projeto_id === p.id && e.iniciada_em);
+    const t = dt.getTime();
+    const e = es.find((x) => new Date(x.iniciada_em).getTime() <= t && (!x.concluida_em || new Date(x.concluida_em).getTime() >= t)) ?? es.find((x) => x.status === 'em_andamento');
+    return e?.etapa_codigo ?? '01';
+  };
+  for (let d = -365; d <= -1; d++) {
     const dt = dia(d); const w = dt.getDay();
     if (w === 0 || w === 6) continue;
+    const vivo = vivos(dt);
+    const ritmo = 0.78 + 0.22 * (1 + d / 365) + (dt.getMonth() === 0 || dt.getMonth() === 11 ? -0.12 : 0);   // equipe produz mais ao longo do ano; janeiro e dezembro mais lentos
     for (const a of alvos) {
-      if (rnd() < 0.05 || !a.projs.length) continue;
-      const total = Math.max(1, a.h + (rnd() - 0.5) * 2.2);
+      const projs = vivo.filter((p) => ['ativo', 'pausado'].includes(p.status) || fimDe(p)).filter(a.ok);
+      if (rnd() < 0.05 || !projs.length) continue;
+      const total = Math.max(1, a.h * ritmo + (rnd() - 0.5) * 2.2);
       const partes = [[8 + Math.floor(rnd() * 2), 30, total * 0.55], [13 + Math.floor(rnd() * 2), 0, total * 0.45]];
       for (const [h, m, dur] of partes) {
-        const pr = a.projs[Math.floor(rnd() * a.projs.length)];
+        const pr = projs[Math.floor(rnd() * projs.length)];
         const ini = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), h, m).getTime();
-        db.tempos.push({ id: uid(), projeto_id: pr.id, etapa_codigo: etapaAtiva(pr.id), usuario_id: a.u, iniciado_em: new Date(ini).toISOString(), finalizado_em: new Date(ini + dur * 3_600_000).toISOString() });
+        db.tempos.push({ id: uid(), projeto_id: pr.id, etapa_codigo: etapaEm(pr, dt), usuario_id: a.u, iniciado_em: new Date(ini).toISOString(), finalizado_em: new Date(ini + dur * 3_600_000).toISOString() });
       }
     }
   }
@@ -381,7 +437,6 @@ function semearDias() {
     { id: uid(), usuario_id: 'rafael', data: data(-6), minutos: -480, motivo: 'Folga compensatória', criado_por: 'julia', created_at: iso(-7) },
   );
 }
-semearDias();
 
 // Galpão Alves: cliente C (estudo + projetos), com a Rafael no croqui e fachadas
 novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'C' }, { nome: 'Galpão Alves', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '07');
@@ -406,6 +461,9 @@ novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'C' }, { no
   const ids = db.projeto_tarefas.filter((t) => t.projeto_id === costa.id && t.etapa_codigo === 'P2').sort((a, b) => a.ordem - b.ordem).slice(0, 4).map((t) => t.id);
   db.projeto_tarefa_itens.filter((i) => ids.includes(i.tarefa_id)).forEach((i) => { i.feito = true; i.feito_por = 'rafael'; i.feito_em = iso(-160); });
 }
+proto(silva.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/50011', status: 'protocolado', data_protocolo: data(-30), prazo: data(-3), cliente_notificado: true });
+semearHistorico();
+semearDias();
 void lima;
 
 function rpc(nome: string, args: any = {}) {
