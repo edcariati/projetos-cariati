@@ -679,6 +679,203 @@ export const TAREFAS: TarefaModelo[] = [
    "Emitir e imprimir termo de retirada",
    "Explicar e entregar todos os documentos ao cliente"
   ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Avaliação interna",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Gerar IFC do projeto",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Gerar IFC do projeto",
+   "Solicitar ao Administrativo o envio do IFC ao profissional de complementares"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "Agendar reunião de pontos técnicos com o cliente",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcar reunião com cliente"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 4,
+  "titulo": "Reunião de pontos técnicos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Preenchimento de ata",
+   "Enviar ata de reunião ao cliente",
+   "Ata dado aceite pelo cliente"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 5,
+  "titulo": "Projeto de pontos técnicos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Projeto dos pontos elétricos",
+   "Projeto dos pontos hidrossanitários",
+   "Projeto dos pontos de iluminação",
+   "Enviar projeto para o profissional responsável pela elaboração dos complementares"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 6,
+  "titulo": "Fazer compatibilização dos complementares recebidos",
+  "descricao": "Deverá ser feita a análise dos documentos que os profissionais responsáveis pelos complementares enviar. Deverá ser uma análise minuciosa e atenta.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Importar no arquivo do projeto 3D o IFC recebido",
+   "Caso necessário, criar arquivo com os comentários da compatibilização no PowerPoint",
+   "Compatibilização efetuada"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 7,
+  "titulo": "Fazer cálculo de movimentação de terra (quando houver obra)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 8,
+  "titulo": "Entrega final dos complementares",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Elétrica finalizada",
+   "Hidrossanitário finalizada",
+   "Estrutural finalizada"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 9,
+  "titulo": "Imprimir projetos complementares",
+  "descricao": "Imprimir os complementares elaborados.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcenaria",
+   "Marmoraria",
+   "Paginação",
+   "Forro de gesso",
+   "Luminotécnico",
+   "Revestimentos",
+   "Lista de móveis soltos",
+   "Espelhos",
+   "Esquadrias"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 10,
+  "titulo": "Agendar reunião para entrega dos projetos complementares",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcar reunião com cliente",
+   "Inserir reunião no sistema e notificar responsável"
+  ]
+ },
+ {
+  "etapa": "19",
+  "variante": "todas",
+  "ordem": 11,
+  "titulo": "Reunião para entrega dos projetos complementares finalizados",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Imprimir projetos finalizados",
+   "Imprimir termo de retirada"
+  ]
+ },
+ {
+  "etapa": "21",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Agendar reunião de entrega de projetos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcar reunião com cliente",
+   "Inserir reunião no sistema e notificar responsável"
+  ]
+ },
+ {
+  "etapa": "22",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Compilado dos documentos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Imprimir documentos para entrega",
+   "Preparar e-mail/pendrive para entrega digital",
+   "Emitir 2 vias do termo de retirada devidamente preenchido"
+  ]
+ },
+ {
+  "etapa": "23",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Reunião de entrega de projetos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Reunião realizada",
+   "Retirar foto com o cliente"
+  ]
+ },
+ {
+  "etapa": "24",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Fazer arquivamento",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Analisar documentos da pasta do cliente e arquivar os documentos pertinentes"
+  ]
+ },
+ {
+  "etapa": "24",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Atualizar no sistema",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Dar como finalizado no Vobi",
+   "Remover projeto do quadro físico"
+  ]
  }
 ];
 export const VAR_ROTULO: Record<string, string> = {"padrao": "Padrão", "ampliacao": "Ampliação", "mais_projetos": "+ Projetos", "apos_solicitacao": "Após pausa a pedido", "apos_ausencia": "Após falta de retorno"};

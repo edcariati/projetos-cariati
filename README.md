@@ -7,7 +7,7 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
 ## Como colocar para rodar
 
 1. Crie um projeto em <https://supabase.com>.
-2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0011` de `supabase/migrations/`)
+2. No **SQL Editor**, cole e execute `supabase/instalar_tudo.sql` (reúne os arquivos `0001` a `0012` de `supabase/migrations/`)
    (ou use `supabase db push` com a CLI).
 3. Em **Authentication → Providers → Email**, desative "Allow new users to sign up" e crie os usuários da
    equipe em **Authentication → Users**. Para tornar alguém admin:
@@ -37,6 +37,7 @@ e controla os protocolos (Prefeitura, condomínio e outros órgãos). Funciona n
   - **Cliente**: portal próprio com andamento das etapas, protocolos e entregas, documentos que o escritório liberar e um fluxo explicativo. Nunca vê histórico interno, tempos, regras internas nem documentos não liberados.
 - **Banco de horas** (`0008_banco_horas.sql`), para o administrador e o setor Administrativo: horas trabalhadas (cronômetro) × horas previstas (carga semanal de cada pessoa ÷ 5 × dias úteis encerrados) + lançamentos manuais (hora extra, folga, feriado abonado) = saldo, por período, pessoa e projeto, com dia a dia e exportação em CSV. A carga semanal se define na tela Equipe. A view `banco_horas_dia` serve para análise externa.
 - **Protocolo de tarefas por etapa** (`0009_protocolos_etapas.sql`, a partir dos modelos do Vobi): cada etapa traz suas tarefas e checklists (47 tarefas, 110 itens), marcáveis em cada projeto, com registro automático de quem marcou e quando. Concluir uma etapa com itens pendentes pede confirmação.
+- **Complementares e Finalização** (`0012_complementares_finalizacao.sql`, protocolos 04 e 05): 11 tarefas na etapa 19 (IFC, pontos técnicos, compatibilização, entrega e impressão) e as tarefas de entrega e encerramento das etapas 21 a 24.
 - **Habite-se** (`0010_habitese.sql`, protocolo 02): serviço opcional em paralelo ao fluxo (etapas H1 documentos, H2 entrada na Prefeitura, H3 entrega dos documentos aprovados), com 8 tarefas e checklists. Pode ser contratado na criação do projeto ou iniciado depois (reabre um projeto finalizado).
 - **Provisionamento** (`0011_provisionamento.sql`): as tarefas dos protocolos são criadas e atribuídas automaticamente ao entrar na etapa: ao profissional da especialidade (equipe) ou ao responsável do projeto e, nas etapas de agendamento/Administrativo, à fila do setor (qualquer pessoa do setor pode assumir). A tela **Minhas tarefas** mostra o que está agora e o que vem a seguir; o administrador pode reatribuir manualmente.
   - **Tipo de estudo preliminar**: padrão, ampliação (a fachada vira estudo 3D) ou + projetos (fachada junto com a planta; etapas 11 a 14 não se aplicam). Cliente categoria C ou D sugere "+ projetos".
