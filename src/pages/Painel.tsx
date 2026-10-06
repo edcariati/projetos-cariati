@@ -6,6 +6,7 @@ import { FASES, diasAte, fmtData, statusProtocolo } from '../lib/labels';
 import { MAX_DIAS_PAUSA, diasDePausa } from '../lib/flow';
 import { usePerfil } from '../lib/perfil';
 import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
+import { Carregando, Contador, Orbe, Vazio } from '../ui/Holo';
 
 export default function Painel() {
   const eu = usePerfil();
@@ -13,13 +14,17 @@ export default function Painel() {
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [minhas, setMinhas] = useState<GrupoTarefas[]>([]);
+  const [recentes, setRecentes] = useState<{ id: string; texto: string | null; tipo: string; created_at: string; projeto_id: string; projetos?: { nome: string } | null; profiles?: { nome: string } | null }[] | null>(null);
+  const [carregado, setCarregado] = useState(false);
 
   useEffect(() => { carregarTarefas(eu).then(setMinhas).catch(() => setMinhas([])); }, [eu]);
 
   useEffect(() => {
     supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome), projeto_etapas(etapa_codigo,status)')
       .in('status', ['ativo', 'pausado']).order('created_at', { ascending: false })
-      .then(({ data }) => setProjetos((data as Projeto[]) ?? []));
+      .then(({ data }) => { setProjetos((data as Projeto[]) ?? []); setCarregado(true); });
+    supabase.from('historico').select('id,texto,tipo,created_at,projeto_id,projetos(nome),profiles(nome)').order('created_at', { ascending: false }).limit(6)
+      .then(({ data }) => setRecentes((data as unknown as NonNullable<typeof recentes>) ?? []));
     supabase.from('etapa_modelos').select('*').order('ordem').then(({ data }) => setModelos((data as EtapaModelo[]) ?? []));
     supabase.from('protocolos').select('*, projetos(nome, clientes(nome))')
       .not('status', 'in', '(entregue_ao_cliente)').order('prazo', { ascending: true, nullsFirst: false })
@@ -47,11 +52,20 @@ export default function Painel() {
   return (
     <>
       <div className="titulo"><h1>{eu.perfil === 'admin' ? 'Painel geral' : 'Meu painel'}</h1><Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link></div>
+      {!carregado ? <Carregando tipo="kpis" n={4} /> : (
       <div className="kpis">
-        <div className="kpi"><b>{ativos.length}</b><span>projetos ativos</span></div>
-        <div className="kpi"><b>{pausados.length}</b><span>pausados</span></div>
-        <div className="kpi"><b>{protocolos.length}</b><span>protocolos abertos</span></div>
-        <div className="kpi"><b className={atencao.length ? 'alerta' : ''}>{atencao.length}</b><span>pedem atenção</span></div>
+        <div className="kpi"><b><Contador valor={ativos.length} /></b><span>projetos ativos</span></div>
+        <div className="kpi"><b><Contador valor={pausados.length} /></b><span>pausados</span></div>
+        <div className="kpi"><b><Contador valor={protocolos.length} /></b><span>protocolos abertos</span></div>
+        <div className="kpi"><b className={atencao.length ? 'alerta' : ''}><Contador valor={atencao.length} /></b><span>pedem atenção{atencao.length ? ' ▲' : ''}</span></div>
+      </div>
+      )}
+
+      <div className="atalhos" aria-label="Atalhos">
+        <Link className="atalho" to="/projetos/novo"><Orbe n="mais" tam={36} />Novo projeto</Link>
+        <Link className="atalho" to="/tarefas"><Orbe n="tarefas" tam={36} />Minhas tarefas</Link>
+        <Link className="atalho" to="/clientes/novo"><Orbe n="clientes" tam={36} />Novo cliente</Link>
+        <Link className="atalho" to="/protocolos"><Orbe n="protocolos" tam={36} />Protocolos</Link>
       </div>
 
       {(() => {
@@ -107,6 +121,19 @@ export default function Painel() {
           </ul>
         </section>
       )}
+
+      <section className="card">
+        <h2>Atividade recente</h2>
+        {recentes === null ? <Carregando n={3} /> : recentes.length === 0 ? <Vazio titulo="Nada aconteceu ainda" texto="Quando uma etapa começar ou terminar, o registro aparece aqui." icone="horas" /> : (
+          <ul className="atividade">
+            {recentes.map((r) => (
+              <li key={r.id}><span className="ponto-ev" aria-hidden="true" />
+                <div><Link to={`/projetos/${r.projeto_id}`}><b>{r.projetos?.nome ?? 'Projeto'}</b></Link> · {r.texto ?? r.tipo}
+                  <time dateTime={r.created_at}>{r.profiles?.nome ? `${r.profiles.nome} · ` : ''}{new Date(r.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</time></div></li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="fases">
         {porFase.map(({ fase, itens }) => (

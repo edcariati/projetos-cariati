@@ -12,6 +12,7 @@ import Cronograma from '../components/Cronograma';
 import Calendario from '../components/Calendario';
 import { carregarCronograma } from '../lib/carga';
 import type { Crono, Evento } from '../lib/cronograma';
+import { Carregando, Vazio } from '../ui/Holo';
 
 type Vista = 'checklists' | 'lista' | 'quadro' | 'cronograma' | 'calendario';
 const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['cronograma', 'Cronograma'], ['calendario', 'Calendário']];
@@ -96,14 +97,14 @@ export default function Tarefas() {
         <div className="kpi"><b>{aSeguir.length}</b><span>etapas a seguir</span></div>
       </div>
 
-      {grupos === null && <p className="mudo">Carregando…</p>}
+      {grupos === null && <Carregando tipo="cartoes" n={2} />}
       {grupos && grupos.length === 0 && <section className="card"><p className="mudo">Nenhuma tarefa para {todas ? 'os projetos visíveis' : alvoId === eu.id ? 'você' : alvo?.nome} no momento.</p></section>}
 
       {(vista === 'cronograma' || vista === 'calendario') && (
         <section className="card viz">
           <h2>{vista === 'cronograma' ? 'Cronograma dos projetos em andamento' : 'Calendário de prazos'}</h2>
           <p className="mudo pequeno">Mostra todos os projetos que você pode ver, sem filtrar por pessoa. O prazo de cada etapa vem do prazo de referência (mediana da equipe ou padrão); as etapas seguintes são projetadas em sequência a partir de hoje.</p>
-          {!agenda ? <p className="mudo">Carregando…</p> : vista === 'cronograma'
+          {!agenda ? <Carregando n={3} /> : vista === 'cronograma'
             ? (agenda.crono.linhas.length === 0 ? <p className="mudo">Nenhum projeto em andamento.</p> : <Cronograma crono={agenda.crono} />)
             : <Calendario eventos={agenda.eventos} />}
         </section>

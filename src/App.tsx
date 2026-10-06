@@ -9,6 +9,9 @@ import AppEquipe from './AppEquipe';
 import AppCliente from './AppCliente';
 import DemoBarra from './components/DemoBarra';
 import { DialogHost } from './components/Dialogo';
+import Atmosfera from './ui/Atmosfera';
+import { AvisosHost } from './ui/avisos';
+import { Carregando } from './ui/Holo';
 
 export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -45,22 +48,24 @@ export default function App() {
       </div></div>
     );
   }
-  if (session === undefined) return <div className="centro">Carregando…</div>;
-  if (!session) return <Login />;
-  if (perfil === undefined) return <div className="centro">Carregando…</div>;
+  const fundo = <><Atmosfera /><AvisosHost /></>;
+  if (session === undefined) return <>{fundo}<div className="centro"><Carregando tipo="cartoes" n={1} /></div></>;
+  if (!session) return <>{fundo}<Login /></>;
+  if (perfil === undefined) return <>{fundo}<div className="centro"><Carregando tipo="cartoes" n={1} /></div></>;
   if (!perfil || !perfil.ativo) {
     return (
-      <div className="centro"><div className="card">
+      <><Atmosfera /><div className="centro"><div className="card">
         <h2>Acesso ainda não liberado</h2>
         <p>Seu login existe, mas o escritório ainda não definiu o que você pode ver. Fale com o administrador.</p>
         <button onClick={() => supabase.auth.signOut()}>Sair</button>
-      </div></div>
+      </div></div></>
     );
   }
 
   return (
     <PerfilCtx.Provider value={perfil}>
       <div className="app" key={versao}>
+        {fundo}
         <DialogHost />
         {demo && <DemoBarra />}
         {perfil.perfil === 'cliente' ? <AppCliente /> : <AppEquipe />}

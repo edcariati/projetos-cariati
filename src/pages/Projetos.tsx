@@ -6,6 +6,7 @@ import { FASES, PROJETO_STATUS, TIPO_ESTUDO, fmtData } from '../lib/labels';
 import { usePerfil } from '../lib/perfil';
 import { Atraso, ProjetoK, etapasAbertas, refEtapas } from '../lib/kpis';
 import { STATUS_ICONE, STATUS_ROTULO } from '../components/graficos';
+import { Carregando, Vazio } from '../ui/Holo';
 
 type Vista = 'cartoes' | 'quadro' | 'lista';
 const VISTAS: [Vista, string][] = [['cartoes', 'Cartões'], ['quadro', 'Quadro'], ['lista', 'Lista']];
@@ -125,7 +126,7 @@ export default function Projetos() {
               </Link></li>
             );
           })}
-          {lista.length === 0 && <p className="mudo">Nenhum projeto encontrado.</p>}
+          {lista.length === 0 && <Vazio titulo="Nenhum projeto encontrado" texto="Limpe os filtros ou comece um projeto novo." icone="projetos" acao={{ rotulo: '+ Novo projeto', to: '/projetos/novo' }} />}
         </ul>
       )}
 
@@ -167,7 +168,7 @@ export default function Projetos() {
               </tr>
             ))}
           </tbody>
-        </table>{lista.length === 0 && <p className="mudo">Nenhum projeto encontrado.</p>}</div>
+        </table>{lista.length === 0 && <Vazio titulo="Nenhum projeto encontrado" texto="Limpe os filtros ou comece um projeto novo." icone="projetos" acao={{ rotulo: '+ Novo projeto', to: '/projetos/novo' }} />}</div>
       )}
     </>
   );

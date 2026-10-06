@@ -51,11 +51,11 @@ const data = (d: number) => dia(d).toISOString().slice(0, 10);
 
 /* ---------- quem está "logado" na demonstração ---------- */
 export const personas = [
-  { id: 'demo', nome: 'Edson Cariati', rotulo: 'Administrador (vê tudo)' },
-  { id: 'marina', nome: 'Marina Souza', rotulo: 'Arquiteta (Residência Silva, Casa de Praia, Apto. Lima)' },
-  { id: 'rafael', nome: 'Rafael Lima', rotulo: 'Arq. de interiores (Loja Centro, Sobrado Costa)' },
-  { id: 'julia', nome: 'Júlia Prado', rotulo: 'Administrativo (agendamentos, vê todos os projetos)' },
-  { id: 'cliente', nome: 'Ana Oliveira', rotulo: 'Cliente (Casa de Praia Oliveira)' },
+  { id: 'demo', email: 'cariati@cariati.com.br', nome: 'Edson Cariati', rotulo: 'Administrador (vê tudo)' },
+  { id: 'marina', email: 'marina@cariati.com.br', nome: 'Marina Souza', rotulo: 'Arquiteta (Residência Silva, Casa de Praia, Apto. Lima)' },
+  { id: 'rafael', email: 'rafael@cariati.com.br', nome: 'Rafael Lima', rotulo: 'Arq. de interiores (Loja Centro, Sobrado Costa)' },
+  { id: 'julia', email: 'julia@cariati.com.br', nome: 'Júlia Prado', rotulo: 'Administrativo (agendamentos, vê todos os projetos)' },
+  { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', rotulo: 'Cliente (Casa de Praia Oliveira)' },
 ];
 let eu = 'demo';
 export const personaAtual = () => eu;
@@ -64,13 +64,13 @@ export const aoMudarPersona = (fn: () => void) => { window.addEventListener('per
 
 const db: Record<string, Row[]> = {
   profiles: [
-    { id: 'demo', nome: 'Edson Cariati', setor: 'projetos', perfil: 'admin', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 10 },
-    { id: 'marina', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
-    { id: 'rafael', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
-    { id: 'julia', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
-    { id: 'cliente', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
+    { id: 'demo', email: 'cariati@cariati.com.br', nome: 'Edson Cariati', setor: 'projetos', perfil: 'admin', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 10 },
+    { id: 'marina', email: 'marina@cariati.com.br', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'rafael', email: 'rafael@cariati.com.br', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'julia', email: 'julia@cariati.com.br', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
-  clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
+  parceiros: [], clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
   protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [], projeto_tarefas: [], projeto_tarefa_itens: [],
 };
 
@@ -114,7 +114,7 @@ function ver(t: string, r: Row): boolean {
     case 'tempos': return podeBanco() || r.usuario_id === eu;
     case 'banco_horas_ajustes': return podeBanco() || r.usuario_id === eu;
     case 'projeto_tarefas': case 'projeto_tarefa_itens': return !cli && verProjeto(r.projeto_id);
-    case 'etapa_modelos': case 'documento_modelos': return !cli;
+    case 'etapa_modelos': case 'documento_modelos': case 'parceiros': return !cli;
     case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
     default: return true;
   }
@@ -126,7 +126,7 @@ const REL: Record<string, Record<string, { t: string; fk: string; many: boolean 
     profiles: { t: 'profiles', fk: 'responsavel_id', many: false },
   },
   protocolos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false } },
-  historico: { profiles: { t: 'profiles', fk: 'autor_id', many: false } },
+  historico: { profiles: { t: 'profiles', fk: 'autor_id', many: false }, projetos: { t: 'projetos', fk: 'projeto_id', many: false } },
   tempos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false }, profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
   projeto_equipe: { profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
 };
@@ -222,6 +222,7 @@ const DEFAULTS: Record<string, () => Row> = {
   banco_horas_ajustes: () => ({ data: data(0), criado_por: eu }),
 };
 const NEGADO = { data: null, error: { message: 'new row violates row-level security policy' } };
+DEFAULTS.parceiros = () => ({ tipo: 'outro', tipo_pessoa: 'juridica', documento: null, contato: null, telefone: null, whatsapp: null, email: null, cidade: null, uf: null, observacoes: null, ativo: true });
 const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos']);
 
 class Q implements PromiseLike<any> {
@@ -259,6 +260,7 @@ class Q implements PromiseLike<any> {
       if (p.perfil === 'cliente') return NEGADO;
       if (SO_ADMIN.has(t) && p.perfil !== 'admin') return NEGADO;
       if (t === 'banco_horas_ajustes' && !podeBanco()) return NEGADO;
+      if (t === 'parceiros' && this.op !== 'delete' && !(p.perfil === 'admin' || ['administrativo', 'comercial', 'financeiro'].includes(p.setor))) return NEGADO;
     }
     if (this.op === 'insert') {
       const itens = Array.isArray(this.payload) ? this.payload : [this.payload];
@@ -492,6 +494,14 @@ function completarClientes() {
 }
 proto(silva.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/50011', status: 'protocolado', data_protocolo: data(-30), prazo: data(-3), cliente_notificado: true });
 completarClientes();
+db.parceiros = [
+  ['Estrutura Viva Engenharia', 'estrutural', 'juridica', '11222333000181', 'Carlos Menezes', '(62) 3255-1010', '(62) 99911-2020', 'contato@estruturaviva.com.br', 'Goiânia', 'GO'],
+  ['Luz & Fluxo Instalações', 'eletrica_hidraulica', 'juridica', '45723174000110', 'Patrícia Duarte', '(62) 3212-7788', '(62) 99822-3344', 'projetos@luzefluxo.com.br', 'Goiânia', 'GO'],
+  ['Topo Geo Levantamentos', 'topografia', 'juridica', '33000167000101', 'Marcos Tavares', null, '(62) 99733-4455', 'marcos@topogeo.com.br', 'Aparecida de Goiânia', 'GO'],
+  ['Helena Paisagismo', 'paisagismo', 'fisica', '52998224725', 'Helena Rocha', null, '(62) 99644-5566', 'helena@paisagismo.com', 'Goiânia', 'GO'],
+  ['Despachante Rápido', 'despachante', 'fisica', '39053344705', 'José Ribeiro', '(62) 3200-9090', null, null, 'Goiânia', 'GO'],
+].map(([nome, tipo, tipo_pessoa, documento, contato, telefone, whatsapp, email, cidade, uf], i) =>
+  ({ id: uid(), nome, tipo, tipo_pessoa, documento, contato, telefone, whatsapp, email, cidade, uf, observacoes: null, ativo: i !== 4, created_at: new Date().toISOString() }));
 semearHistorico();
 semearDias();
 void lima;
@@ -499,6 +509,39 @@ void lima;
 function rpc(nome: string, args: any = {}) {
   const agora = new Date().toISOString();
   const parar = () => db.tempos.filter((t) => t.usuario_id === eu && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
+  const admin = perfilEu().perfil === 'admin';
+  const falha = (message: string) => Promise.resolve({ data: null, error: { message } });
+  if (nome.startsWith('admin_')) {
+    if (!admin) return falha('Só o administrador gerencia acessos');
+    const alvo = db.profiles.find((x) => x.id === args.p_id);
+    if (nome === 'admin_criar_usuario') {
+      const em = String(args.p_email ?? '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return falha('E-mail inválido');
+      if (String(args.p_senha ?? '').length < 8) return falha('A senha precisa ter pelo menos 8 caracteres');
+      if (!String(args.p_nome ?? '').trim()) return falha('Informe o nome');
+      if (args.p_perfil === 'cliente' && !args.p_cliente_id) return falha('Escolha o cadastro do cliente');
+      if (db.profiles.some((x) => String(x.email).toLowerCase() === em)) return falha('Já existe um acesso com este e-mail');
+      const id = uid();
+      db.profiles.push({ id, email: em, nome: String(args.p_nome).trim(), setor: args.p_setor ?? 'projetos', perfil: args.p_perfil, especialidades: args.p_especialidades ?? [], cliente_id: args.p_perfil === 'cliente' ? args.p_cliente_id : null, ativo: true, carga_semanal_horas: args.p_carga ?? 40 });
+      return Promise.resolve({ data: id, error: null });
+    }
+    if (!alvo) return falha('Acesso não encontrado');
+    if (nome === 'admin_redefinir_senha') return String(args.p_senha ?? '').length < 8 ? falha('A senha precisa ter pelo menos 8 caracteres') : Promise.resolve({ data: null, error: null });
+    if (nome === 'admin_alterar_email') {
+      const em = String(args.p_email ?? '').trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return falha('E-mail inválido');
+      if (db.profiles.some((x) => x.id !== alvo.id && String(x.email).toLowerCase() === em)) return falha('Já existe um acesso com este e-mail');
+      alvo.email = em; return Promise.resolve({ data: null, error: null });
+    }
+    if (nome === 'admin_excluir_usuario') {
+      if (alvo.id === eu) return falha('Você não pode excluir o seu próprio acesso');
+      if (alvo.perfil === 'admin' && !db.profiles.some((x) => x.perfil === 'admin' && x.ativo && x.id !== alvo.id)) return falha('É preciso manter pelo menos um administrador ativo');
+      if (db.projetos.some((x) => x.responsavel_id === alvo.id) || db.tempos.some((x) => x.usuario_id === alvo.id) || db.historico.some((x) => x.autor_id === alvo.id))
+        return falha('Esta pessoa tem projetos, tempos ou histórico registrados. Desative o acesso em vez de excluir.');
+      db.profiles = db.profiles.filter((x) => x.id !== alvo.id); db.projeto_equipe = db.projeto_equipe.filter((x) => x.usuario_id !== alvo.id);
+      return Promise.resolve({ data: null, error: null });
+    }
+  }
   if (nome === 'iniciar_cronometro') {
     if (!verProjeto(args.p_projeto)) return Promise.resolve(NEGADO);
     parar();

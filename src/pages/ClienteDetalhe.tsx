@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile, Projeto } from '../lib/types';
@@ -6,6 +6,8 @@ import { CONTATOS, ESTADOS_CIVIS, INTENCOES, ORIGENS, UFS, cnpjValido, completud
 import { PROJETO_STATUS, fmtData } from '../lib/labels';
 import { pessoaPodeEditarClientes, usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
+import { Carregando, Vazio } from '../ui/Holo';
+import { avisar } from '../ui/avisos';
 
 type Form = Record<string, string | boolean | null>;
 const TEXTOS = ['codigo', 'nome', 'categoria', 'documento', 'rg', 'estado_civil', 'nacionalidade', 'profissao', 'telefone', 'telefone2', 'whatsapp', 'email', 'contato_preferido', 'origem', 'indicado_por',
@@ -36,6 +38,19 @@ export default function ClienteDetalhe() {
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);
   const [cepMsg, setCepMsg] = useState('');
+  const [passo, setPasso] = useState(0);
+  const [rascunho, setRascunho] = useState(false);
+  const form = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!novo) return;
+    try { const r = localStorage.getItem('rascunho-cliente'); if (r) { setF((x) => ({ ...x, ...JSON.parse(r) })); setRascunho(true); } } catch { /* sem rascunho */ }
+  }, [novo]);
+  useEffect(() => {
+    if (!novo) return;
+    const t = setTimeout(() => { try { if (f.nome) localStorage.setItem('rascunho-cliente', JSON.stringify(f)); } catch { /* ignora */ } }, 600);
+    return () => clearTimeout(t);
+  }, [f, novo]);
 
   useEffect(() => {
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setPessoas((data as Profile[]) ?? []));
@@ -60,6 +75,14 @@ export default function ClienteDetalhe() {
   const v = (k: string) => (f[k] as string | null | undefined) ?? '';
   const set = (k: string, val: string | boolean | null) => { setF((x) => ({ ...x, [k]: val })); setOk(''); };
   const juridica = f.tipo_pessoa === 'juridica';
+  const PASSOS = ['Identificação', 'Contato', 'Endereço', 'Obra', 'Observações'];
+  const mostra = (k: number) => !novo || passo === k;
+  const avancar = () => {
+    const bloco = form.current?.querySelectorAll('.passo')[passo];
+    const invalido = bloco?.querySelector(':invalid') as HTMLInputElement | null;
+    if (invalido) { invalido.reportValidity(); return; }
+    setPasso((x) => Math.min(PASSOS.length - 1, x + 1)); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [comEmpresa, setComEmpresa] = useState(false);
   const mostrarEmpresa = juridica || comEmpresa || !!v('empresa_razao_social');
   const comp = completude({ ...(f as unknown as Cliente), obra_metragem: v('obra_metragem') ? 1 : null, obra_financiada: f.obra_financiada as boolean | null });
@@ -92,6 +115,8 @@ export default function ClienteDetalhe() {
       if (novo) {
         const { data, error } = await supabase.from('clientes').insert(corpo).select('id').single();
         if (error) throw error;
+        try { localStorage.removeItem('rascunho-cliente'); } catch { /* ignora */ }
+        avisar('Cliente cadastrado.');
         nav(`/clientes/${data.id}`, { replace: true });
       } else {
         const { error } = await supabase.from('clientes').update(corpo).eq('id', id!);
@@ -105,7 +130,7 @@ export default function ClienteDetalhe() {
     setBusy(false);
   }
 
-  if (carregando) return <p className="mudo">Carregando cadastro…</p>;
+  if (carregando) return <Carregando tipo="cartoes" n={2} texto="Carregando cadastro…" />;
   const wa = digitos(v('whatsapp') || v('telefone'));
 
   return (
@@ -131,8 +156,18 @@ export default function ClienteDetalhe() {
         {!pode && <p className="aviso">Você pode consultar este cadastro. Quem edita é o administrador, o Administrativo, o Comercial e o Financeiro.</p>}
       </section>
 
-      <form onSubmit={salvar}>
+      {novo && (
+        <>
+          <ol className="passos" aria-label="Etapas do cadastro">
+            {PASSOS.map((n, k) => <li key={n} className={k === passo ? 'atual' : k < passo ? 'feito' : ''} aria-current={k === passo ? 'step' : undefined}><button type="button" onClick={() => (k <= passo ? setPasso(k) : undefined)} disabled={k > passo}><i>{k < passo ? '✓' : k + 1}</i><span>{n}</span></button></li>)}
+          </ol>
+          {rascunho && <p className="aviso">Recuperei o rascunho que você deixou aberto. <button type="button" className="link" onClick={() => { try { localStorage.removeItem('rascunho-cliente'); } catch { /* ignora */ } setF({ tipo_pessoa: 'fisica', nacionalidade: 'Brasileira', premium: false, obra_financiada: null }); setRascunho(false); setPasso(0); }}>Descartar rascunho</button></p>}
+          <p className="mudo pequeno">O que você digita é salvo automaticamente neste aparelho até concluir o cadastro.</p>
+        </>
+      )}
+      <form onSubmit={salvar} ref={form}>
         <fieldset disabled={!pode} className="sem-borda">
+          <div className="passo" hidden={!mostra(0)}>
           <Secao titulo="Identificação">
             <Campo rotulo="Tipo de cliente" largo>
               <span className="radios">
@@ -169,6 +204,8 @@ export default function ClienteDetalhe() {
             </Secao>
           )}
 
+          </div>
+          <div className="passo" hidden={!mostra(1)}>
           <Secao titulo="Contato">
             <Campo rotulo="Telefone"><input inputMode="tel" value={v('telefone')} onChange={(e) => set('telefone', formatarTelefone(e.target.value))} /></Campo>
             <Campo rotulo="WhatsApp"><input inputMode="tel" value={v('whatsapp')} onChange={(e) => set('whatsapp', formatarTelefone(e.target.value))} /></Campo>
@@ -180,6 +217,8 @@ export default function ClienteDetalhe() {
             <Campo rotulo="Responsável comercial"><select value={v('responsavel_comercial')} onChange={(e) => set('responsavel_comercial', e.target.value)}><option value="">—</option>{pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></Campo>
           </Secao>
 
+          </div>
+          <div className="passo" hidden={!mostra(2)}>
           <Secao titulo="Endereço atual do cliente">
             <Campo rotulo="CEP"><span className="com-botao"><input inputMode="numeric" value={v('end_cep')} onChange={(e) => set('end_cep', formatarCep(e.target.value))} onBlur={() => digitos(v('end_cep')).length === 8 && !v('end_logradouro') && buscarCep('end')} /><button type="button" onClick={() => buscarCep('end')}>Buscar</button></span></Campo>
             <Campo rotulo="Rua, avenida…" largo><input value={v('end_logradouro')} onChange={(e) => set('end_logradouro', e.target.value)} /></Campo>
@@ -191,6 +230,8 @@ export default function ClienteDetalhe() {
             {cepMsg && <p className="mudo pequeno campo largo">{cepMsg}</p>}
           </Secao>
 
+          </div>
+          <div className="passo" hidden={!mostra(3)}>
           <Secao titulo="Dados da obra" sub="O que o levantamento de dados do protocolo pede.">
             <Campo rotulo="Intenção do projeto"><select value={v('obra_intencao')} onChange={(e) => set('obra_intencao', e.target.value)}><option value="">—</option>{INTENCOES.map((o) => <option key={o}>{o}</option>)}</select></Campo>
             <Campo rotulo="Metragem aproximada (m²)"><input inputMode="decimal" value={v('obra_metragem')} onChange={(e) => set('obra_metragem', e.target.value.replace(/[^\d,.]/g, ''))} /></Campo>
@@ -210,14 +251,20 @@ export default function ClienteDetalhe() {
             <Campo rotulo="Matrícula do imóvel"><input value={v('obra_matricula')} onChange={(e) => set('obra_matricula', e.target.value)} /></Campo>
           </Secao>
 
+          </div>
+          <div className="passo" hidden={!mostra(4)}>
           <Secao titulo="Observações"><Campo rotulo="Anotações sobre o cliente" largo><textarea rows={4} value={v('observacoes')} onChange={(e) => set('observacoes', e.target.value)} /></Campo></Secao>
+          </div>
         </fieldset>
 
         {erro && <p className="erro" role="alert">{erro}</p>}
         {ok && <p className="mudo" role="status">✓ {ok}</p>}
         {pode && (
           <div className="barra-salvar">
-            <button className="primario" disabled={busy}>{busy ? 'Salvando…' : novo ? 'Cadastrar cliente' : 'Salvar cadastro'}</button>
+            {novo && passo > 0 && <button type="button" onClick={() => setPasso((x) => x - 1)}>Voltar</button>}
+            {novo && passo < PASSOS.length - 1
+              ? <button key="avancar" type="button" className="primario" onClick={avancar}>Avançar</button>
+              : <button key="salvar" className="primario" disabled={busy}>{busy ? 'Salvando…' : novo ? 'Cadastrar cliente' : 'Salvar cadastro'}</button>}
             {meta?.atualizado_em && <span className="mudo pequeno">Atualizado em {fmtData(meta.atualizado_em)}{meta.por ? ` por ${meta.por}` : ''}</span>}
           </div>
         )}

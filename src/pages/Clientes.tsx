@@ -7,6 +7,7 @@ import { completude, digitos, formatarDocumento, formatarTelefone } from '../lib
 import { pessoaPodeEditarClientes } from '../lib/perfil';
 import { usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
+import { Carregando, Vazio } from '../ui/Holo';
 
 interface Resumo { cliente_id: string; status: string }
 
@@ -68,7 +69,7 @@ export default function Clientes() {
         <label className="check"><input type="checkbox" checked={incompleto} onChange={(e) => setIncompleto(e.target.checked)} />Só cadastros incompletos</label>
       </div>
 
-      {lista === null ? <p className="mudo">Carregando clientes…</p> : (
+      {lista === null ? <Carregando texto="Carregando clientes…" /> : (
         <div className="viz-tab card">
           <table className="tab-projetos tab-clientes">
             <thead><tr><th>Cliente</th><th>Contato</th><th>Cidade</th><th>Projetos</th><th>Cadastro</th></tr></thead>
@@ -85,7 +86,7 @@ export default function Clientes() {
               ); })}
             </tbody>
           </table>
-          {filtrada.length === 0 && <p className="mudo">Nenhum cliente encontrado.</p>}
+          {filtrada.length === 0 && <Vazio titulo="Nenhum cliente encontrado" texto="Ajuste os filtros ou cadastre um novo cliente." icone="clientes" />}
         </div>
       )}
     </>

@@ -9,6 +9,7 @@ import { fmtData } from '../lib/labels';
 import { usePerfil } from '../lib/perfil';
 import AbasHoras from '../components/AbasHoras';
 import { BarrasH, Cartao, Colunas, Legenda, Linhas, Medidor, SERIE, fmtN } from '../components/graficos';
+import { Carregando, Vazio } from '../ui/Holo';
 
 const nivel = (pct: number | null) => (pct === null ? 'ok' : pct > 200 ? 'critica' : pct > 150 ? 'grave' : pct > 100 ? 'atrasada' : 'ok');
 const COR: Record<string, string> = { ok: 'var(--s1)', atrasada: 'var(--st-warning)', grave: 'var(--st-serious)', critica: 'var(--st-critical)' };
@@ -40,7 +41,7 @@ export default function GestaoHoras() {
   const evo = useMemo(() => (bruto && projetoId && visao === 'projeto' ? evolucaoProjeto(bruto, projetoId) : null), [bruto, projetoId, visao]);
 
   if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={() => carregar(true)}>Tentar de novo</button></div>;
-  if (!bruto || !r) return <><AbasHoras /><p className="mudo">Carregando horas…</p></>;
+  if (!bruto || !r) return <><AbasHoras /><Carregando n={5} texto="Carregando horas…" /></>;
 
   const projetosComHoras = bruto.projetos.filter((p) => bruto.tempos.some((t) => t.projeto_id === p.id));
   const nv = nivel(r.pct);

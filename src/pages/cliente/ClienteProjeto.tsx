@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { Documento, EtapaCliente, Projeto, ProjetoEtapa, Protocolo } from '../../lib/types';
 import { ETAPA_STATUS, FASES, PROJETO_STATUS, diasAte, fmtData, statusProtocolo, PROTOCOLO_TIPO, tituloEtapa } from '../../lib/labels';
+import { Carregando, Vazio } from '../../ui/Holo';
 
 /** O que se espera do cliente em cada etapa em que ele participa. */
 const ACAO: Record<string, string> = {
@@ -50,7 +51,7 @@ export default function ClienteProjeto() {
     window.open(data.signedUrl, '_blank', 'noopener');
   }
 
-  if (!projeto) return <p className="mudo">Carregando…</p>;
+  if (!projeto) return <Carregando tipo="cartoes" n={2} />;
   const st = (cod: string) => etapas.find((e) => e.etapa_codigo === cod);
   const atual = modelos.find((m) => st(m.codigo)?.status === 'em_andamento');
   const pausado = projeto.status === 'pausado';

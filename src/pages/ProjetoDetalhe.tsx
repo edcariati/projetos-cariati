@@ -14,6 +14,7 @@ import Cronometro from '../components/Cronometro';
 import { confirmar, escolher, pedirTexto } from '../components/Dialogo';
 import { Medidor } from '../components/graficos';
 import Checklist from '../components/Checklist';
+import { Carregando, Vazio } from '../ui/Holo';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
 
@@ -72,7 +73,7 @@ export default function ProjetoDetalhe() {
     try { await fn(); await carregar(); } catch (e) { setErro((e as Error).message); }
   };
 
-  if (!projeto) return <p className="mudo">Carregando…</p>;
+  if (!projeto) return <Carregando tipo="cartoes" n={2} />;
   const pausado = projeto.status === 'pausado';
   const dias = diasDePausa(projeto.pausado_em);
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));

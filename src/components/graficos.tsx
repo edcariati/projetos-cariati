@@ -121,7 +121,7 @@ export function Colunas({ rotulos, series, linha, altura = 220, unidade = '' }: 
                 {foco === i && <rect x={m.l + faixa * i + 2} y={m.t} width={faixa - 4} height={ih} className="viz-foco" />}
                 {series.map((s, k) => {
                   const h = Math.max(0, (s.valores[i] / topo) * ih), bx = x0 + k * (bw + 2);
-                  return h > 0 ? <path key={k} d={`M${bx} ${m.t + ih} V${m.t + ih - h + Math.min(4, h)} Q${bx} ${m.t + ih - h} ${bx + Math.min(4, bw / 2)} ${m.t + ih - h} H${bx + bw - Math.min(4, bw / 2)} Q${bx + bw} ${m.t + ih - h} ${bx + bw} ${m.t + ih - h + Math.min(4, h)} V${m.t + ih} Z`} fill={s.cor} /> : null;
+                  return h > 0 ? <path className="viz-barra" key={k} d={`M${bx} ${m.t + ih} V${m.t + ih - h + Math.min(4, h)} Q${bx} ${m.t + ih - h} ${bx + Math.min(4, bw / 2)} ${m.t + ih - h} H${bx + bw - Math.min(4, bw / 2)} Q${bx + bw} ${m.t + ih - h} ${bx + bw} ${m.t + ih - h + Math.min(4, h)} V${m.t + ih} Z`} fill={s.cor} /> : null;
                 })}
                 {i % passoRot === 0 && <text x={cx} y={H - 8} className="viz-tick" textAnchor="middle">{r}</text>}
               </g>
@@ -129,9 +129,9 @@ export function Colunas({ rotulos, series, linha, altura = 220, unidade = '' }: 
           })}
           {linha && (
             <g>
-              <polyline fill="none" stroke="var(--ink2)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
+              <polyline className="viz-draw" pathLength={1} fill="none" stroke="var(--ink2)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round"
                 points={linha.valores.map((v, i) => `${m.l + faixa * i + faixa / 2},${y(v)}`).join(' ')} />
-              {linha.valores.map((v, i) => (i === n - 1 || foco === i) ? <circle key={i} cx={m.l + faixa * i + faixa / 2} cy={y(v)} r={4} fill="var(--ink2)" stroke="var(--card)" strokeWidth={2} /> : null)}
+              {linha.valores.map((v, i) => (i === n - 1 || foco === i) ? <circle key={i} cx={m.l + faixa * i + faixa / 2} cy={y(v)} r={4} fill="var(--ink2)" stroke="var(--card-solid)" strokeWidth={2} /> : null)}
             </g>
           )}
         </svg>
@@ -174,9 +174,9 @@ export function Linhas({ rotulos, series, altura = 220, area, unidade = '' }: {
             return (
               <g key={s.nome}>
                 {area && series.length === 1 && <polygon points={`${x(0)},${y(0)} ${pts} ${x(n - 1)},${y(0)}`} fill={s.cor} opacity={0.1} />}
-                <polyline points={pts} fill="none" stroke={s.cor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-                <circle cx={x(n - 1)} cy={y(s.valores[n - 1] ?? 0)} r={4} fill={s.cor} stroke="var(--card)" strokeWidth={2} />
-                {foco !== null && <circle cx={x(foco)} cy={y(s.valores[foco])} r={4} fill={s.cor} stroke="var(--card)" strokeWidth={2} />}
+                <polyline className="viz-draw" pathLength={1} points={pts} fill="none" stroke={s.cor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+                <circle cx={x(n - 1)} cy={y(s.valores[n - 1] ?? 0)} r={4} fill={s.cor} stroke="var(--card-solid)" strokeWidth={2} />
+                {foco !== null && <circle cx={x(foco)} cy={y(s.valores[foco])} r={4} fill={s.cor} stroke="var(--card-solid)" strokeWidth={2} />}
               </g>
             );
           })}
@@ -226,7 +226,7 @@ export function BarrasH({ linhas, unidade = '', refNome = 'Referência', max: ma
                   if (wd <= 0) return null;
                   const ult = k === segs.length - 1 || segs.slice(k + 1).every((q) => q.valor <= 0), r = Math.min(4, wd);
                   const gap = k > 0 ? 2 : 0;
-                  return <path key={k} fill={s.cor} d={ult ? `M${x0 + gap} ${cy - 8} H${x0 + wd - r} Q${x0 + wd} ${cy - 8} ${x0 + wd} ${cy - 8 + r} V${cy + 8 - r} Q${x0 + wd} ${cy + 8} ${x0 + wd - r} ${cy + 8} H${x0 + gap} Z` : `M${x0 + gap} ${cy - 8} H${x0 + wd} V${cy + 8} H${x0 + gap} Z`} />;
+                  return <path className="viz-barraH" key={k} fill={s.cor} d={ult ? `M${x0 + gap} ${cy - 8} H${x0 + wd - r} Q${x0 + wd} ${cy - 8} ${x0 + wd} ${cy - 8 + r} V${cy + 8 - r} Q${x0 + wd} ${cy + 8} ${x0 + wd - r} ${cy + 8} H${x0 + gap} Z` : `M${x0 + gap} ${cy - 8} H${x0 + wd} V${cy + 8} H${x0 + gap} Z`} />;
                 })}
                 {l.ref !== undefined && <line x1={x(l.ref)} x2={x(l.ref)} y1={cy - 13} y2={cy + 13} stroke="var(--ink)" strokeWidth={2} />}
                 <text x={Math.min(Math.max(x(l.valor), l.ref !== undefined ? x(l.ref) : 0), W - m.r) + 8} y={cy} className="viz-val" dominantBaseline="central">{l.ico ? `${l.ico} ` : ''}{l.texto ?? `${fmtN(l.valor, 1)}${unidade}`}</text>
@@ -280,8 +280,8 @@ export function Mini({ valores, cor = 'var(--s1)' }: { valores: number[]; cor?: 
   const ult = pts[pts.length - 1].split(',');
   return (
     <svg className="viz-mini" width={W} height={H} aria-hidden="true">
-      <polyline points={pts.join(' ')} fill="none" stroke="var(--ink3)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.55} />
-      <circle cx={ult[0]} cy={ult[1]} r={4} fill={cor} stroke="var(--card)" strokeWidth={2} />
+      <polyline className="viz-draw" pathLength={1} points={pts.join(' ')} fill="none" stroke="var(--ink3)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" opacity={0.55} />
+      <circle cx={ult[0]} cy={ult[1]} r={4} fill={cor} stroke="var(--card-solid)" strokeWidth={2} />
     </svg>
   );
 }

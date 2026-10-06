@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Especialidade, Profile, Setor } from '../lib/types';
 import { ESPECIALIDADE, PERFIL, SETOR } from '../lib/labels';
@@ -33,9 +34,8 @@ export default function Equipe() {
     <>
       <div className="titulo"><h1>Equipe e acessos</h1></div>
       <section className="aviso">
-        <b>Como criar um novo acesso:</b> no Supabase, vá em <i>Authentication → Users → Add user</i>, informe e-mail e senha e marque
-        “Auto Confirm User”. A pessoa aparece aqui na hora, sem acesso a nada até você definir o perfil.
-        Para um cliente, escolha o perfil <i>Cliente</i> e vincule ao cadastro dele.
+        <b>Novo acesso:</b> use a aba <Link to="/cadastros/usuarios">Cadastros → Quem usa o aplicativo</Link>, onde você cria o login com senha,
+        redefine senhas e exclui acessos. Aqui você ajusta o que cada pessoa já cadastrada enxerga.
       </section>
       {erro && <p className="erro">{erro}</p>}
       <div className="pilha">
@@ -81,7 +81,7 @@ export default function Equipe() {
                   </select>
                 </label>
               )}
-              <label className="check"><input type="checkbox" checked={p.ativo} disabled={sou} onChange={(e) => salvar(p.id, { ativo: e.target.checked })} />Acesso ativo{sou ? ' (você)' : ''}</label>
+              <label className="check sw"><input type="checkbox" checked={p.ativo} disabled={sou} onChange={(e) => salvar(p.id, { ativo: e.target.checked })} />Acesso ativo{sou ? ' (você)' : ''}</label>
             </div>
           );
         })}

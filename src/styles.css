@@ -299,3 +299,25 @@ textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius
 :root{--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--st-good:#0ca30c;--st-warning:#fab219;--st-serious:#ec835a;--st-critical:#d03b3b}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500}}
 :root[data-theme="dark"]{--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500}
+
+/* Cadastros */
+.cab-aba{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.cab-aba input{flex:1 1 240px;min-width:0}
+.acoes-linha{white-space:normal}.acoes-linha>*{margin:2px 4px 2px 0}
+.tab-cad td{vertical-align:top}
+tr.inativa td{opacity:.62}
+button.perigo{color:var(--red);border-color:var(--red);background:transparent}
+button.perigo:disabled{opacity:.4;cursor:not-allowed}
+.ok-msg{color:var(--green)}
+.credenciais{border-left:4px solid var(--green)}
+.credenciais code{font-size:16px;background:var(--bg2,rgba(127,127,127,.12));padding:4px 8px;border-radius:6px;user-select:all;word-break:break-all}
+.senha-linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}.senha-linha>span{min-width:56px;color:var(--ink3)}
+.senha-campo{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.senha-campo input{flex:1 1 220px;min-width:0}
+@media(min-width:641px){.topo{gap:10px}.topo nav{min-width:0;gap:0}.topo nav a{padding:8px 7px;font-size:14px}}
+@media(max-width:720px){
+  .tab-cad,.tab-cad tbody{display:block}.tab-cad thead{display:none}
+  .tab-cad tr{display:block;padding:10px 0;border-bottom:1px solid var(--line)}.tab-cad tr:last-child{border-bottom:0}
+  .tab-cad td{display:block;padding:2px 0;border:0}
+  .acoes-linha{padding-top:6px!important}
+}
+@media(max-width:720px){.tab-cad td.acoes-linha{display:flex;flex-wrap:wrap;gap:6px}.tab-cad td.acoes-linha>*{margin:0}}

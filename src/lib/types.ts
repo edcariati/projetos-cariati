@@ -10,7 +10,12 @@ export type PerfilTipo = 'admin' | 'profissional' | 'cliente';
 export type Especialidade = 'arquitetonico' | 'interiores' | 'legal' | 'complementares';
 export interface Profile {
   id: string; nome: string; setor: Setor; perfil: PerfilTipo; especialidades: Especialidade[];
-  cliente_id: string | null; ativo: boolean; carga_semanal_horas: number;
+  cliente_id: string | null; ativo: boolean; carga_semanal_horas: number; email?: string | null;
+}
+export interface Parceiro {
+  id: string; nome: string; tipo: string; tipo_pessoa: 'fisica' | 'juridica'; documento: string | null; contato: string | null;
+  telefone: string | null; whatsapp: string | null; email: string | null; cidade: string | null; uf: string | null;
+  observacoes: string | null; ativo: boolean; created_at?: string;
 }
 export interface ProjetoEquipe {
   id: string; projeto_id: string; usuario_id: string; especialidade: Especialidade; profiles?: { nome: string } | null;

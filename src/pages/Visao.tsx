@@ -8,6 +8,7 @@ import { dataLocal } from '../lib/banco';
 import { MAX_DIAS_PAUSA } from '../lib/flow';
 import { Bruto, PERIODOS, calcular, nivelDe, refEtapas, Delta } from '../lib/kpis';
 import { BarrasH, Calor, Cartao, Colunas, Legenda, Linhas, Medidor, Mini, SERIE, STATUS_COR, STATUS_ICONE, STATUS_ROTULO, fmtN } from '../components/graficos';
+import { Anel, Carregando, Contador } from '../ui/Holo';
 
 const NIVEL_TEXTO: Record<string, string> = { ok: 'var(--bom)', atrasada: 'var(--amber)', grave: 'var(--ruim)', critica: 'var(--ruim)' };
 const ICONE_INSIGHT = { bom: '✓', atencao: '▲', critico: '⬣', info: '●' } as const;
@@ -27,7 +28,7 @@ function Tile({ rotulo, valor, sub, delta, boaQuandoSobe = true, unidade = '', a
   return (
     <div className="viz-tile">
       <span className="viz-tile-r">{rotulo}</span>
-      <div className="viz-tile-v"><b style={nivel ? { color: NIVEL_TEXTO[nivel] } : undefined}>{valor}</b>{serie && <Mini valores={serie} cor={cor} />}</div>
+      <div className="viz-tile-v"><b style={nivel ? { color: NIVEL_TEXTO[nivel] } : undefined}><Contador valor={valor} /></b>{serie && <Mini valores={serie} cor={cor} />}</div>
       {sub && <span className="viz-tile-s">{sub}</span>}
       {d && <span className={`viz-delta ${d.bom === null ? '' : d.bom ? 'bom' : 'ruim'}`}>{d.txt}</span>}
     </div>
@@ -73,7 +74,7 @@ export default function Visao() {
   }, [grupos, ref]);
 
   if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={() => carregar(true)}>Tentar de novo</button></div>;
-  if (!v || !bruto) return <div className="mudo">Carregando indicadores…</div>;
+  if (!v || !bruto) return <Carregando tipo="kpis" n={4} texto="Carregando indicadores…" />;
 
   const gran = v.gran === 'semana' ? 'Semana' : 'Mês';
   const uso = v.baldes.map((_, i) => (v.metaSerie[i] ? (v.horasSerie[i] / v.metaSerie[i]) * 100 : 0));
@@ -117,13 +118,16 @@ export default function Visao() {
         <button onClick={() => carregar(true)} disabled={carregando}>{carregando ? 'Atualizando…' : 'Atualizar'}</button>
       </div>
 
-      <section className="card viz-leitura" aria-label="Leitura rápida">
+      <section className="card holo hero-painel viz-leitura" aria-label="Leitura rápida">
+        <Anel valor={v.abertas.length - v.atrasadas.length} max={v.abertas.length || 1} formato={v.abertas.length ? `${Math.round(((v.abertas.length - v.atrasadas.length) / v.abertas.length) * 100)}%` : '100%'} rotulo="Etapas no prazo" sub={`${v.abertas.length - v.atrasadas.length} de ${v.abertas.length} em andamento`} />
+        <div className="viz-leitura-lista">
         <h2>Leitura rápida</h2>
         <ul>
           {v.insights.map((i, k) => (
             <li key={k} className={`ins ${i.nivel}`}><span className="ins-i" aria-hidden="true">{ICONE_INSIGHT[i.nivel]}</span><span>{i.texto}</span></li>
           ))}
         </ul>
+        </div>
       </section>
 
       <div className="viz-tiles">

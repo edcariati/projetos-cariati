@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Protocolo, ProtocoloStatus } from '../lib/types';
 import { PROTOCOLO_STATUS } from '../lib/labels';
 import ProtocoloItem from '../components/ProtocoloItem';
+import { Carregando, Vazio } from '../ui/Holo';
 
 export default function Protocolos() {
   const [lista, setLista] = useState<Protocolo[]>([]);
@@ -31,7 +32,7 @@ export default function Protocolos() {
       </div>
       <div className="pilha">
         {visiveis.map((p) => <ProtocoloItem key={p.id} p={p} onChange={carregar} mostrarProjeto />)}
-        {visiveis.length === 0 && <p className="mudo">Nenhum protocolo.</p>}
+        {visiveis.length === 0 && <Vazio titulo="Nenhum protocolo por aqui" texto="Protocolos na Prefeitura, condomínio e outros órgãos aparecem quando forem registrados num projeto." icone="protocolos" />}
       </div>
     </>
   );

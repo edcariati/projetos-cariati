@@ -70,3 +70,8 @@ const ETAPAS_3D: Record<string, string> = {
   '11': 'Estudo 3D', '12': 'Agendamento da apresentação do estudo 3D', '13': 'Apresentação do estudo 3D', '14': 'Aceite formal do estudo 3D',
 };
 export const tituloEtapa = (codigo: string, titulo: string, tipo?: string) => (tipo === 'ampliacao' && ETAPAS_3D[codigo]) || titulo;
+
+export const PARCEIRO_TIPO: Record<string, string> = {
+  estrutural: 'Projeto estrutural', eletrica_hidraulica: 'Elétrica e hidráulica', engenharia: 'Engenharia / obra', topografia: 'Topografia',
+  paisagismo: 'Paisagismo', luminotecnico: 'Luminotécnico', despachante: 'Despachante', fornecedor: 'Fornecedor', outro: 'Outro',
+};
