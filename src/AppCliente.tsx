@@ -6,6 +6,7 @@ import ClienteProjeto from './pages/cliente/ClienteProjeto';
 import ClienteComoFunciona from './pages/cliente/ClienteComoFunciona';
 import Conta from './pages/Conta';
 import Icone from './ui/Icone';
+import logo from './assets/logo-cariati.jpg';
 import { useTema } from './ui/tema';
 
 /** Área do cliente: acompanha o próprio projeto, sem nada interno do escritório. */
@@ -15,7 +16,7 @@ export default function AppCliente() {
   return (
     <div className="shell cliente">
       <header className="topo">
-        <div className="marca"><span className="logo" aria-hidden="true"><Icone n="raio" tam={18} /></span><strong>Projetos Cariati</strong></div>
+        <div className="marca"><img className="logo-img" src={logo} alt="Cariati Arquitetura e Gestão" width="150" height="97" /></div>
         <nav aria-label="Principal">
           <NavLink to="/" end><Icone n="projetos" /><span className="rot">Meu projeto</span></NavLink>
           <NavLink to="/como-funciona"><Icone n="ajuda" /><span className="rot">Como funciona</span></NavLink>

@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import Icone from '../ui/Icone';
-import { Anel } from '../ui/Holo';
+import logo from '../assets/logo-cariati.jpg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -19,11 +18,10 @@ export default function Login() {
 
   return (
     <div className="centro">
-      <form className="card login" onSubmit={entrar}>
-        <div className="marca-login"><span className="logo" aria-hidden="true"><Icone n="raio" tam={18} /></span><span className="mudo pequeno">Cariati Arquitetura e Gestão</span></div>
-        <div className="login-anel"><Anel valor={72} rotulo="Setor de Projetos" tam={150} formato="24 etapas" /></div>
-        <h1>Projetos Cariati</h1>
-        <p className="mudo" style={{ margin: '-6px 0 0' }}>Entre para acompanhar projetos, prazos e horas.</p>
+      <form className="card holo login" onSubmit={entrar}>
+        <img className="logo-login" src={logo} alt="Cariati Arquitetura e Gestão" width="220" height="142" />
+        <h1>Setor de Projetos</h1>
+        <p className="mudo" style={{ margin: '-6px 0 0', textAlign: 'center' }}>Acesso restrito. Entre com seu e-mail e senha.</p>
         <label>E-mail<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" /></label>
         <label>Senha<input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required autoComplete="current-password" /></label>
         {erro && <p className="erro">{erro}</p>}

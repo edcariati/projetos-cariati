@@ -220,7 +220,7 @@ kbd{font:600 11px/1 var(--f-corpo);padding:4px 6px;border-radius:6px;background:
 .titulo{margin:var(--sp-2) 0 var(--sp-5);gap:var(--sp-3)}
 .titulo h1{background:linear-gradient(90deg,var(--ink),var(--ink) 55%,var(--ink2));-webkit-background-clip:text;background-clip:text}
 button,.btn{font-weight:600;font-size:14.5px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);padding:10px var(--sp-4);min-height:44px;transition:transform var(--dur-1) var(--ease),box-shadow var(--dur-2),border-color var(--dur-1),background var(--dur-1),filter var(--dur-1);text-decoration:none}
-html[data-theme="light"] :where(button,.btn){background:rgba(255,255,255,.7)}
+:where(html[data-theme="light"]) :where(button,.btn){background:rgba(255,255,255,.7)}
 button:hover:not(:disabled),.btn:hover{border-color:rgba(255,159,28,.55);background:var(--tint);text-decoration:none}
 button:active:not(:disabled),.btn:active{transform:scale(.97)}
 button:disabled{opacity:.45;cursor:not-allowed}
@@ -234,7 +234,7 @@ a.primario{color:var(--on-accent)}a.primario:hover{color:var(--on-accent);text-d
 .anexos .link,.ck-resp .link{color:var(--blue)}
 label{color:var(--ink2);font-weight:500;font-size:13.5px}
 input,select,textarea{font-family:inherit;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:12px;color:var(--ink);transition:border-color var(--dur-1),box-shadow var(--dur-2),background var(--dur-1)}
-html[data-theme="light"] :where(input,select,textarea){background:rgba(255,255,255,.8)}
+:where(html[data-theme="light"]) :where(input,select,textarea){background:rgba(255,255,255,.8)}
 input::placeholder,textarea::placeholder{color:var(--ink3);opacity:.85}
 input:hover,select:hover,textarea:hover{border-color:rgba(255,255,255,.22)}
 html[data-theme="light"] input:hover,html[data-theme="light"] select:hover{border-color:rgba(20,23,42,.28)}
@@ -423,7 +423,7 @@ html[data-theme="light"] .esq{background:linear-gradient(100deg,rgba(20,23,42,.0
 .vazio .primario{margin-top:var(--sp-3)}
 .vazio-orbe{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;color:var(--sec-b);margin-bottom:var(--sp-2);background:radial-gradient(circle at 50% 35%,rgba(139,92,246,.35),rgba(139,92,246,.06) 70%);border:1px solid rgba(139,92,246,.4);box-shadow:0 0 36px rgba(139,92,246,.35)}
 @keyframes entra{from{opacity:0;transform:translateY(14px)}}
-main>.card,main>section,main>.kpis,main>.viz>*,main>.fases,main .cards>li,main .kpis>*,main .viz-tiles>*,main .viz-grid>*,main .atalhos>*,main>form,main>.titulo,main>.filtros,main>.abas{animation:entra .5s var(--ease) both}
+main>.card,main>section,main>.kpis,main>.viz>*,main>.fases,main .cards>li,main .kpis>*,main .viz-tiles>*,main .viz-grid>*,main .atalhos>*,main>form,main>.filtros,main>.abas{animation:entra .5s var(--ease) both}
 main .cards>li:nth-child(2),main .kpis>*:nth-child(2),main .viz-tiles>*:nth-child(2),main .viz-grid>*:nth-child(2),main .atalhos>*:nth-child(2){animation-delay:.05s}
 main .cards>li:nth-child(3),main .kpis>*:nth-child(3),main .viz-tiles>*:nth-child(3),main .viz-grid>*:nth-child(3),main .atalhos>*:nth-child(3){animation-delay:.1s}
 main .cards>li:nth-child(4),main .kpis>*:nth-child(4),main .viz-tiles>*:nth-child(4),main .viz-grid>*:nth-child(4),main .atalhos>*:nth-child(4){animation-delay:.15s}
@@ -485,3 +485,110 @@ html[data-theme="light"]:root:root .fluxo{--bg:#F3F4FA;--card:#FFFFFF;--soft:#EE
 .centro{position:relative;z-index:1}
 body{isolation:isolate}
 .folha-grade a,.folha-grade button{display:flex;align-items:center;justify-content:center}
+
+/* =====================================================================
+   Identidade “Cariati Financeiro”: logo, menu flutuante arroxeado,
+   luzes quentes grandes, botões em pílula laranja. Só visual.
+   ===================================================================== */
+/* atmosfera mais rica e quente */
+.atmosfera{background:radial-gradient(90% 70% at 78% 8%,rgba(255,159,28,.20),transparent 60%),radial-gradient(80% 80% at 8% 78%,rgba(109,70,214,.32),transparent 60%),radial-gradient(60% 50% at 50% 100%,rgba(255,107,53,.10),transparent 70%),linear-gradient(180deg,#0A0C14 0%,#0C0E18 55%,#0A0B13 100%)}
+.bk.b1{width:42vmax;height:42vmax;right:-6vmax;top:-12vmax;background:radial-gradient(circle,rgba(255,159,28,.55),transparent 66%)}
+.bk.b2{width:34vmax;height:34vmax;left:-8vmax;bottom:-10vmax;background:radial-gradient(circle,rgba(124,77,255,.55),transparent 66%)}
+.atmosfera .bk{opacity:.7}
+.atmosfera .cidade{opacity:.085;filter:blur(2px);color:#7C5CE0}
+.atmosfera .grade{opacity:.35}
+
+/* menu lateral flutuante, em vidro arroxeado */
+.shell{--side-w:300px}
+.shell.rec{--side-w:116px}
+.shell:not(.cliente) .topo{top:16px;height:calc(100vh - 32px);margin:16px 0 16px 16px;border:1px solid var(--line);border-radius:var(--r-xl);
+  background:linear-gradient(180deg,rgba(104,72,208,.34) 0%,rgba(52,40,110,.30) 55%,rgba(30,24,64,.34) 100%);-webkit-backdrop-filter:blur(var(--blur-forte)) saturate(1.4);backdrop-filter:blur(var(--blur-forte)) saturate(1.4)}
+html[data-theme="light"] .shell:not(.cliente) .topo{background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(238,232,255,.82))}
+.shell:not(.cliente) .topo::before{border-radius:var(--r-xl);opacity:.6}
+.topo .marca{align-items:flex-start;position:relative;padding:var(--sp-1) var(--sp-1) 0}
+.logo-img{display:block;width:150px;height:auto;border-radius:14px;background:#F2F2F6;box-shadow:0 0 0 1px rgba(255,255,255,.35) inset,0 10px 28px -10px rgba(0,0,0,.6)}
+.topo .marca .recolher{position:absolute;right:0;top:0;border-radius:50%}
+.marca-sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);padding:0 var(--sp-2);margin-top:-6px}
+.shell.rec .logo-img{width:70px}.shell.rec .marca-sub{display:none}
+.shell.rec .topo .marca .recolher{position:static}
+.topo .rapido{padding:0}
+.criar{background:var(--grad-pri)!important;color:var(--on-accent);border-radius:var(--r-pill);box-shadow:var(--glow-pri),0 1px 0 rgba(255,255,255,.4) inset;min-height:50px;font-size:15px}
+.criar:hover{filter:brightness(1.08);box-shadow:0 0 0 1px rgba(255,159,28,.6),0 12px 34px -4px rgba(255,107,53,.75)}
+.topo .grupo-t{font-size:11px;letter-spacing:.16em;color:var(--ink2);opacity:.85}
+.topo nav a{border-radius:var(--r-pill);padding:11px var(--sp-4)}
+.topo nav a.active{background:linear-gradient(90deg,rgba(255,159,28,.22),rgba(255,159,28,.06));box-shadow:inset 0 0 0 1px rgba(255,159,28,.55),0 0 24px -8px rgba(255,159,28,.6)}
+.topo nav a.active::before{left:-16px}
+.avatar-eu{background:var(--grad-pri);color:var(--on-accent);box-shadow:var(--glow-pri)}
+
+/* barra do topo: busca larga + tema; trilha logo abaixo */
+.barra-topo{flex-wrap:nowrap;margin-top:16px;padding:10px 12px;border-radius:var(--r-xl);background:rgba(20,22,40,.55)}
+html[data-theme="light"] .barra-topo{background:rgba(255,255,255,.72)}
+.busca-pilula{flex:1;max-width:760px;min-width:0;min-height:46px;border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
+html[data-theme="light"] .busca-pilula{border-color:rgba(20,23,42,.14);background:rgba(255,255,255,.8)}
+.barra-acoes{margin-left:auto}
+.icone-btn{border-radius:50%}
+.menu-mobile{display:none}
+.trilha-pagina{padding:var(--sp-3) clamp(14px,3vw,32px) 0}
+.migalhas ol{font-size:12.5px}.migalhas li+li::before{content:"/"}
+.migalhas a{color:var(--ink3)}
+
+/* botões em pílula */
+button,.btn{border-radius:var(--r-pill)}
+.primario,a.primario{border-radius:var(--r-pill);padding:10px 22px;box-shadow:var(--glow-pri),0 1px 0 rgba(255,255,255,.4) inset}
+.titulo>a.primario.btn,.titulo>button.primario,.cab-aba>.primario,.cab-aba>a.primario{min-height:46px}
+button.perigo{border-radius:var(--r-pill)}
+.acoes-linha button,.acoes-linha .btn{min-height:38px;padding:6px 14px;font-size:13px}
+input,select,textarea{border-radius:14px}
+.busca-pilula,.filtros input[type=search]{border-radius:var(--r-pill)}
+.tag,.badge,.etiqueta{border-radius:var(--r-pill)}
+
+/* abas e segmentos: cápsula de vidro com pílula laranja ativa */
+.abas{display:inline-flex;max-width:100%;border:1px solid var(--line);border-radius:var(--r-pill);background:rgba(255,255,255,.045);padding:5px;gap:2px;margin-bottom:var(--sp-4)}
+.abas a{border-radius:var(--r-pill);padding:10px 18px;color:var(--ink2)}
+.abas a:hover{background:var(--soft)}
+.abas a.active{background:var(--grad-pri);color:var(--on-accent);box-shadow:var(--glow-pri)}
+.abas a.active::after{display:none}
+.passos button{border-radius:var(--r-lg)}
+
+/* painéis e indicadores */
+.card,.kpi,.viz-tile{border-radius:var(--r-xl)}
+.viz-tile,.kpi{padding:var(--sp-4) var(--sp-5)}
+.viz-tile-r,.kpi span{display:flex;align-items:center;gap:6px}
+.viz-tile-v b{font-size:clamp(1.5rem,1.1rem + 1.2vw,2rem)}
+.viz-tile .viz-tile-r::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--info);box-shadow:0 0 8px var(--info);flex:none}
+.hero-painel{border-radius:var(--r-xl)}
+.anel figcaption b{font-size:2rem}
+
+/* tabelas */
+.tab-projetos thead th,.tabela th{background:rgba(255,255,255,.04)}
+.viz-tab{border-radius:var(--r-lg);overflow:auto}
+.viz-tab.card{padding:0}
+.viz-tab table th:first-child,.viz-tab table td:first-child{padding-left:var(--sp-5)}
+
+/* login */
+.login{max-width:380px;text-align:center;align-items:stretch}
+.logo-login{display:block;margin:0 auto;width:220px;max-width:70%;height:auto;border-radius:16px;background:#F2F2F6;box-shadow:0 14px 36px -12px rgba(0,0,0,.65)}
+.login h1{font-size:1.4rem;text-align:center}
+.login label{text-align:left}
+.login .primario{border-radius:var(--r-pill);min-height:48px}
+
+@media (min-width:641px) and (max-width:1024px){
+  .shell{--side-w:116px}
+  .topo .logo-img{width:70px}.topo .marca-sub{display:none}
+  .shell:not(.cliente) .topo{margin-left:12px}
+}
+/* celular: barra de cima com menu, busca e tema; menu lateral vira a folha “Mais” */
+@media(max-width:640px){
+  .shell:not(.cliente) .topo{display:none}
+  .shell.cliente .topo{margin:0;top:0;height:auto;border-radius:0 0 var(--r-xl) var(--r-xl)}
+  .shell.cliente .topo .logo-img{width:84px}
+  .menu-mobile{display:inline-flex}
+  .barra-topo{position:sticky;top:max(8px,env(safe-area-inset-top));margin:max(8px,env(safe-area-inset-top)) var(--sp-3) 0;padding:8px;gap:8px}
+  .busca-pilula{padding:0 var(--sp-3)}.busca-pilula span{font-size:13.5px}
+  .trilha-pagina{padding:var(--sp-3) var(--sp-4) 0}
+  .barra-cron{top:calc(env(safe-area-inset-top,0px) + 74px)!important}
+  .logo-login{width:180px}
+}
+
+@media(max-width:640px){.barra-acoes{width:auto;flex:none}.barra-acoes .icone-btn[aria-pressed]{display:none}.busca-pilula{flex:1 1 auto}.busca-pilula kbd{display:none}}
+.viz>.titulo,main .titulo{animation:none!important;transform:none!important}

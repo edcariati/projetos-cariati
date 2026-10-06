@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { supabase } from './lib/supabase';
 import { podeBancoHoras, usePerfil } from './lib/perfil';
 import Icone from './ui/Icone';
+import logo from './assets/logo-cariati.jpg';
 import Paleta from './ui/Paleta';
 import Migalhas from './ui/Migalhas';
 import { Carregando } from './ui/Holo';
@@ -65,10 +66,10 @@ export default function AppEquipe() {
     <div className={`shell${recolhido ? ' rec' : ''}`} ref={raiz}>
       <header className="topo">
         <div className="marca">
-          <span className="logo" aria-hidden="true"><Icone n="raio" tam={18} /></span>
-          <strong>Projetos Cariati</strong>
+          <img className="logo-img" src={logo} alt="Cariati Arquitetura e Gestão" width="150" height="97" />
           <button className="icone-btn recolher" onClick={() => setRecolhido((r) => !r)} aria-expanded={!recolhido} aria-label={recolhido ? 'Expandir menu' : 'Recolher menu'} title={recolhido ? 'Expandir menu' : 'Recolher menu'}><Icone n="recolher" tam={18} /></button>
         </div>
+        <span className="marca-sub">Setor de Projetos</span>
         <div className="rapido">
           <button className="criar" onClick={() => setRapido((r) => !r)} aria-expanded={rapido} aria-haspopup="menu" title="Criar"><Icone n="mais" /><span className="rot">Criar novo</span></button>
           {rapido && (
@@ -104,15 +105,16 @@ export default function AppEquipe() {
 
       <div className="conteudo">
         <div className="barra-topo">
-          <Migalhas />
+          <button className="icone-btn menu-mobile" onClick={() => setMais(true)} aria-label="Abrir menu" aria-haspopup="dialog"><Icone n="pontos" /></button>
+          <button className="busca-pilula" onClick={() => setBusca(true)} aria-label="Buscar (Ctrl K)">
+            <Icone n="busca" /><span>Buscar projetos, clientes, telas e ações…</span><kbd>Ctrl K</kbd>
+          </button>
           <div className="barra-acoes">
-            <button className="busca-pilula" onClick={() => setBusca(true)} aria-label="Buscar (Ctrl K)">
-              <Icone n="busca" /><span>Buscar projetos, clientes…</span><kbd>Ctrl K</kbd>
-            </button>
             <button className="icone-btn" onClick={alternarFavorito} aria-pressed={favorita} aria-label={favorita ? 'Remover dos favoritos' : 'Adicionar aos favoritos'} title={favorita ? 'Remover dos favoritos' : 'Fixar esta página nos favoritos'}><Icone n="estrela" className={favorita ? 'cheia' : ''} /></button>
             <button className="icone-btn" onClick={alternarTema} aria-label={tema === 'dark' ? 'Usar tema claro' : 'Usar tema escuro'} title={tema === 'dark' ? 'Tema claro' : 'Tema escuro'}><Icone n={tema === 'dark' ? 'sol' : 'lua'} /></button>
           </div>
         </div>
+        <div className="trilha-pagina"><Migalhas /></div>
         <BarraCronometro />
         <main className={largo ? 'largo' : ''}>
           <Suspense fallback={<Carregando tipo="cartoes" />}>
