@@ -280,3 +280,22 @@ a.quem{text-decoration:none}a.quem:hover,a.quem.active{color:var(--blue)}
 .cal-detalhe{margin-top:10px}
 @media(max-width:640px){.cal-dia{min-height:58px;padding:4px}.cal-ev{font-size:0;padding:0;height:6px;width:6px;border-radius:50%;display:inline-block;margin-right:2px;background:var(--blue)}.cal-ev.protocolo{background:var(--amber)}.cal-ev.entrega{background:var(--green)}.cal-ev.vencido{background:var(--red)}}
 .cal-detalhe h3{text-transform:none}
+
+/* cadastro de clientes */
+.sem-borda{border:0;padding:0;margin:0}
+.secao h2{margin-top:0}
+.grade-campos{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.campo.largo{grid-column:1/-1}
+.radios{display:flex;gap:18px;flex-wrap:wrap;min-height:44px;align-items:center}
+.com-botao{display:flex;gap:6px}.com-botao input{flex:1;min-width:0}
+.barra-salvar{position:sticky;bottom:0;display:flex;gap:14px;align-items:center;padding:12px 0;background:linear-gradient(transparent,var(--bg) 30%)}
+.completude .viz-pct{min-width:0}.completude .viz-pct .viz-med{max-width:340px}
+.tab-clientes td{vertical-align:middle}
+textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+
+@media(max-width:640px){.topo nav{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}.topo nav a{flex:0 0 auto;padding:10px 12px;white-space:nowrap}}
+
+/* cores de gráficos e status valem no app inteiro (barras de progresso, quadro, medidores) */
+:root{--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--st-good:#0ca30c;--st-warning:#fab219;--st-serious:#ec835a;--st-critical:#d03b3b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500}}
+:root[data-theme="dark"]{--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500}

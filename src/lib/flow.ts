@@ -14,12 +14,12 @@ export async function concluirEtapa(
   projetoId: string, etapa: ProjetoEtapa, modelos: EtapaModelo[], etapas: ProjetoEtapa[],
 ) {
   const agora = new Date().toISOString();
-  const rodando = await cronometroAtivo();
-  if (rodando && rodando.projeto_id === projetoId && rodando.etapa_codigo === etapa.etapa_codigo) await pararCronometro();
-  const { error } = await supabase.from('projeto_etapas')
-    .update({ status: 'concluida', concluida_em: agora }).eq('id', etapa.id);
+  const [{ error }] = await Promise.all([
+    supabase.from('projeto_etapas').update({ status: 'concluida', concluida_em: agora }).eq('id', etapa.id),
+    cronometroAtivo().then((r) => (r && r.projeto_id === projetoId && r.etapa_codigo === etapa.etapa_codigo ? pararCronometro() : undefined)),
+  ]);
   if (error) throw error;
-  await log(projetoId, 'etapa_concluida', 'Etapa concluída', etapa.etapa_codigo);
+  const registroConcluida = log(projetoId, 'etapa_concluida', 'Etapa concluída', etapa.etapa_codigo);
 
   const ordem = new Map(modelos.map((m) => [m.codigo, m]));
   const atual = ordem.get(etapa.etapa_codigo)!;
@@ -30,12 +30,16 @@ export async function concluirEtapa(
     .sort((a, b) => ordem.get(a.etapa_codigo)!.ordem - ordem.get(b.etapa_codigo)!.ordem)[0];
 
   if (proxima) {
-    await supabase.from('projeto_etapas')
-      .update({ status: 'em_andamento', iniciada_em: agora }).eq('id', proxima.id);
-    await log(projetoId, 'etapa_iniciada', 'Etapa iniciada', proxima.etapa_codigo);
-  } else if (etapa.etapa_codigo === '24') {
-    await supabase.from('projetos').update({ status: 'finalizado' }).eq('id', projetoId);
-    await log(projetoId, 'nota', 'Projeto finalizado');
+    await Promise.all([
+      registroConcluida,
+      supabase.from('projeto_etapas').update({ status: 'em_andamento', iniciada_em: agora }).eq('id', proxima.id),
+      log(projetoId, 'etapa_iniciada', 'Etapa iniciada', proxima.etapa_codigo),
+    ]);
+    return;
+  }
+  await registroConcluida;
+  if (etapa.etapa_codigo === '24') {
+    await Promise.all([supabase.from('projetos').update({ status: 'finalizado' }).eq('id', projetoId), log(projetoId, 'nota', 'Projeto finalizado')]);
   } else if (etapa.etapa_codigo === 'H3') {
     await log(projetoId, 'nota', 'Habite-se concluído', 'H3');
     // se o projeto principal já estava encerrado e foi reaberto só para o Habite-se, volta a finalizado

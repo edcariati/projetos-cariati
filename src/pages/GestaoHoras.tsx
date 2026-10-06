@@ -29,8 +29,8 @@ export default function GestaoHoras() {
   const [somenteAtivos, setSomenteAtivos] = useState(true);
   const [projetoId, setProjetoId] = useState('');
 
-  const carregar = useCallback(async () => {
-    try { setBruto(await carregarBruto()); setErro(''); } catch (e) { setErro((e as Error).message); }
+  const carregar = useCallback(async (forcar = false) => {
+    try { setBruto(await carregarBruto(forcar)); setErro(''); } catch (e) { setErro((e as Error).message); }
   }, []);
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -39,7 +39,7 @@ export default function GestaoHoras() {
   const r = useMemo(() => (bruto ? calcularHoras(bruto, visao, ini, fim, { somenteAtivos, projetoId: visao === 'etapa' ? '' : projetoId }) : null), [bruto, visao, ini, fim, somenteAtivos, projetoId]);
   const evo = useMemo(() => (bruto && projetoId && visao === 'projeto' ? evolucaoProjeto(bruto, projetoId) : null), [bruto, projetoId, visao]);
 
-  if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={carregar}>Tentar de novo</button></div>;
+  if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={() => carregar(true)}>Tentar de novo</button></div>;
   if (!bruto || !r) return <><AbasHoras /><p className="mudo">Carregando horas…</p></>;
 
   const projetosComHoras = bruto.projetos.filter((p) => bruto.tempos.some((t) => t.projeto_id === p.id));
@@ -50,7 +50,7 @@ export default function GestaoHoras() {
     const n = Number(valor.replace(',', '.'));
     if (!Number.isFinite(n) || n < 0) return;
     await supabase.from('etapa_modelos').update({ horas_padrao: n }).eq('codigo', codigo);
-    carregar();
+    carregar(true);
   };
   const exportar = () => baixarCsv(`gestao-horas-${visao}-${ini}-${fim}.csv`, [
     ['Nome', r.rotuloEstimada, r.rotuloRealizada, 'Restantes', 'Percentual', 'No período'],

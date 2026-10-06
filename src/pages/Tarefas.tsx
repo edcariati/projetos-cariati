@@ -38,6 +38,12 @@ export default function Tarefas() {
   const carregar = useCallback(async () => { if (todas) setGrupos(await carregarTarefas('todas')); else if (alvo) setGrupos(await carregarTarefas(alvo)); }, [alvo, todas]);
   useEffect(() => { carregar(); }, [carregar]);
 
+  const marcarItem = (iid: string, patch: Partial<import('../lib/types').ProjetoItem>) => setGrupos((gs) => gs && gs.map((g) => {
+    if (!g.itens.some((x) => x.id === iid)) return g;
+    const itens = g.itens.map((x) => (x.id === iid ? { ...x, ...patch } : x));
+    return { ...g, itens, pendentes: itens.filter((x) => !x.feito).length };
+  }));
+  const atribuirTarefa = (tid: string, patch: Partial<import('../lib/types').ProjetoTarefa>) => setGrupos((gs) => gs && gs.map((g) => (g.tarefas.some((t) => t.id === tid) ? { ...g, tarefas: g.tarefas.map((t) => (t.id === tid ? { ...t, ...patch } : t)) } : g)));
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
   const agora = grupos?.filter((g) => g.status === 'em_andamento') ?? [];
   const atrasadas = grupos?.filter((g) => g.status === 'concluida') ?? [];
@@ -60,7 +66,7 @@ export default function Tarefas() {
         <span className="mudo pequeno">{g.projeto.clientes?.nome} · etapa {g.etapa.codigo} · {g.etapa.titulo}</span>
       </div>
       <Checklist etapa={g.etapa.codigo} tarefas={g.tarefas} itens={g.itens} nomes={nomes} editavel
-        meuId={eu.id} podeAtribuir={admin} pessoas={pessoas} onChange={carregar} aberto={aberto} titulo={`${g.pendentes} item(ns) a fazer`} />
+        meuId={eu.id} podeAtribuir={admin} pessoas={pessoas} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={aberto} titulo={`${g.pendentes} item(ns) a fazer`} />
     </section>
   );
 

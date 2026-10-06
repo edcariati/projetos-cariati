@@ -3,10 +3,13 @@ import type { Profile, ProjetoItem, ProjetoTarefa } from '../lib/types';
 import { SETOR, fmtData } from '../lib/labels';
 
 /** Tarefas e checklist de uma etapa (protocolo do escritório). A data e quem marcou ficam registrados sozinhos. */
-export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onChange, titulo = 'Checklist da etapa', aberto, pessoas, meuId, podeAtribuir }: {
+export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onChange, titulo = 'Checklist da etapa', aberto, pessoas, meuId, podeAtribuir, aoMarcarItem, aoAtribuir }: {
   etapa: string; tarefas: ProjetoTarefa[]; itens: ProjetoItem[]; nomes: Map<string, string>;
   editavel: boolean; onChange: () => void; titulo?: string; aberto?: boolean;
   pessoas?: Profile[]; meuId?: string; podeAtribuir?: boolean;
+  /** Quando informados, a tela muda na hora e o servidor é atualizado em segundo plano (sem recarregar tudo). */
+  aoMarcarItem?: (id: string, patch: Partial<ProjetoItem>) => void;
+  aoAtribuir?: (id: string, patch: Partial<ProjetoTarefa>) => void;
 }) {
   const minhas = tarefas.filter((t) => t.etapa_codigo === etapa).sort((a, b) => a.ordem - b.ordem);
   if (!minhas.length) return null;
@@ -14,13 +17,19 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
   const feitos = doEtapa.filter((i) => i.feito).length;
 
   async function alternar(i: ProjetoItem) {
-    await supabase.from('projeto_tarefa_itens').update({ feito: !i.feito }).eq('id', i.id);
-    onChange();
+    if (!aoMarcarItem) { await supabase.from('projeto_tarefa_itens').update({ feito: !i.feito }).eq('id', i.id); return onChange(); }
+    const antes = { feito: i.feito, feito_por: i.feito_por, feito_em: i.feito_em };
+    aoMarcarItem(i.id, !i.feito ? { feito: true, feito_por: meuId ?? i.feito_por, feito_em: new Date().toISOString() } : { feito: false, feito_por: null, feito_em: null });
+    const { error } = await supabase.from('projeto_tarefa_itens').update({ feito: !i.feito }).eq('id', i.id);
+    if (error) { aoMarcarItem(i.id, antes); onChange(); }
   }
 
   async function atribuir(t: ProjetoTarefa, quem: string | null) {
-    await supabase.from('projeto_tarefas').update({ responsavel_id: quem, atribuicao_manual: true }).eq('id', t.id);
-    onChange();
+    if (!aoAtribuir) { await supabase.from('projeto_tarefas').update({ responsavel_id: quem, atribuicao_manual: true }).eq('id', t.id); return onChange(); }
+    const antes = { responsavel_id: t.responsavel_id, atribuicao_manual: t.atribuicao_manual };
+    aoAtribuir(t.id, { responsavel_id: quem, atribuicao_manual: true });
+    const { error } = await supabase.from('projeto_tarefas').update({ responsavel_id: quem, atribuicao_manual: true }).eq('id', t.id);
+    if (error) { aoAtribuir(t.id, antes); onChange(); }
   }
   const Resp = ({ t }: { t: ProjetoTarefa }) => (
     <div className="ck-resp">

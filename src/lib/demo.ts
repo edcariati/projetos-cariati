@@ -204,7 +204,15 @@ function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): 
 }
 
 const DEFAULTS: Record<string, () => Row> = {
-  clientes: () => ({ codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null }),
+  clientes: () => ({
+    codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null, tipo_pessoa: 'fisica', documento: null, rg: null, data_nascimento: null,
+    estado_civil: null, nacionalidade: null, profissao: null, telefone2: null, whatsapp: null, contato_preferido: null, origem: null, indicado_por: null,
+    end_cep: null, end_logradouro: null, end_numero: null, end_complemento: null, end_bairro: null, end_cidade: null, end_uf: null,
+    empresa_razao_social: null, empresa_cnpj: null, empresa_responsavel: null, empresa_responsavel_cpf: null,
+    obra_intencao: null, obra_metragem: null, obra_cep: null, obra_logradouro: null, obra_numero: null, obra_complemento: null, obra_bairro: null, obra_cidade: null, obra_uf: null,
+    obra_condominio: null, obra_lote: null, obra_quadra: null, obra_inscricao_municipal: null, obra_matricula: null, obra_financiada: null, responsavel_comercial: null,
+    atualizado_em: new Date().toISOString(), atualizado_por: null,
+  }),
   projetos: () => ({ tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
@@ -352,7 +360,7 @@ doc(oliveira.id, '10', 'Aceite da planta baixa', 'ESTD_CA000102_REV01.pdf', true
 doc(oliveira.id, '14', 'Termo de aceite da fachada', 'ACT_CA000102_FACH_REV01.pdf', true);
 doc(oliveira.id, '15', 'Checklist interno do projeto arquitetônico', 'CHCK_CA000102_ARQ.pdf', false);
 db.profiles.find((x) => x.id === 'cliente')!.cliente_id = oliveira.cliente_id;
-const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'C' }, { nome: 'Loja Centro', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '23');
+const rocha = novoProjeto({ nome: 'Comercial Rocha', codigo: 'CA000103', categoria: 'D' }, { nome: 'Loja Centro', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '23');
 proto(rocha.id, { tipo: 'entrega_cliente', status: 'protocolado', prazo: data(3), cliente_notificado: true });
 novoProjeto({ nome: 'Paulo Costa', codigo: 'CA000104', categoria: 'B' },
   { nome: 'Sobrado Costa', responsavel_id: 'rafael', tipo_estudo: 'ampliacao', status: 'pausado', pausado_em: data(-160), motivo_pausa: 'Pausa por falta de retorno do cliente' }, '05');
@@ -443,7 +451,7 @@ function semearDias() {
 }
 
 // Galpão Alves: cliente C (estudo + projetos), com a Rafael no croqui e fachadas
-novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'C' }, { nome: 'Galpão Alves', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '07');
+novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'E' }, { nome: 'Galpão Alves', responsavel_id: 'rafael', tipo_estudo: 'mais_projetos' }, '07');
 // Casa Duarte: projeto principal encerrado; o Habite-se está na entrada da Prefeitura
 {
   const duarte = novoProjeto({ nome: 'Roberto Duarte', codigo: 'CA000106', categoria: 'B' }, { nome: 'Casa Duarte', responsavel_id: 'marina', tem_legal: true, tem_habitese: true, tipo_aprovacao: 'residencial' }, '24');
@@ -465,7 +473,25 @@ novoProjeto({ nome: 'Alves & Filhos', codigo: 'CA000107', categoria: 'C' }, { no
   const ids = db.projeto_tarefas.filter((t) => t.projeto_id === costa.id && t.etapa_codigo === 'P2').sort((a, b) => a.ordem - b.ordem).slice(0, 4).map((t) => t.id);
   db.projeto_tarefa_itens.filter((i) => ids.includes(i.tarefa_id)).forEach((i) => { i.feito = true; i.feito_por = 'rafael'; i.feito_em = iso(-160); });
 }
+/** Dados de cadastro de exemplo (CPFs e CNPJs fictícios, mas com dígitos verificadores válidos). */
+function completarClientes() {
+  const ed = (nome: string, d: Row) => { const c = db.clientes.find((x) => x.nome === nome); if (c) Object.assign(c, d); };
+  ed('Marcos Silva', { documento: '52998224725', rg: '12.345.678-9 SSP/SP', data_nascimento: '1978-04-12', estado_civil: 'Casado(a)', nacionalidade: 'Brasileira', profissao: 'Engenheiro',
+    telefone: '(15) 3333-0101', whatsapp: '(15) 99999-0101', email: 'marcos.silva@exemplo.com', contato_preferido: 'whatsapp', origem: 'Indicação de cliente', indicado_por: 'Ana Oliveira',
+    end_cep: '18035-100', end_logradouro: 'Rua das Acácias', end_numero: '210', end_bairro: 'Jardim Europa', end_cidade: 'Sorocaba', end_uf: 'SP',
+    obra_intencao: 'Residencial', obra_metragem: 320, obra_cep: '18110-000', obra_logradouro: 'Alameda dos Ipês', obra_numero: '45', obra_bairro: 'Alphaville', obra_cidade: 'Votorantim', obra_uf: 'SP',
+    obra_condominio: 'Residencial Bosque', obra_lote: '12', obra_quadra: 'F', obra_inscricao_municipal: '31.045.221-0', obra_matricula: '48.213', obra_financiada: false, responsavel_comercial: 'demo' });
+  ed('Ana Oliveira', { documento: '11144477735', rg: '23.456.789-0 SSP/SP', estado_civil: 'Solteiro(a)', nacionalidade: 'Brasileira', profissao: 'Médica', telefone: '(15) 99888-0102', email: 'ana.oliveira@exemplo.com',
+    end_cep: '18040-000', end_logradouro: 'Av. Itavuvu', end_numero: '1500', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',
+    obra_intencao: 'Residencial', obra_metragem: 210, obra_logradouro: 'Rua do Mar', obra_numero: '88', obra_bairro: 'Praia Azul', obra_cidade: 'Ubatuba', obra_uf: 'SP', obra_lote: '7', obra_quadra: 'C', obra_financiada: true });
+  ed('Carla Lima', { telefone: '(11) 97777-0105', email: 'carla.lima@exemplo.com', end_cidade: 'São Paulo', end_uf: 'SP', obra_intencao: 'Interiores' });
+  ed('Comercial Rocha', { tipo_pessoa: 'juridica', documento: '11222333000181', empresa_razao_social: 'Comercial Rocha Ltda', empresa_responsavel: 'Paulo Rocha', empresa_responsavel_cpf: '39053344705',
+    telefone: '(15) 3222-0103', email: 'contato@rocha.exemplo.com', end_cep: '18010-000', end_logradouro: 'Rua XV de Novembro', end_numero: '300', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',
+    obra_intencao: 'Comercial', obra_metragem: 540, obra_logradouro: 'Rua XV de Novembro', obra_numero: '300', obra_cidade: 'Sorocaba', obra_uf: 'SP' });
+  ed('Alves & Filhos', { tipo_pessoa: 'juridica', documento: '45997418000153', empresa_razao_social: 'Alves & Filhos Transportes Ltda', empresa_responsavel: 'José Alves', origem: 'Parceiro', obra_intencao: 'Industrial', obra_metragem: 1200 });
+}
 proto(silva.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/50011', status: 'protocolado', data_protocolo: data(-30), prazo: data(-3), cliente_notificado: true });
+completarClientes();
 semearHistorico();
 semearDias();
 void lima;

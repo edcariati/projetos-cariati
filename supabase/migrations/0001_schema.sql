@@ -37,7 +37,7 @@ create table clientes (
   id uuid primary key default gen_random_uuid(),
   codigo text unique,                       -- ex.: CA000123
   nome text not null,
-  categoria text,                           -- A, B, C, D (C e D = "cliente + projetos")
+  categoria text,                           -- A a E (D e E = "cliente + projetos")
   premium boolean not null default false,   -- premium recebe pendrive na entrega
   telefone text,
   email text,

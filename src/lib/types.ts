@@ -22,7 +22,16 @@ export interface Documento {
 }
 export interface Cliente {
   id: string; codigo: string | null; nome: string; categoria: string | null; premium: boolean;
-  telefone: string | null; email: string | null; observacoes: string | null;
+  telefone: string | null; email: string | null; observacoes: string | null; created_at?: string;
+  tipo_pessoa: 'fisica' | 'juridica'; documento: string | null; rg: string | null; data_nascimento: string | null;
+  estado_civil: string | null; nacionalidade: string | null; profissao: string | null; telefone2: string | null; whatsapp: string | null;
+  contato_preferido: string | null; origem: string | null; indicado_por: string | null;
+  end_cep: string | null; end_logradouro: string | null; end_numero: string | null; end_complemento: string | null; end_bairro: string | null; end_cidade: string | null; end_uf: string | null;
+  empresa_razao_social: string | null; empresa_cnpj: string | null; empresa_responsavel: string | null; empresa_responsavel_cpf: string | null;
+  obra_intencao: string | null; obra_metragem: number | null;
+  obra_cep: string | null; obra_logradouro: string | null; obra_numero: string | null; obra_complemento: string | null; obra_bairro: string | null; obra_cidade: string | null; obra_uf: string | null;
+  obra_condominio: string | null; obra_lote: string | null; obra_quadra: string | null; obra_inscricao_municipal: string | null; obra_matricula: string | null; obra_financiada: boolean | null;
+  responsavel_comercial: string | null; atualizado_em?: string; atualizado_por?: string | null;
 }
 export interface EtapaModelo {
   codigo: string; ordem: number; fase: number; titulo: string; rotulo: string; setores: Setor[];

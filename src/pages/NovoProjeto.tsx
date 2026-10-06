@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
@@ -11,7 +11,8 @@ export default function NovoProjeto() {
   const eu = usePerfil();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [equipe, setEquipe] = useState<Profile[]>([]);
-  const [clienteId, setClienteId] = useState('');
+  const [params] = useSearchParams();
+  const [clienteId, setClienteId] = useState(params.get('cliente') ?? '');
   const [novoCliente, setNovoCliente] = useState({ nome: '', codigo: '', categoria: '', premium: false, telefone: '', email: '' });
   const [nome, setNome] = useState('');
   const [responsavel, setResponsavel] = useState('');
@@ -29,9 +30,9 @@ export default function NovoProjeto() {
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
   }, []);
 
-  // cliente C ou D (estudo + projetos) sugere o estudo "+ Projetos"; dá para trocar
+  // perfil D ou E (+ Projetos) sugere o estudo "+ Projetos"; dá para trocar
   const categoria = clienteId ? clientes.find((c) => c.id === clienteId)?.categoria : novoCliente.categoria;
-  useEffect(() => { if (categoria === 'C' || categoria === 'D') setTipoEstudo('mais_projetos'); }, [categoria]);
+  useEffect(() => { if (categoria === 'D' || categoria === 'E') setTipoEstudo('mais_projetos'); }, [categoria]);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -62,6 +63,7 @@ export default function NovoProjeto() {
     <>
       <div className="titulo"><h1>Novo projeto</h1></div>
       <form className="card form" onSubmit={salvar}>
+        <p className="mudo pequeno" style={{ margin: 0 }}>O cadastro completo do cliente (documentos, endereço e dados da obra) fica em <Link to="/clientes">Clientes</Link>.</p>
         <label>Cliente
           <select value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
             <option value="">+ Cadastrar novo cliente</option>
@@ -74,9 +76,9 @@ export default function NovoProjeto() {
             <label>Nome<input required value={novoCliente.nome} onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })} /></label>
             <div className="duas">
               <label>Código<input placeholder="CA000123" value={novoCliente.codigo} onChange={(e) => setNovoCliente({ ...novoCliente, codigo: e.target.value })} /></label>
-              <label>Categoria
+              <label>Perfil (A a C: Cariati normal · D e E: + Projetos)
                 <select value={novoCliente.categoria} onChange={(e) => setNovoCliente({ ...novoCliente, categoria: e.target.value })}>
-                  <option value="">—</option>{['A', 'B', 'C', 'D'].map((c) => <option key={c}>{c}</option>)}
+                  <option value="">—</option>{['A', 'B', 'C', 'D', 'E'].map((c) => <option key={c}>{c}</option>)}
                 </select>
               </label>
             </div>

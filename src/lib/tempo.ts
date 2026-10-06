@@ -1,8 +1,9 @@
 import { supabase } from './supabase';
 import type { Tempo } from './types';
+import { invalidarBruto } from './carga';
 
 const EVENTO = 'cronometro-mudou';
-export const avisarMudanca = () => window.dispatchEvent(new Event(EVENTO));
+export const avisarMudanca = () => { invalidarBruto(); window.dispatchEvent(new Event(EVENTO)); };
 export const aoMudar = (fn: () => void) => {
   window.addEventListener(EVENTO, fn);
   return () => window.removeEventListener(EVENTO, fn);
@@ -13,10 +14,11 @@ export const segundosEntre = (ini: string, fim: string | null, agora = Date.now(
 
 /** Cronômetro que está rodando para a pessoa logada (no máximo um). */
 export async function cronometroAtivo(): Promise<Tempo | null> {
-  const { data: u } = await supabase.auth.getUser();
-  if (!u.user) return null;
+  const { data: s } = await supabase.auth.getSession();   // lê a sessão local, sem ir à rede
+  const uid = s.session?.user.id;
+  if (!uid) return null;
   const { data } = await supabase.from('tempos').select('*, projetos(nome)')
-    .eq('usuario_id', u.user.id).is('finalizado_em', null).limit(1);
+    .eq('usuario_id', uid).is('finalizado_em', null).limit(1);
   return ((data as Tempo[]) ?? [])[0] ?? null;
 }
 

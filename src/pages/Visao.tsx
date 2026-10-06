@@ -44,10 +44,10 @@ export default function Visao() {
   const [resp, setResp] = useState('');
   const [atualizado, setAtualizado] = useState<Date | null>(null);
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (forcar = false) => {
     setCarregando(true); setErro('');
     try {
-      setBruto(await carregarBruto()); setAtualizado(new Date());
+      setBruto(await carregarBruto(forcar)); setAtualizado(new Date());
       carregarTarefas('todas').then(setGrupos).catch(() => setGrupos([]));
     }
     catch (e) { setErro((e as Error).message || 'Não foi possível carregar os dados.'); }
@@ -72,7 +72,7 @@ export default function Visao() {
     return { pendentes, atrasadas };
   }, [grupos, ref]);
 
-  if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={carregar}>Tentar de novo</button></div>;
+  if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={() => carregar(true)}>Tentar de novo</button></div>;
   if (!v || !bruto) return <div className="mudo">Carregando indicadores…</div>;
 
   const gran = v.gran === 'semana' ? 'Semana' : 'Mês';
@@ -114,7 +114,7 @@ export default function Visao() {
             {equipe.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
         </label>
-        <button onClick={carregar} disabled={carregando}>{carregando ? 'Atualizando…' : 'Atualizar'}</button>
+        <button onClick={() => carregar(true)} disabled={carregando}>{carregando ? 'Atualizando…' : 'Atualizar'}</button>
       </div>
 
       <section className="card viz-leitura" aria-label="Leitura rápida">

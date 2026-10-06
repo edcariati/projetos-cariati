@@ -37,27 +37,34 @@ export default function ProjetoDetalhe() {
   const [horasReal, setHorasReal] = useState<number | null>(null);
   const [novoProt, setNovoProt] = useState<{ tipo: ProtocoloTipo; orgao: string; numero: string } | null>(null);
 
-  const carregar = useCallback(async () => {
-    const [p, m, e, h, pr, eq, pe, ta, it, tp] = await Promise.all([
-      supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
+  // modelos de etapa e equipe não mudam a cada clique: vêm uma vez só
+  useEffect(() => {
+    Promise.all([
       supabase.from('etapa_modelos').select('*').order('ordem'),
+      supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome'),
+    ]).then(([m, pe]) => { setModelos((m.data as EtapaModelo[]) ?? []); setPessoas((pe.data as Profile[]) ?? []); });
+  }, []);
+
+  const carregar = useCallback(async () => {
+    const [p, e, h, pr, eq, ta, it, tp] = await Promise.all([
+      supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
       supabase.from('historico').select('*, profiles(nome)').eq('projeto_id', id!).order('created_at', { ascending: false }).limit(50),
       supabase.from('protocolos').select('*').eq('projeto_id', id!).order('created_at', { ascending: false }),
       supabase.from('projeto_equipe').select('*, profiles(nome)').eq('projeto_id', id!),
-      supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome'),
       supabase.from('projeto_tarefas').select('*').eq('projeto_id', id!).order('ordem'),
       supabase.from('projeto_tarefa_itens').select('*').eq('projeto_id', id!).order('ordem'),
       supabase.from('tempos').select('iniciado_em,finalizado_em').eq('projeto_id', id!),
     ]);
     setHorasReal(((tp.data as { iniciado_em: string; finalizado_em: string | null }[]) ?? [])
       .reduce((s, t) => s + (new Date(t.finalizado_em ?? Date.now()).getTime() - new Date(t.iniciado_em).getTime()) / 3_600_000, 0));
-    setProjeto(p.data as Projeto); setModelos((m.data as EtapaModelo[]) ?? []);
+    setProjeto(p.data as Projeto);
     setEtapas((e.data as ProjetoEtapa[]) ?? []); setHist((h.data as Historico[]) ?? []);
-    setProtocolos((pr.data as Protocolo[]) ?? []);
-    setEquipe((eq.data as ProjetoEquipe[]) ?? []); setPessoas((pe.data as Profile[]) ?? []);
+    setProtocolos((pr.data as Protocolo[]) ?? []); setEquipe((eq.data as ProjetoEquipe[]) ?? []);
     setTarefas((ta.data as ProjetoTarefa[]) ?? []); setItens((it.data as ProjetoItem[]) ?? []);
   }, [id]);
+  const marcarItem = useCallback((iid: string, patch: Partial<ProjetoItem>) => setItens((l) => l.map((x) => (x.id === iid ? { ...x, ...patch } : x))), []);
+  const atribuirTarefa = useCallback((tid: string, patch: Partial<ProjetoTarefa>) => setTarefas((l) => l.map((x) => (x.id === tid ? { ...x, ...patch } : x))), []);
   useEffect(() => { carregar(); }, [carregar]);
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -122,7 +129,7 @@ export default function ProjetoDetalhe() {
           <h3>Pausa e retomada</h3>
           {(['P1', 'P2', 'P3', 'P4'] as const).map((c) => (
             <Checklist key={c} etapa={c} titulo={{ P1: 'Pausa a pedido do cliente', P2: 'Pausa por falta de retorno', P3: 'Retomada do projeto', P4: 'Rescisão' }[c]}
-              tarefas={tarefas} itens={itens} nomes={nomes} editavel onChange={carregar} aberto />
+              tarefas={tarefas} itens={itens} nomes={nomes} editavel onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto />
           ))}
         </section>
       )}
@@ -242,7 +249,7 @@ export default function ProjetoDetalhe() {
                           {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
                         </div>
                       )}
-                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} />
+                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} />
                       {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
                         pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
                           : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />}
