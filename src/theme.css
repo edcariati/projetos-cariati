@@ -639,3 +639,7 @@ details.cat>summary::before{content:"▸";color:var(--ink3)}details.cat[open]>su
 .servicos-resumo>li{min-width:0;overflow-wrap:anywhere}
 .servicos-resumo .tag{white-space:normal;display:inline-block;margin:2px 0 2px 6px}
 .servicos-resumo{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}
+.modal-largo{max-width:560px!important;max-height:90vh;overflow:auto}
+.modal-itens li{grid-template-columns:minmax(0,1fr) auto}
+.servico-op{align-items:flex-start;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md);background:var(--soft)}
+.dir{text-align:right}

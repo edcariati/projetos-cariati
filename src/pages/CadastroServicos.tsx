@@ -9,7 +9,7 @@ import Icone from '../ui/Icone';
 interface Uso { servicos: string[]; categoria: string | null }
 
 const ETAPAS_FLUXO: { cod: string[]; rotulo: string }[] = [
-  { cod: ['16'], rotulo: 'Projeto legal (etapa 16)' }, { cod: ['17', '18'], rotulo: 'Interiores (etapas 17 e 18)' }, { cod: ['19'], rotulo: 'Complementares (etapa 19)' },
+  { cod: ['16'], rotulo: 'Projeto legal (etapa 16)' }, { cod: ['17', '18'], rotulo: 'Interiores (etapas 17 e 18)' }, { cod: ['19'], rotulo: 'Complementares (etapa 19)' }, { cod: ['H1', 'H2', 'H3'], rotulo: 'Habite-se (etapas H1 a H3)' },
 ];
 const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 12);
 

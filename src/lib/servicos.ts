@@ -76,7 +76,7 @@ export function flagsDe(ids: string[], perfil?: string | null) {
     legal: em('16', ['prefeitura-06']) || ids.some((i) => ['arq-09', 'arq-10', 'arq-13'].includes(i)) || aprov,
     interiores: em('17'),
     complementares: em('19') || ids.some((i) => i.startsWith('caixa-02')),
-    habitese: ids.includes('prefeitura-06'),
+    habitese: ids.includes('prefeitura-06') || em('H1'),
   };
 }
 
