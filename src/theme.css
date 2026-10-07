@@ -592,3 +592,18 @@ input,select,textarea{border-radius:14px}
 
 @media(max-width:640px){.barra-acoes{width:auto;flex:none}.barra-acoes .icone-btn[aria-pressed]{display:none}.busca-pilula{flex:1 1 auto}.busca-pilula kbd{display:none}}
 .viz>.titulo,main .titulo{animation:none!important;transform:none!important}
+
+/* serviços do cliente */
+.servicos-lista{display:flex;flex-direction:column;gap:var(--sp-3)}
+.servico{border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp-4);background:var(--soft);transition:border-color var(--dur-1),box-shadow var(--dur-2)}
+.servico.on{border-color:rgba(255,159,28,.55);background:linear-gradient(135deg,rgba(255,159,28,.10),rgba(139,92,246,.07));box-shadow:0 0 24px -12px rgba(255,159,28,.6)}
+.servico .check{align-items:flex-start;color:var(--ink)}.servico .check input{margin-top:3px}
+.servico p{margin:2px 0 0}
+.servico-estudo{display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-3)}
+.servico-extra{margin:var(--sp-3) 0 0 32px;max-width:320px}
+.servicos-resumo{list-style:none;margin:0 0 var(--sp-3);padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--sp-3)}
+.servicos-resumo>li{border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp-3) var(--sp-4);background:var(--soft)}
+.servicos-resumo ul{margin:var(--sp-2) 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2)}
+.servicos-resumo .tag{margin-left:6px}
+dl.confirma{display:grid;grid-template-columns:110px 1fr;gap:6px 14px;margin:0}
+dl.confirma dt{color:var(--ink3);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding-top:2px}dl.confirma dd{margin:0}

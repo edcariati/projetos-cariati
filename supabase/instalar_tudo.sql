@@ -1,4 +1,4 @@
--- Instalação completa do banco (0001 a 0017). Cole tudo no SQL Editor do Supabase e clique em Run.
+-- Instalação completa do banco (0001 a 0018). Cole tudo no SQL Editor do Supabase e clique em Run.
 -- Se o banco já foi instalado até a 0005, use supabase/atualizar_0006_a_0016.sql e depois supabase/atualizar_0017.sql. Se já foi até a 0014, use supabase/atualizar_0015_e_0016.sql e depois supabase/atualizar_0017.sql.
 
 -- ===== 0001_schema.sql =====
@@ -1450,3 +1450,11 @@ grant execute on function admin_criar_usuario(text, text, text, text, text, text
 grant execute on function admin_redefinir_senha(uuid, text) to authenticated;
 grant execute on function admin_alterar_email(uuid, text) to authenticated;
 grant execute on function admin_excluir_usuario(uuid) to authenticated;
+
+-- ===== 0018_servicos_cliente.sql =====
+-- Serviços contratados no cadastro do cliente (aparecem na confirmação do cadastro e pré-preenchem o novo projeto).
+alter table clientes
+  add column if not exists servicos text[] not null default '{}',          -- ids do catálogo (src/lib/servicos.ts): arquitetonico, legal, interiores, complementares, habitese…
+  add column if not exists servico_estudo text,                             -- padrao | ampliacao | mais_projetos
+  add column if not exists servico_aprovacao text,                          -- tipo de aprovação do projeto legal
+  add column if not exists servicos_observacao text;

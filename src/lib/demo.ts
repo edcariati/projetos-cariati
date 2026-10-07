@@ -205,6 +205,7 @@ function inserirTarefas(projetoId: string, etapa: string, variantes: string[]): 
 
 const DEFAULTS: Record<string, () => Row> = {
   clientes: () => ({
+    servicos: [], servico_estudo: null, servico_aprovacao: null, servicos_observacao: null,
     codigo: null, categoria: null, premium: false, telefone: null, email: null, observacoes: null, tipo_pessoa: 'fisica', documento: null, rg: null, data_nascimento: null,
     estado_civil: null, nacionalidade: null, profissao: null, telefone2: null, whatsapp: null, contato_preferido: null, origem: null, indicado_por: null,
     end_cep: null, end_logradouro: null, end_numero: null, end_complemento: null, end_bairro: null, end_cidade: null, end_uf: null,
@@ -486,6 +487,8 @@ function completarClientes() {
   ed('Ana Oliveira', { documento: '11144477735', rg: '23.456.789-0 SSP/SP', estado_civil: 'Solteiro(a)', nacionalidade: 'Brasileira', profissao: 'Médica', telefone: '(15) 99888-0102', email: 'ana.oliveira@exemplo.com',
     end_cep: '18040-000', end_logradouro: 'Av. Itavuvu', end_numero: '1500', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',
     obra_intencao: 'Residencial', obra_metragem: 210, obra_logradouro: 'Rua do Mar', obra_numero: '88', obra_bairro: 'Praia Azul', obra_cidade: 'Ubatuba', obra_uf: 'SP', obra_lote: '7', obra_quadra: 'C', obra_financiada: true });
+  ed('Marcos Silva', { servicos: ['legal', 'complementares'], servico_estudo: 'padrao', servico_aprovacao: 'residencial', servicos_observacao: 'Complementares: elétrico e hidrossanitário.' });
+  ed('Ana Oliveira', { servicos: ['legal', 'interiores', 'habitese'], servico_estudo: 'padrao', servico_aprovacao: 'residencial' });
   ed('Carla Lima', { telefone: '(11) 97777-0105', email: 'carla.lima@exemplo.com', end_cidade: 'São Paulo', end_uf: 'SP', obra_intencao: 'Interiores' });
   ed('Comercial Rocha', { tipo_pessoa: 'juridica', documento: '11222333000181', empresa_razao_social: 'Comercial Rocha Ltda', empresa_responsavel: 'Paulo Rocha', empresa_responsavel_cpf: '39053344705',
     telefone: '(15) 3222-0103', email: 'contato@rocha.exemplo.com', end_cep: '18010-000', end_logradouro: 'Rua XV de Novembro', end_numero: '300', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',

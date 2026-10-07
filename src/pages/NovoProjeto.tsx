@@ -5,6 +5,7 @@ import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
 import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
+import { flagsDe } from '../lib/servicos';
 
 export default function NovoProjeto() {
   const nav = useNavigate();
@@ -29,6 +30,16 @@ export default function NovoProjeto() {
     supabase.from('clientes').select('*').order('nome').then(({ data }) => setClientes((data as Cliente[]) ?? []));
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
   }, []);
+
+  // serviços combinados no cadastro do cliente pré-preenchem o escopo
+  const clienteSel = clientes.find((c) => c.id === clienteId);
+  useEffect(() => {
+    if (!clienteSel?.servicos?.length && !clienteSel?.servico_estudo) return;
+    const f = flagsDe(clienteSel.servicos ?? []);
+    setLegal(f.legal); setInteriores(f.interiores); setCompl(f.complementares); setHabitese(f.habitese);
+    if (clienteSel.servico_estudo) setTipoEstudo(clienteSel.servico_estudo as TipoEstudo);
+    if (clienteSel.servico_aprovacao) setAprovacao(clienteSel.servico_aprovacao);
+  }, [clienteSel]);
 
   // perfil D ou E (+ Projetos) sugere o estudo "+ Projetos"; dá para trocar
   const categoria = clienteId ? clientes.find((c) => c.id === clienteId)?.categoria : novoCliente.categoria;

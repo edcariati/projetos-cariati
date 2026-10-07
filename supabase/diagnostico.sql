@@ -14,4 +14,5 @@ select
   exists (select 1 from pg_indexes where indexname='tempos_usuario_data')           as tem_0015_desempenho,
   exists (select 1 from information_schema.columns where table_name='clientes' and column_name='documento') as tem_0016_cadastro_clientes,
   to_regclass('public.parceiros') is not null                                       as tem_0017_cadastros,
+  exists (select 1 from information_schema.columns where table_name='clientes' and column_name='servicos') as tem_0018_servicos,
   (select count(*) from auth.users where email like '%@cariati.com.br')             as usuarios_cariati;

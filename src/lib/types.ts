@@ -37,6 +37,7 @@ export interface Cliente {
   obra_cep: string | null; obra_logradouro: string | null; obra_numero: string | null; obra_complemento: string | null; obra_bairro: string | null; obra_cidade: string | null; obra_uf: string | null;
   obra_condominio: string | null; obra_lote: string | null; obra_quadra: string | null; obra_inscricao_municipal: string | null; obra_matricula: string | null; obra_financiada: boolean | null;
   responsavel_comercial: string | null; atualizado_em?: string; atualizado_por?: string | null;
+  servicos?: string[]; servico_estudo?: string | null; servico_aprovacao?: string | null; servicos_observacao?: string | null;
 }
 export interface EtapaModelo {
   codigo: string; ordem: number; fase: number; titulo: string; rotulo: string; setores: Setor[];

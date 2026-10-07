@@ -8,6 +8,7 @@ import { pessoaPodeEditarClientes, usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
 import { avisar } from '../ui/avisos';
+import { EscolherServicos, ResumoServicos, type Escolha } from '../components/ServicosCliente';
 
 type Form = Record<string, string | boolean | null>;
 const TEXTOS = ['codigo', 'nome', 'categoria', 'documento', 'rg', 'estado_civil', 'nacionalidade', 'profissao', 'telefone', 'telefone2', 'whatsapp', 'email', 'contato_preferido', 'origem', 'indicado_por',
@@ -65,6 +66,7 @@ export default function ClienteDetalhe() {
         x.documento = formatarDocumento(d.documento ?? '', d.tipo_pessoa); x.empresa_cnpj = formatarCnpj(d.empresa_cnpj ?? ''); x.empresa_responsavel_cpf = formatarCpf(d.empresa_responsavel_cpf ?? '');
         x.telefone = formatarTelefone(d.telefone ?? ''); x.telefone2 = formatarTelefone(d.telefone2 ?? ''); x.whatsapp = formatarTelefone(d.whatsapp ?? '');
         x.obra_metragem = d.obra_metragem === null || d.obra_metragem === undefined ? '' : String(d.obra_metragem).replace('.', ',');
+        x.servicos_ids = (d.servicos ?? []).join(','); x.servico_estudo = d.servico_estudo ?? ''; x.servico_aprovacao = d.servico_aprovacao ?? ''; x.servicos_observacao = d.servicos_observacao ?? '';
         setF(x); setMeta({ atualizado_em: d.atualizado_em, por: pessoas.find((q) => q.id === d.atualizado_por)?.nome });
       }
       setProjetos((p.data as Projeto[]) ?? []); setCarregando(false);
@@ -75,7 +77,9 @@ export default function ClienteDetalhe() {
   const v = (k: string) => (f[k] as string | null | undefined) ?? '';
   const set = (k: string, val: string | boolean | null) => { setF((x) => ({ ...x, [k]: val })); setOk(''); };
   const juridica = f.tipo_pessoa === 'juridica';
-  const PASSOS = ['Identificação', 'Contato', 'Endereço', 'Obra', 'Observações'];
+  const escolha: Escolha = { ids: String(f.servicos_ids ?? '').split(',').filter(Boolean), estudo: String(f.servico_estudo ?? ''), aprovacao: String(f.servico_aprovacao ?? ''), obs: String(f.servicos_observacao ?? '') };
+  const setEscolha = (e: Escolha) => { setF((x) => ({ ...x, servicos_ids: e.ids.join(','), servico_estudo: e.estudo, servico_aprovacao: e.aprovacao, servicos_observacao: e.obs })); setOk(''); };
+  const PASSOS = ['Identificação', 'Contato', 'Endereço', 'Obra', 'Observações', 'Serviços', 'Confirmação'];
   const mostra = (k: number) => !novo || passo === k;
   const avancar = () => {
     const bloco = form.current?.querySelectorAll('.passo')[passo];
@@ -107,6 +111,7 @@ export default function ClienteDetalhe() {
     if (digitos(v('empresa_cnpj')) && !cnpjValido(v('empresa_cnpj'))) return setErro('O CNPJ da empresa não é válido.');
     if (digitos(v('empresa_responsavel_cpf')) && !cpfValido(v('empresa_responsavel_cpf'))) return setErro('O CPF do responsável pela empresa não é válido.');
     const corpo: Record<string, unknown> = { tipo_pessoa: f.tipo_pessoa, premium: !!f.premium, obra_financiada: f.obra_financiada ?? null, data_nascimento: v('data_nascimento') || null, responsavel_comercial: v('responsavel_comercial') || null };
+    corpo.servicos = escolha.ids; corpo.servico_estudo = escolha.estudo || null; corpo.servico_aprovacao = escolha.ids.includes('legal') ? escolha.aprovacao || null : null; corpo.servicos_observacao = escolha.obs.trim() || null;
     for (const k of TEXTOS) corpo[k] = v(k).trim() || null;
     corpo.documento = doc || null; corpo.empresa_cnpj = digitos(v('empresa_cnpj')) || null; corpo.empresa_responsavel_cpf = digitos(v('empresa_responsavel_cpf')) || null;
     const m = v('obra_metragem').replace(',', '.'); corpo.obra_metragem = m && Number.isFinite(Number(m)) ? Number(m) : null;
@@ -165,6 +170,7 @@ export default function ClienteDetalhe() {
           <p className="mudo pequeno">O que você digita é salvo automaticamente neste aparelho até concluir o cadastro.</p>
         </>
       )}
+      {!novo && escolha.ids.length + (escolha.estudo ? 1 : 0) > 0 && <ResumoServicos v={escolha} />}
       <form onSubmit={salvar} ref={form}>
         <fieldset disabled={!pode} className="sem-borda">
           <div className="passo" hidden={!mostra(0)}>
@@ -255,6 +261,27 @@ export default function ClienteDetalhe() {
           <div className="passo" hidden={!mostra(4)}>
           <Secao titulo="Observações"><Campo rotulo="Anotações sobre o cliente" largo><textarea rows={4} value={v('observacoes')} onChange={(e) => set('observacoes', e.target.value)} /></Campo></Secao>
           </div>
+          <div className="passo" hidden={!mostra(5)}>
+            <section className="card secao">
+              <h2>Serviços contratados</h2>
+              <p className="mudo pequeno">Marque o que o escritório vai entregar a este cliente. Isso define as etapas do fluxo e já preenche o “Novo projeto”.</p>
+              <EscolherServicos v={escolha} aoMudar={setEscolha} desabilitado={!pode} />
+            </section>
+          </div>
+          {novo && (
+            <div className="passo" hidden={!mostra(6)}>
+              <section className="card secao">
+                <h2>Confirme o cadastro</h2>
+                <dl className="confirma">
+                  <dt>Cliente</dt><dd>{v('nome') || '—'}{v('codigo') ? ` · ${v('codigo')}` : ''}{v('categoria') ? ` · perfil ${v('categoria')}` : ''}</dd>
+                  <dt>Documento</dt><dd>{v('documento') || '—'}</dd>
+                  <dt>Contato</dt><dd>{[v('whatsapp') || v('telefone'), v('email')].filter(Boolean).join(' · ') || '—'}</dd>
+                  <dt>Obra</dt><dd>{[v('obra_intencao'), v('obra_metragem') ? `${v('obra_metragem')} m²` : '', v('obra_cidade')].filter(Boolean).join(' · ') || '—'}</dd>
+                </dl>
+              </section>
+              <ResumoServicos v={escolha} />
+            </div>
+          )}
         </fieldset>
 
         {erro && <p className="erro" role="alert">{erro}</p>}
