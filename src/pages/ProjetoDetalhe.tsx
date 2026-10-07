@@ -10,7 +10,11 @@ import {
 } from '../lib/flow';
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
-import Cronometro from '../components/Cronometro';
+import Cronometro, { CronometroMini } from '../components/Cronometro';
+import GanttEtapas from '../components/GanttEtapas';
+import { carregarCronograma } from '../lib/carga';
+import { useTemposDe } from '../lib/tempo';
+import type { Crono } from '../lib/cronograma';
 import { confirmar, escolher, pedirTexto } from '../components/Dialogo';
 import { Medidor } from '../components/graficos';
 import Checklist from '../components/Checklist';
@@ -76,11 +80,16 @@ export default function ProjetoDetalhe() {
   };
 
   const catalogo = useCatalogo();
+  const temp = useTemposDe(id ? [id] : []);
+  const [crono, setCrono] = useState<Crono | null>(null);
+  useEffect(() => { carregarCronograma().then((c) => setCrono(c.crono)).catch(() => undefined); }, [id, etapas.length]);
   if (!projeto) return <Carregando tipo="cartoes" n={2} />;
   const cl = projeto.clientes;
   const escolha: Escolha = { perfil: projeto.perfil ?? cl?.categoria ?? '', ids: projeto.servicos ?? cl?.servicos ?? [], estudo: projeto.tipo_estudo, aprovacao: projeto.tipo_aprovacao ?? cl?.servico_aprovacao ?? '', obs: projeto.servicos_observacao ?? cl?.servicos_observacao ?? '' };
   const temEntregas = !!perfilPorId(escolha.perfil) || escolha.ids.length > 0;
   const parceiro19 = catalogo.categorias.some((c) => c.execucao === 'parceiro' && c.etapas.includes('19') && escolha.ids.some((i) => i.startsWith(c.id + '-')));
+  const linhaGantt = crono?.linhas.find((l) => l.projeto.id === projeto.id);
+  const segEtapa = new Map([...temp.fechado].filter(([k]) => k.startsWith(projeto.id + '|')).map(([k, v]) => [k.split('|')[1], v]));
   const faixa = etapas.filter((e) => e.status !== 'nao_aplicavel').map((e) => ({ e, m: modelos.find((x) => x.codigo === e.etapa_codigo) })).filter((x) => x.m).sort((a, b) => a.m!.ordem - b.m!.ordem);
   const pausado = projeto.status === 'pausado';
   const dias = diasDePausa(projeto.pausado_em);
@@ -144,6 +153,12 @@ export default function ProjetoDetalhe() {
               </li>
             ))}
           </ol>
+        </section>
+      )}
+      {linhaGantt && crono && (
+        <section className="card" aria-label="Cronograma do projeto">
+          <h2>Cronograma do projeto (Gantt)</h2>
+          <GanttEtapas linha={linhaGantt} inicio={crono.inicio} fim={crono.fim} segundos={segEtapa} parceiro={parceiro19 ? new Set(['19']) : undefined} />
         </section>
       )}
       {temEntregas && <ResumoServicos v={escolha} titulo="Entregas contratadas" />}
@@ -256,6 +271,8 @@ export default function ProjetoDetalhe() {
                         {m.aceite_formal ? ' · aceite formal' : ''}
                       </div>
                     </div>
+                    {e.status !== 'nao_aplicavel' && <CronometroMini projetoId={projeto.id} etapaCodigo={m.codigo} fechadoSeg={temp.fechado.get(`${projeto.id}|${m.codigo}`) ?? 0} ativo={temp.ativo}
+                      bloqueio={pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.' : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}.` : undefined} />}
                     <span className={`tag e-${e.status}`}>{ETAPA_STATUS[e.status]}</span>
                   </div>
                   {(aberta === m.codigo || ativa) && e.status !== 'nao_aplicavel' && (
@@ -275,9 +292,9 @@ export default function ProjetoDetalhe() {
                         </div>
                       )}
                       <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} />
-                      {ativa && <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
+                      <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
                         pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
-                          : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />}
+                          : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
                         {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={async () => {

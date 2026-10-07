@@ -655,3 +655,11 @@ html[data-theme="light"] .tag.parceiro{color:#6D28D9}
 .faixa-fluxo li.em_andamento{border-color:rgba(255,159,28,.7);color:var(--ink);background:var(--tint)}
 .faixa-fluxo li.em_andamento i{background:var(--grad-pri);color:var(--on-accent);border-color:transparent;box-shadow:0 0 14px rgba(255,159,28,.7)}
 .faixa-fluxo li.concluida i{background:rgba(52,211,153,.18);color:var(--green);border-color:var(--green)}
+
+/* cronômetro compacto */
+.crono-mini{display:inline-flex;align-items:center;gap:6px;flex:none;padding:3px 4px 3px 10px;border:1px solid var(--line);border-radius:var(--r-pill);background:var(--soft);font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--ink2)}
+.crono-mini button{min-height:30px;min-width:30px;padding:0;border-radius:50%;font-size:12px}
+.crono-mini.rodando{border-color:rgba(255,159,28,.7);color:var(--ink);background:linear-gradient(135deg,rgba(255,159,28,.18),rgba(139,92,246,.10))}
+.crono-tempo{display:inline-flex;align-items:center;gap:6px;min-width:3.4ch}
+.linha .crono-mini{margin-left:auto}
+.kanban{grid-auto-columns:minmax(260px,1fr)}

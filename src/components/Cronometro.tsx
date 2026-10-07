@@ -58,3 +58,33 @@ export default function Cronometro({ projetoId, etapaCodigo, motivoBloqueio }: {
     </div>
   );
 }
+
+/**
+ * Cronômetro compacto de uma etapa (cabe na linha da etapa e no cartão da tarefa).
+ * Recebe o tempo já fechado e o cronômetro ativo de fora, para não buscar nada por etapa.
+ */
+export function CronometroMini({ projetoId, etapaCodigo, fechadoSeg, ativo, bloqueio }: {
+  projetoId: string; etapaCodigo: string; fechadoSeg: number; ativo: Tempo | null; bloqueio?: string;
+}) {
+  const rodando = ativo?.projeto_id === projetoId && ativo.etapa_codigo === etapaCodigo;
+  const [agora, setAgora] = useState(Date.now());
+  const [erro, setErro] = useState('');
+  useEffect(() => {
+    if (!rodando) return;
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [rodando]);
+  const total = fechadoSeg + (rodando ? segundosEntre(ativo!.iniciado_em, null, agora) : 0);
+  const bloqueado = Boolean(bloqueio) && !rodando;
+  async function alternar(e: React.MouseEvent) {
+    e.stopPropagation(); setErro('');
+    try { await (rodando ? pararCronometro() : iniciarCronometro(projetoId, etapaCodigo)); } catch (x) { setErro((x as Error).message); }
+  }
+  return (
+    <span className={`crono-mini${rodando ? ' rodando' : ''}`} onClick={(e) => e.stopPropagation()}>
+      <span className="crono-tempo" title="Tempo acumulado nesta etapa" aria-label={`Tempo nesta etapa: ${fmtDur(total)}`}>{rodando && <i className="ponto" aria-hidden="true" />}{rodando ? fmtRelogio(segundosEntre(ativo!.iniciado_em, null, agora)) : fmtDur(total)}</span>
+      <button className={rodando ? 'perigo' : ''} onClick={alternar} disabled={bloqueado} title={bloqueado ? bloqueio : rodando ? 'Parar o cronômetro' : 'Iniciar o cronômetro desta etapa'} aria-label={`${rodando ? 'Parar' : 'Iniciar'} cronômetro da etapa ${etapaCodigo}`}>{rodando ? '■' : '▶'}</button>
+      {erro && <span className="erro pequeno">{erro}</span>}
+    </span>
+  );
+}

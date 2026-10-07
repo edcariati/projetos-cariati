@@ -13,9 +13,12 @@ import Calendario from '../components/Calendario';
 import { carregarCronograma } from '../lib/carga';
 import type { Crono, Evento } from '../lib/cronograma';
 import { Carregando, Vazio } from '../ui/Holo';
+import { CronometroMini } from '../components/Cronometro';
+import GanttEtapas from '../components/GanttEtapas';
+import { useTemposDe } from '../lib/tempo';
 
-type Vista = 'checklists' | 'lista' | 'quadro' | 'cronograma' | 'calendario';
-const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['cronograma', 'Cronograma'], ['calendario', 'Calendário']];
+type Vista = 'checklists' | 'lista' | 'quadro' | 'kanban' | 'cronograma' | 'calendario';
+const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['kanban', 'Kanban'], ['cronograma', 'Gantt'], ['calendario', 'Calendário']];
 
 /** Fluxo de trabalho do profissional: as tarefas dos protocolos, já provisionadas e atribuídas a ele. */
 export default function Tarefas() {
@@ -45,6 +48,8 @@ export default function Tarefas() {
     return { ...g, itens, pendentes: itens.filter((x) => !x.feito).length };
   }));
   const atribuirTarefa = (tid: string, patch: Partial<import('../lib/types').ProjetoTarefa>) => setGrupos((gs) => gs && gs.map((g) => (g.tarefas.some((t) => t.id === tid) ? { ...g, tarefas: g.tarefas.map((t) => (t.id === tid ? { ...t, ...patch } : t)) } : g)));
+  const temp = useTemposDe((grupos ?? []).map((g) => g.projeto.id));
+  const [detalhe, setDetalhe] = useState('');
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
   const agora = grupos?.filter((g) => g.status === 'em_andamento') ?? [];
   const atrasadas = grupos?.filter((g) => g.status === 'concluida') ?? [];
@@ -65,6 +70,7 @@ export default function Tarefas() {
       <div className="grupo-h">
         <h3><Link to={`/projetos/${g.projeto.id}`}>{g.projeto.nome}</Link></h3>
         <span className="mudo pequeno">{g.projeto.clientes?.nome} · etapa {g.etapa.codigo} · {g.etapa.titulo}</span>
+        <span style={{ marginLeft: 'auto' }}><CronometroMini projetoId={g.projeto.id} etapaCodigo={g.etapa.codigo} fechadoSeg={temp.fechado.get(`${g.projeto.id}|${g.etapa.codigo}`) ?? 0} ativo={temp.ativo} bloqueio={g.projeto.status === 'pausado' ? 'Projeto pausado' : undefined} /></span>
       </div>
       <Checklist etapa={g.etapa.codigo} tarefas={g.tarefas} itens={g.itens} nomes={nomes} editavel
         meuId={eu.id} podeAtribuir={admin} pessoas={pessoas} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={aberto} titulo={`${g.pendentes} item(ns) a fazer`} />
@@ -102,10 +108,21 @@ export default function Tarefas() {
 
       {(vista === 'cronograma' || vista === 'calendario') && (
         <section className="card viz">
-          <h2>{vista === 'cronograma' ? 'Cronograma dos projetos em andamento' : 'Calendário de prazos'}</h2>
+          <h2>{vista === 'cronograma' ? 'Gantt dos projetos em andamento' : 'Calendário de prazos'}</h2>
           <p className="mudo pequeno">Mostra todos os projetos que você pode ver, sem filtrar por pessoa. O prazo de cada etapa vem do prazo de referência (mediana da equipe ou padrão); as etapas seguintes são projetadas em sequência a partir de hoje.</p>
           {!agenda ? <Carregando n={3} /> : vista === 'cronograma'
-            ? (agenda.crono.linhas.length === 0 ? <p className="mudo">Nenhum projeto em andamento.</p> : <Cronograma crono={agenda.crono} />)
+            ? (agenda.crono.linhas.length === 0 ? <p className="mudo">Nenhum projeto em andamento.</p> : (
+              <>
+                <Cronograma crono={agenda.crono} />
+                <label style={{ marginTop: 'var(--sp-4)' }}>Detalhar as etapas de um projeto
+                  <select id="gantt-projeto" value={detalhe} onChange={(e) => setDetalhe(e.target.value)}>
+                    <option value="">— escolher projeto —</option>
+                    {agenda.crono.linhas.map((l) => <option key={l.projeto.id} value={l.projeto.id}>{l.projeto.nome}</option>)}
+                  </select>
+                </label>
+                {agenda.crono.linhas.filter((l) => l.projeto.id === detalhe).map((l) => <GanttEtapas key={l.projeto.id} linha={l} inicio={agenda.crono.inicio} fim={agenda.crono.fim} />)}
+              </>
+            ))
             : <Calendario eventos={agenda.eventos} />}
         </section>
       )}
@@ -126,6 +143,44 @@ export default function Tarefas() {
           </tbody>
         </table></div>
       )}
+
+      {vista === 'kanban' && grupos && grupos.length > 0 && (() => {
+        type Cartao = { id: string; titulo: string; g: GrupoTarefas; feitos: number; total: number; prio: string; quem: string; col: 'aguardando' | 'afazer' | 'fazendo' | 'concluida' };
+        const cartoes: Cartao[] = grupos.flatMap((g) => g.tarefas.map((t) => {
+          const its = g.itens.filter((i) => i.tarefa_id === t.id), feitos = its.filter((i) => i.feito).length;
+          const col = g.status === 'pendente' ? 'aguardando' : its.length > 0 && feitos === its.length ? 'concluida' : feitos > 0 ? 'fazendo' : 'afazer';
+          return { id: t.id, titulo: t.titulo, g, feitos, total: its.length, prio: t.prioridade, quem: t.responsavel_id ? nomes.get(t.responsavel_id) ?? '—' : `Fila ${SETOR[t.setor_fila ?? 'administrativo']}`, col } as Cartao;
+        }));
+        const COLS: [Cartao['col'], string, string][] = [['aguardando', 'Aguardando a etapa', 'var(--ink3)'], ['afazer', 'A fazer', 'var(--s1)'], ['fazendo', 'Fazendo', 'var(--amber)'], ['concluida', 'Concluídas', 'var(--st-good)']];
+        return (
+          <>
+            <p className="mudo pequeno">Cada cartão é uma tarefa dos protocolos. Ela anda sozinha: sai de “A fazer” quando o primeiro item é marcado e vai para “Concluídas” quando o último é marcado. Clique para abrir o checklist no projeto.</p>
+            <div className="quadro kanban">
+              {COLS.map(([k, titulo, cor]) => {
+                const lista = cartoes.filter((c) => c.col === k);
+                const lim = mostrarTudo['k' + k] ? lista.length : 12;
+                return (
+                  <section className="coluna" key={k} aria-label={titulo}>
+                    <header><i style={{ background: cor }} /><b>{titulo}</b><span className="badge">{lista.length}</span></header>
+                    <div className="coluna-corpo">
+                      {lista.length === 0 && <p className="mudo pequeno">Nada aqui.</p>}
+                      {lista.slice(0, lim).map((c) => (
+                        <Link key={c.id} className="cartao-quadro" to={`/projetos/${c.g.projeto.id}`}>
+                          <b>{c.titulo}</b>
+                          <span className="mudo pequeno">{c.g.projeto.nome} · etapa {c.g.etapa.codigo}</span>
+                          <span className="viz-pct"><Medidor valor={c.feitos} max={Math.max(1, c.total)} aviso={2} perigo={2} rotulo="Itens feitos" /><em>{c.feitos}/{c.total}</em></span>
+                          <span className="rodape-cartao"><span className="mudo pequeno">{c.quem}</span><span className={`ck-prio ${c.prio}`}>{c.prio}</span></span>
+                        </Link>
+                      ))}
+                      {lista.length > 12 && <button onClick={() => setMostrarTudo({ ...mostrarTudo, ['k' + k]: !mostrarTudo['k' + k] })}>{mostrarTudo['k' + k] ? 'Mostrar menos' : `Mostrar mais (${lista.length - 12})`}</button>}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </>
+        );
+      })()}
 
       {vista === 'quadro' && grupos && grupos.length > 0 && (
         <div className="quadro">
