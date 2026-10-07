@@ -7,6 +7,7 @@ import { completude, digitos, formatarDocumento, formatarTelefone } from '../lib
 import { pessoaPodeEditarClientes } from '../lib/perfil';
 import { usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
+import { PERFIS } from '../lib/servicos';
 import { Carregando, Vazio } from '../ui/Holo';
 
 interface Resumo { cliente_id: string; status: string }
@@ -61,7 +62,7 @@ export default function Clientes() {
       </div>
       <div className="filtros filtros-linha">
         <select id="filtro-categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Perfil">
-          <option value="">Todos os perfis</option>{['A', 'B', 'C', 'D', 'E'].map((c) => <option key={c} value={c}>Perfil {c}{c === 'D' || c === 'E' ? ' (+ Projetos)' : ''}</option>)}
+          <option value="">Todos os perfis</option>{PERFIS.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
         </select>
         <select id="filtro-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de pessoa">
           <option value="">Pessoa física e jurídica</option><option value="fisica">Pessoa física</option><option value="juridica">Pessoa jurídica</option>

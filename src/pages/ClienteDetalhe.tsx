@@ -8,6 +8,7 @@ import { pessoaPodeEditarClientes, usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
 import { avisar } from '../ui/avisos';
+import { perfilPorId, PERFIS } from '../lib/servicos';
 import { EscolherServicos, ResumoServicos, type Escolha } from '../components/ServicosCliente';
 
 type Form = Record<string, string | boolean | null>;
@@ -77,8 +78,8 @@ export default function ClienteDetalhe() {
   const v = (k: string) => (f[k] as string | null | undefined) ?? '';
   const set = (k: string, val: string | boolean | null) => { setF((x) => ({ ...x, [k]: val })); setOk(''); };
   const juridica = f.tipo_pessoa === 'juridica';
-  const escolha: Escolha = { ids: String(f.servicos_ids ?? '').split(',').filter(Boolean), estudo: String(f.servico_estudo ?? ''), aprovacao: String(f.servico_aprovacao ?? ''), obs: String(f.servicos_observacao ?? '') };
-  const setEscolha = (e: Escolha) => { setF((x) => ({ ...x, servicos_ids: e.ids.join(','), servico_estudo: e.estudo, servico_aprovacao: e.aprovacao, servicos_observacao: e.obs })); setOk(''); };
+  const escolha: Escolha = { perfil: String(f.categoria ?? ''), ids: String(f.servicos_ids ?? '').split(',').filter(Boolean), estudo: String(f.servico_estudo ?? ''), aprovacao: String(f.servico_aprovacao ?? ''), obs: String(f.servicos_observacao ?? '') };
+  const setEscolha = (e: Escolha) => { setF((x) => ({ ...x, categoria: e.perfil, servicos_ids: e.ids.join(','), servico_estudo: e.estudo, servico_aprovacao: e.aprovacao, servicos_observacao: e.obs })); setOk(''); };
   const PASSOS = ['Identificação', 'Contato', 'Endereço', 'Obra', 'Observações', 'Serviços', 'Confirmação'];
   const mostra = (k: number) => !novo || passo === k;
   const avancar = () => {
@@ -170,7 +171,7 @@ export default function ClienteDetalhe() {
           <p className="mudo pequeno">O que você digita é salvo automaticamente neste aparelho até concluir o cadastro.</p>
         </>
       )}
-      {!novo && escolha.ids.length + (escolha.estudo ? 1 : 0) > 0 && <ResumoServicos v={escolha} />}
+      {!novo && (escolha.ids.length > 0 || !!perfilPorId(escolha.perfil)) && <ResumoServicos v={escolha} />}
       <form onSubmit={salvar} ref={form}>
         <fieldset disabled={!pode} className="sem-borda">
           <div className="passo" hidden={!mostra(0)}>
@@ -183,7 +184,7 @@ export default function ClienteDetalhe() {
             </Campo>
             <Campo rotulo={juridica ? 'Nome fantasia ou nome do contato' : 'Nome completo'} largo><input required value={v('nome')} onChange={(e) => set('nome', e.target.value)} /></Campo>
             <Campo rotulo="Código"><input placeholder="CA000123" value={v('codigo')} onChange={(e) => set('codigo', e.target.value.toUpperCase())} /></Campo>
-            <Campo rotulo="Perfil (A a C: Cariati normal · D e E: + Projetos)"><select value={v('categoria')} onChange={(e) => set('categoria', e.target.value)}><option value="">—</option>{['A', 'B', 'C', 'D', 'E'].map((c) => <option key={c}>{c}</option>)}</select></Campo>
+            <Campo rotulo="Perfil (por metragem · D e E: + Projetos)"><select value={v('categoria')} onChange={(e) => { set('categoria', e.target.value); const pf = perfilPorId(e.target.value); if (pf) set('servico_estudo', pf.estudo); }}><option value="">—</option>{!perfilPorId(v('categoria')) && v('categoria') && <option value={v('categoria')}>{v('categoria')} (antigo)</option>}{PERFIS.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}</select></Campo>
             <label className="check campo largo"><input type="checkbox" checked={!!f.premium} onChange={(e) => set('premium', e.target.checked)} />Cliente premium (pendrive na entrega)</label>
           </Secao>
 
@@ -265,7 +266,7 @@ export default function ClienteDetalhe() {
             <section className="card secao">
               <h2>Serviços contratados</h2>
               <p className="mudo pequeno">Marque o que o escritório vai entregar a este cliente. Isso define as etapas do fluxo e já preenche o “Novo projeto”.</p>
-              <EscolherServicos v={escolha} aoMudar={setEscolha} desabilitado={!pode} />
+              <EscolherServicos v={escolha} aoMudar={setEscolha} metragem={Number(v('obra_metragem').replace(',', '.')) || undefined} desabilitado={!pode} />
             </section>
           </div>
           {novo && (

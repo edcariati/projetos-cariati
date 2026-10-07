@@ -5,7 +5,7 @@ import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
 import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
-import { flagsDe } from '../lib/servicos';
+import { PERFIS, flagsDe, perfilPorId } from '../lib/servicos';
 
 export default function NovoProjeto() {
   const nav = useNavigate();
@@ -34,10 +34,10 @@ export default function NovoProjeto() {
   // serviços combinados no cadastro do cliente pré-preenchem o escopo
   const clienteSel = clientes.find((c) => c.id === clienteId);
   useEffect(() => {
-    if (!clienteSel?.servicos?.length && !clienteSel?.servico_estudo) return;
-    const f = flagsDe(clienteSel.servicos ?? []);
+    if (!clienteSel || (!clienteSel.servicos?.length && !clienteSel.servico_estudo && !perfilPorId(clienteSel.categoria))) return;
+    const f = flagsDe(clienteSel.servicos ?? [], clienteSel.categoria);
     setLegal(f.legal); setInteriores(f.interiores); setCompl(f.complementares); setHabitese(f.habitese);
-    if (clienteSel.servico_estudo) setTipoEstudo(clienteSel.servico_estudo as TipoEstudo);
+    const est = clienteSel.servico_estudo || perfilPorId(clienteSel.categoria)?.estudo; if (est) setTipoEstudo(est as TipoEstudo);
     if (clienteSel.servico_aprovacao) setAprovacao(clienteSel.servico_aprovacao);
   }, [clienteSel]);
 
@@ -87,9 +87,9 @@ export default function NovoProjeto() {
             <label>Nome<input required value={novoCliente.nome} onChange={(e) => setNovoCliente({ ...novoCliente, nome: e.target.value })} /></label>
             <div className="duas">
               <label>Código<input placeholder="CA000123" value={novoCliente.codigo} onChange={(e) => setNovoCliente({ ...novoCliente, codigo: e.target.value })} /></label>
-              <label>Perfil (A a C: Cariati normal · D e E: + Projetos)
+              <label>Perfil (por metragem · D e E: + Projetos)
                 <select value={novoCliente.categoria} onChange={(e) => setNovoCliente({ ...novoCliente, categoria: e.target.value })}>
-                  <option value="">—</option>{['A', 'B', 'C', 'D', 'E'].map((c) => <option key={c}>{c}</option>)}
+                  <option value="">—</option>{PERFIS.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
                 </select>
               </label>
             </div>

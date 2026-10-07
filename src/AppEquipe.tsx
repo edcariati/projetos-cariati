@@ -23,6 +23,7 @@ const Equipe = lazy(() => import('./pages/Equipe'));
 import Conta from './pages/Conta';
 import Clientes from './pages/Clientes';
 import ClienteDetalhe from './pages/ClienteDetalhe';
+const Servicos = lazy(() => import('./pages/Servicos'));
 const Cadastros = lazy(() => import('./pages/Cadastros'));
 const BancoHoras = lazy(() => import('./pages/BancoHoras'));
 const GestaoHoras = lazy(() => import('./pages/GestaoHoras'));
@@ -58,7 +59,7 @@ export default function AppEquipe() {
     setFavs(novo); gravarFavoritos(novo);
   }
   const grupos = [...new Set(itens.map((i) => i.grupo))];
-  const largo = pathname === '/fluxo' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' || pathname === '/horas' || pathname === '/projetos' || pathname === '/tarefas' || pathname === '/clientes' || pathname.startsWith('/cadastros');
+  const largo = pathname === '/fluxo' || pathname === '/servicos' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' || pathname === '/horas' || pathname === '/projetos' || pathname === '/tarefas' || pathname === '/clientes' || pathname.startsWith('/cadastros');
   const principais = [itens.find((i) => i.icone === 'painel') ?? itens[0], itens.find((i) => i.to === '/projetos')!, itens.find((i) => i.to === '/tarefas')!, itens.find((i) => i.to === '/clientes')!];
   const inicio = admin ? itens[0] : principais[0];
 
@@ -131,6 +132,7 @@ export default function AppEquipe() {
             <Route path="/protocolos" element={<Protocolos />} />
             <Route path="/tempos" element={<Tempos />} />
             <Route path="/fluxo" element={<Fluxo />} />
+            <Route path="/servicos" element={<Servicos />} />
             {banco && <Route path="/horas" element={<GestaoHoras />} />}
             {banco && <Route path="/banco-de-horas" element={<BancoHoras />} />}
             {admin && <Route path="/equipe" element={<Equipe />} />}

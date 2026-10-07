@@ -3,7 +3,7 @@ import { useIndice } from './indice';
 
 const TOPO: Record<string, string> = {
   '': 'Início', painel: 'Painel', projetos: 'Projetos', clientes: 'Clientes', tarefas: 'Minhas tarefas', protocolos: 'Protocolos', horas: 'Horas', tempos: 'Tempos',
-  'banco-de-horas': 'Banco de horas', fluxo: 'Fluxo', equipe: 'Equipe', cadastros: 'Cadastros', conta: 'Minha conta',
+  'banco-de-horas': 'Banco de horas', fluxo: 'Fluxo', servicos: 'Serviços', equipe: 'Equipe', cadastros: 'Cadastros', conta: 'Minha conta',
 };
 const SUB: Record<string, string> = { novo: 'Novo', clientes: 'Clientes', parceiros: 'Parceiros', usuarios: 'Quem usa o aplicativo' };
 

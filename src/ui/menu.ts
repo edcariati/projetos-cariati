@@ -14,6 +14,7 @@ export function itensMenu(eu: Profile): ItemMenu[] {
   l.push({ to: '/clientes', rotulo: 'Clientes', icone: 'clientes', grupo: 'Relacionamento' });
   l.push({ to: '/protocolos', rotulo: 'Protocolos', icone: 'protocolos', grupo: 'Relacionamento' });
   l.push(podeBancoHoras(eu) ? { to: '/horas', rotulo: 'Horas', icone: 'horas', grupo: 'Gestão' } : { to: '/tempos', rotulo: 'Tempos', icone: 'horas', grupo: 'Gestão' });
+  l.push({ to: '/servicos', rotulo: 'Serviços', icone: 'pasta', grupo: 'Gestão' });
   l.push({ to: '/fluxo', rotulo: 'Fluxo', icone: 'fluxo', grupo: 'Gestão' });
   if (admin) {
     l.push({ to: '/equipe', rotulo: 'Equipe', icone: 'equipe', grupo: 'Administração' });

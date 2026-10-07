@@ -351,7 +351,7 @@ const proto = (projeto_id: string, p: Row) => db.protocolos.push({ id: uid(), pr
 const doc = (projeto_id: string, etapa: string, nome: string, arquivo: string, liberado: boolean) =>
   db.projeto_documentos.push({ id: uid(), projeto_id, etapa_codigo: etapa, modelo_id: null, nome, codigo_arquivo: null, arquivo_path: `${projeto_id}/${etapa}/${arquivo}`, arquivo_nome: arquivo, created_at: iso(-3), visivel_cliente: liberado });
 
-const silva = novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A', premium: true, telefone: '(15) 99999-0101' },
+const silva = novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A2', premium: true, telefone: '(15) 99999-0101' },
   { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tem_habitese: true, tipo_aprovacao: 'residencial' }, '09', 2);
 db.projeto_equipe.push({ id: uid(), projeto_id: silva.id, usuario_id: 'rafael', especialidade: 'interiores' });
 const oliveira = novoProjeto({ nome: 'Ana Oliveira', codigo: 'CA000102', categoria: 'B' },
@@ -487,8 +487,8 @@ function completarClientes() {
   ed('Ana Oliveira', { documento: '11144477735', rg: '23.456.789-0 SSP/SP', estado_civil: 'Solteiro(a)', nacionalidade: 'Brasileira', profissao: 'Médica', telefone: '(15) 99888-0102', email: 'ana.oliveira@exemplo.com',
     end_cep: '18040-000', end_logradouro: 'Av. Itavuvu', end_numero: '1500', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',
     obra_intencao: 'Residencial', obra_metragem: 210, obra_logradouro: 'Rua do Mar', obra_numero: '88', obra_bairro: 'Praia Azul', obra_cidade: 'Ubatuba', obra_uf: 'SP', obra_lote: '7', obra_quadra: 'C', obra_financiada: true });
-  ed('Marcos Silva', { servicos: ['legal', 'complementares'], servico_estudo: 'padrao', servico_aprovacao: 'residencial', servicos_observacao: 'Complementares: elétrico e hidrossanitário.' });
-  ed('Ana Oliveira', { servicos: ['legal', 'interiores', 'habitese'], servico_estudo: 'padrao', servico_aprovacao: 'residencial' });
+  ed('Marcos Silva', { servicos: ['estrutural-04', 'estrutural-05', 'eletrico-02', 'hidro-02', 'hidro-04'], servico_estudo: 'padrao', servico_aprovacao: 'residencial', servicos_observacao: 'Complementares: estrutural, elétrico e hidrossanitário.' });
+  ed('Ana Oliveira', { servicos: ['interiores-02', 'interiores-07', 'prefeitura-06'], servico_estudo: 'padrao', servico_aprovacao: 'residencial' });
   ed('Carla Lima', { telefone: '(11) 97777-0105', email: 'carla.lima@exemplo.com', end_cidade: 'São Paulo', end_uf: 'SP', obra_intencao: 'Interiores' });
   ed('Comercial Rocha', { tipo_pessoa: 'juridica', documento: '11222333000181', empresa_razao_social: 'Comercial Rocha Ltda', empresa_responsavel: 'Paulo Rocha', empresa_responsavel_cpf: '39053344705',
     telefone: '(15) 3222-0103', email: 'contato@rocha.exemplo.com', end_cep: '18010-000', end_logradouro: 'Rua XV de Novembro', end_numero: '300', end_bairro: 'Centro', end_cidade: 'Sorocaba', end_uf: 'SP',
