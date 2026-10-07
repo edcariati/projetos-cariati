@@ -1,5 +1,6 @@
 /* Modo demonstração (VITE_DEMO=1): banco em memória com dados de exemplo.
    Imita só o que o app usa do supabase-js. Nada é salvo e nada sai do navegador. */
+import { PADRAO } from './catalogoPadrao';
 import { REF_PADRAO } from './kpis';
 import sqlEtapas from '../../supabase/migrations/0002_seed_etapas.sql?raw';
 import sqlDocs from '../../supabase/migrations/0004_seed_documentos.sql?raw';
@@ -70,7 +71,7 @@ const db: Record<string, Row[]> = {
     { id: 'julia', email: 'julia@cariati.com.br', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
     { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
-  parceiros: [], clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
+  servico_categorias: [], servico_itens: [], perfis_cliente: [], parceiros: [], clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
   protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [], projeto_tarefas: [], projeto_tarefa_itens: [],
 };
 
@@ -114,7 +115,7 @@ function ver(t: string, r: Row): boolean {
     case 'tempos': return podeBanco() || r.usuario_id === eu;
     case 'banco_horas_ajustes': return podeBanco() || r.usuario_id === eu;
     case 'projeto_tarefas': case 'projeto_tarefa_itens': return !cli && verProjeto(r.projeto_id);
-    case 'etapa_modelos': case 'documento_modelos': case 'parceiros': return !cli;
+    case 'etapa_modelos': case 'documento_modelos': case 'parceiros': case 'servico_categorias': case 'servico_itens': case 'perfis_cliente': return !cli;
     case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
     default: return true;
   }
@@ -223,8 +224,11 @@ const DEFAULTS: Record<string, () => Row> = {
   banco_horas_ajustes: () => ({ data: data(0), criado_por: eu }),
 };
 const NEGADO = { data: null, error: { message: 'new row violates row-level security policy' } };
+DEFAULTS.servico_categorias = () => ({ etapas: [], ordem: 99, ativo: true });
+DEFAULTS.servico_itens = () => ({ ordem: 99, ativo: true });
+DEFAULTS.perfis_cliente = () => ({ faixa: '', estudo: 'padrao', entregas: [], area_min: null, area_max: null, sugerir: true, ordem: 99, ativo: true });
 DEFAULTS.parceiros = () => ({ tipo: 'outro', tipo_pessoa: 'juridica', documento: null, contato: null, telefone: null, whatsapp: null, email: null, cidade: null, uf: null, observacoes: null, ativo: true });
-const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos']);
+const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos', 'servico_categorias', 'servico_itens', 'perfis_cliente']);
 
 class Q implements PromiseLike<any> {
   op: 'select' | 'insert' | 'update' | 'delete' = 'select';
@@ -497,6 +501,9 @@ function completarClientes() {
 }
 proto(silva.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/50011', status: 'protocolado', data_protocolo: data(-30), prazo: data(-3), cliente_notificado: true });
 completarClientes();
+db.servico_categorias = PADRAO.categorias.map((c, i) => ({ id: c.id, nome: c.nome, etapas: c.etapas, ordem: i + 1, ativo: true }));
+db.servico_itens = PADRAO.categorias.flatMap((c) => c.itens.map((x, i) => ({ id: x.id, categoria_id: c.id, nome: x.nome, ordem: i + 1, ativo: true })));
+db.perfis_cliente = PADRAO.perfis.map((p, i) => ({ ...p, ordem: i + 1 }));
 db.parceiros = [
   ['Estrutura Viva Engenharia', 'estrutural', 'juridica', '11222333000181', 'Carlos Menezes', '(62) 3255-1010', '(62) 99911-2020', 'contato@estruturaviva.com.br', 'Goiânia', 'GO'],
   ['Luz & Fluxo Instalações', 'eletrica_hidraulica', 'juridica', '45723174000110', 'Patrícia Duarte', '(62) 3212-7788', '(62) 99822-3344', 'projetos@luzefluxo.com.br', 'Goiânia', 'GO'],

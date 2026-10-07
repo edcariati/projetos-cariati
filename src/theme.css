@@ -624,3 +624,18 @@ details.cat>summary{cursor:pointer;display:flex;align-items:center;gap:var(--sp-
 details.cat>summary::-webkit-details-marker{display:none}
 details.cat>summary::before{content:"▸";color:var(--ink3)}details.cat[open]>summary::before{content:"▾"}
 .cat-itens{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:6px var(--sp-4);margin-top:var(--sp-3)}
+
+/* edição do catálogo */
+.cad-cat>summary{cursor:pointer;display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;list-style:none}
+.cad-cat>summary::-webkit-details-marker{display:none}
+.cad-cat>summary::before{content:"▸";color:var(--ink3)}.cad-cat[open]>summary::before{content:"▾"}
+.cad-cat-corpo{display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-4)}
+.cad-itens{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cad-itens li{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto auto;gap:6px;align-items:center}
+.cad-itens li input{min-height:40px}
+.cad-itens li button{min-height:38px;padding:4px 12px;font-size:13px}
+.gira-cima{transform:rotate(90deg)}.gira-baixo{transform:rotate(-90deg)}
+@media(max-width:720px){.cad-itens li{grid-template-columns:1fr 1fr 1fr 1fr}.cad-itens li input{grid-column:1/-1}.cad-itens li span{grid-column:1/-1}}
+.servicos-resumo>li{min-width:0;overflow-wrap:anywhere}
+.servicos-resumo .tag{white-space:normal;display:inline-block;margin:2px 0 2px 6px}
+.servicos-resumo{grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))}

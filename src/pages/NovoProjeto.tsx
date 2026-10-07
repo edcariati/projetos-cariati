@@ -5,11 +5,12 @@ import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
 import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
-import { PERFIS, flagsDe, perfilPorId } from '../lib/servicos';
+import { flagsDe, perfilPorId, useCatalogo } from '../lib/servicos';
 
 export default function NovoProjeto() {
   const nav = useNavigate();
   const eu = usePerfil();
+  const catalogo = useCatalogo();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [equipe, setEquipe] = useState<Profile[]>([]);
   const [params] = useSearchParams();
@@ -89,7 +90,7 @@ export default function NovoProjeto() {
               <label>Código<input placeholder="CA000123" value={novoCliente.codigo} onChange={(e) => setNovoCliente({ ...novoCliente, codigo: e.target.value })} /></label>
               <label>Perfil (por metragem · D e E: + Projetos)
                 <select value={novoCliente.categoria} onChange={(e) => setNovoCliente({ ...novoCliente, categoria: e.target.value })}>
-                  <option value="">—</option>{PERFIS.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
+                  <option value="">—</option>{catalogo.perfis.filter((c) => c.ativo).map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
                 </select>
               </label>
             </div>

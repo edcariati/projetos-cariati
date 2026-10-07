@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
-import { CATEGORIAS, ESTUDOS, PERFIS, etapasDe, flagsDe, idServico, nomeServico, perfilPorId, perfilSugerido, semFluxo } from '../lib/servicos';
+import { ESTUDOS, etapasDe, flagsDe, nomeServico, perfilPorId, perfilSugerido, semFluxo, useCatalogo } from '../lib/servicos';
 import { TIPOS_APROVACAO } from '../lib/labels';
 
 export interface Escolha { perfil: string; ids: string[]; estudo: string; aprovacao: string; obs: string }
 
 /** Escolha do perfil e dos serviços que serão entregues ao cliente. */
 export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Escolha; aoMudar: (e: Escolha) => void; metragem?: number; desabilitado?: boolean }) {
+  const cat = useCatalogo();
   const perfil = perfilPorId(v.perfil);
   const sugerido = metragem ? perfilSugerido(metragem) : null;
   const alterna = (id: string) => aoMudar({ ...v, ids: v.ids.includes(id) ? v.ids.filter((x) => x !== id) : [...v.ids, id] });
@@ -16,7 +17,7 @@ export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Es
       <fieldset className="perfis" disabled={desabilitado}>
         <legend>Perfil do cliente (define o que o projeto arquitetônico entrega)</legend>
         <div className="perfis-grade" role="radiogroup" aria-label="Perfil do cliente">
-          {PERFIS.map((p) => (
+          {cat.perfis.filter((p) => p.ativo || p.id === v.perfil).map((p) => (
             <label key={p.id} className={`perfil-op${v.perfil === p.id ? ' on' : ''}`}>
               <input type="radio" name="perfil" checked={v.perfil === p.id} onChange={() => escolhePerfil(p.id)} />
               <b>{p.nome}</b><span>{p.faixa}</span><em>{p.entregas.length} entregas{sugerido === p.id ? ' · sugerido pela metragem' : ''}</em>
@@ -41,16 +42,14 @@ export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Es
 
       <h3 style={{ margin: '8px 0 0' }}>Serviços adicionais do catálogo</h3>
       <p className="mudo pequeno" style={{ margin: 0 }}>Marque o que for contratado além das entregas do perfil.</p>
-      {CATEGORIAS.map((c) => {
+      {cat.categorias.filter((c) => c.ativo || v.ids.some((i) => i.startsWith(c.id + '-'))).map((c) => {
         const marcados = v.ids.filter((i) => i.startsWith(c.id + '-')).length;
+        const visiveis = c.itens.filter((x) => x.ativo || v.ids.includes(x.id));
         return (
           <details className={`servico cat${marcados ? ' on' : ''}`} key={c.id} open={marcados > 0}>
-            <summary><b>{c.nome}</b> <span className="badge">{marcados ? `${marcados} de ${c.itens.length}` : c.itens.length}</span></summary>
+            <summary><b>{c.nome}</b> <span className="badge">{marcados ? `${marcados} de ${visiveis.length}` : visiveis.length}</span></summary>
             <div className="cat-itens">
-              {c.itens.map((nome, i) => {
-                const id = idServico(c.id, i);
-                return <label className="check" key={id}><input type="checkbox" disabled={desabilitado} checked={v.ids.includes(id)} onChange={() => alterna(id)} />{nome}</label>;
-              })}
+              {visiveis.map((x) => <label className="check" key={x.id}><input type="checkbox" disabled={desabilitado} checked={v.ids.includes(x.id)} onChange={() => alterna(x.id)} />{x.nome}{!x.ativo && <span className="tag">desativado</span>}</label>)}
             </div>
           </details>
         );
@@ -69,10 +68,11 @@ export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Es
 
 /** O que vamos entregar: usado na confirmação do cadastro e na ficha do cliente. */
 export function ResumoServicos({ v, titulo = 'Serviços que vamos entregar', editar }: { v: Escolha; titulo?: string; editar?: string }) {
+  const cat = useCatalogo();
   const perfil = perfilPorId(v.perfil);
   const estudo = ESTUDOS.find((e) => e.id === (v.estudo || perfil?.estudo || 'padrao'));
   const etapas = etapasDe(v.ids, v.perfil).length;
-  const grupos = CATEGORIAS.map((c) => ({ c, itens: v.ids.filter((i) => i.startsWith(c.id + '-')).map((i) => nomeServico(i).nome) })).filter((g) => g.itens.length);
+  const grupos = cat.categorias.map((c) => ({ c, itens: v.ids.filter((i) => i.startsWith(c.id + '-')).map((i) => nomeServico(i).nome) })).filter((g) => g.itens.length);
   const pend = semFluxo(v.ids);
   return (
     <section className="card resumo-servicos" aria-label={titulo}>

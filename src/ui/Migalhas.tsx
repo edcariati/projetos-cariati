@@ -5,7 +5,7 @@ const TOPO: Record<string, string> = {
   '': 'Início', painel: 'Painel', projetos: 'Projetos', clientes: 'Clientes', tarefas: 'Minhas tarefas', protocolos: 'Protocolos', horas: 'Horas', tempos: 'Tempos',
   'banco-de-horas': 'Banco de horas', fluxo: 'Fluxo', servicos: 'Serviços', equipe: 'Equipe', cadastros: 'Cadastros', conta: 'Minha conta',
 };
-const SUB: Record<string, string> = { novo: 'Novo', clientes: 'Clientes', parceiros: 'Parceiros', usuarios: 'Quem usa o aplicativo' };
+const SUB: Record<string, string> = { novo: 'Novo', clientes: 'Clientes', parceiros: 'Parceiros', usuarios: 'Quem usa o aplicativo', servicos: 'Serviços e perfis' };
 
 /** Trilha de navegação: Seção › Tela. Nos detalhes mostra o nome do projeto ou do cliente. */
 export function trilha(pathname: string, nomeDe: (secao: string, id: string) => string | undefined): { to: string; rotulo: string }[] {

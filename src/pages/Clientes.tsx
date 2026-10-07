@@ -7,7 +7,7 @@ import { completude, digitos, formatarDocumento, formatarTelefone } from '../lib
 import { pessoaPodeEditarClientes } from '../lib/perfil';
 import { usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
-import { PERFIS } from '../lib/servicos';
+import { useCatalogo } from '../lib/servicos';
 import { Carregando, Vazio } from '../ui/Holo';
 
 interface Resumo { cliente_id: string; status: string }
@@ -15,6 +15,7 @@ interface Resumo { cliente_id: string; status: string }
 /** Cadastro de clientes: busca, filtros e acesso ao cadastro completo de cada um. */
 export default function Clientes() {
   const eu = usePerfil();
+  const catalogo = useCatalogo();
   const [lista, setLista] = useState<Cliente[] | null>(null);
   const [projetos, setProjetos] = useState<Resumo[]>([]);
   const [busca, setBusca] = useState('');
@@ -62,7 +63,7 @@ export default function Clientes() {
       </div>
       <div className="filtros filtros-linha">
         <select id="filtro-categoria" value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Perfil">
-          <option value="">Todos os perfis</option>{PERFIS.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
+          <option value="">Todos os perfis</option>{catalogo.perfis.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
         </select>
         <select id="filtro-tipo" value={tipo} onChange={(e) => setTipo(e.target.value)} aria-label="Tipo de pessoa">
           <option value="">Pessoa física e jurídica</option><option value="fisica">Pessoa física</option><option value="juridica">Pessoa jurídica</option>

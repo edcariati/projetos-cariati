@@ -139,6 +139,7 @@ export default function AppEquipe() {
             {admin && <Route path="/cadastros" element={<Navigate to="/cadastros/clientes" replace />} />}
             {admin && <Route path="/cadastros/clientes" element={<Cadastros aba="clientes" />} />}
             {admin && <Route path="/cadastros/parceiros" element={<Cadastros aba="parceiros" />} />}
+            {admin && <Route path="/cadastros/servicos" element={<Cadastros aba="servicos" />} />}
             {admin && <Route path="/cadastros/usuarios" element={<Cadastros aba="usuarios" />} />}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
