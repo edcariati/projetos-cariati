@@ -18,6 +18,8 @@ import { Carregando, Vazio } from '../ui/Holo';
 
 const COM_RODADAS = new Set(['09', '13', '17']);
 
+import { ResumoServicos, type Escolha } from '../components/ServicosCliente';
+import { perfilPorId, useCatalogo } from '../lib/servicos';
 export default function ProjetoDetalhe() {
   const { id } = useParams();
   const eu = usePerfil();
@@ -48,7 +50,7 @@ export default function ProjetoDetalhe() {
 
   const carregar = useCallback(async () => {
     const [p, e, h, pr, eq, ta, it, tp] = await Promise.all([
-      supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id!).single(),
+      supabase.from('projetos').select('*, clientes(nome,codigo,categoria,servicos,servico_estudo,servico_aprovacao,servicos_observacao), profiles(nome)').eq('id', id!).single(),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
       supabase.from('historico').select('*, profiles(nome)').eq('projeto_id', id!).order('created_at', { ascending: false }).limit(50),
       supabase.from('protocolos').select('*').eq('projeto_id', id!).order('created_at', { ascending: false }),
@@ -73,7 +75,13 @@ export default function ProjetoDetalhe() {
     try { await fn(); await carregar(); } catch (e) { setErro((e as Error).message); }
   };
 
+  const catalogo = useCatalogo();
   if (!projeto) return <Carregando tipo="cartoes" n={2} />;
+  const cl = projeto.clientes;
+  const escolha: Escolha = { perfil: projeto.perfil ?? cl?.categoria ?? '', ids: projeto.servicos ?? cl?.servicos ?? [], estudo: projeto.tipo_estudo, aprovacao: projeto.tipo_aprovacao ?? cl?.servico_aprovacao ?? '', obs: projeto.servicos_observacao ?? cl?.servicos_observacao ?? '' };
+  const temEntregas = !!perfilPorId(escolha.perfil) || escolha.ids.length > 0;
+  const parceiro19 = catalogo.categorias.some((c) => c.execucao === 'parceiro' && c.etapas.includes('19') && escolha.ids.some((i) => i.startsWith(c.id + '-')));
+  const faixa = etapas.filter((e) => e.status !== 'nao_aplicavel').map((e) => ({ e, m: modelos.find((x) => x.codigo === e.etapa_codigo) })).filter((x) => x.m).sort((a, b) => a.m!.ordem - b.m!.ordem);
   const pausado = projeto.status === 'pausado';
   const dias = diasDePausa(projeto.pausado_em);
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
@@ -124,6 +132,22 @@ export default function ProjetoDetalhe() {
           </>}
         </div>
       </section>
+
+      {faixa.length > 0 && (
+        <section className="card" aria-label="Fluxo deste projeto">
+          <h2>Fluxo deste projeto <span className="badge">{faixa.length} etapas</span></h2>
+          <ol className="faixa-fluxo">
+            {faixa.map(({ e, m }) => (
+              <li key={e.etapa_codigo} className={e.status} title={m!.titulo}>
+                <i>{e.status === 'concluida' ? '✓' : e.etapa_codigo}</i><span>{m!.rotulo}</span>
+                {e.etapa_codigo === '19' && parceiro19 && <em>parceiros · Cariati confere</em>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+      {temEntregas && <ResumoServicos v={escolha} titulo="Entregas contratadas" />}
+
 
       {temPausa && (
         <section className="card">

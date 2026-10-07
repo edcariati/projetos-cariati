@@ -45,10 +45,11 @@ export interface EtapaModelo {
   opcional: boolean; aceite_formal: boolean; escopo: string | null; horas_padrao: number;
 }
 export interface Projeto {
+  perfil?: string | null; servicos?: string[] | null; servicos_observacao?: string | null;
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
   tipo_estudo: TipoEstudo; tem_habitese: boolean; horas_estimadas: number | null; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
-  created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> | null; profiles?: { nome: string } | null;
+  created_at: string; clientes?: Pick<Cliente, 'nome' | 'codigo'> & Partial<Pick<Cliente, 'categoria' | 'servicos' | 'servico_estudo' | 'servico_aprovacao' | 'servicos_observacao'>> | null; profiles?: { nome: string } | null;
   projeto_etapas?: Pick<ProjetoEtapa, 'etapa_codigo' | 'status'>[];
 }
 export interface ProjetoEtapa {

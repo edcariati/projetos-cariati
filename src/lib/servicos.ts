@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import type { TipoEstudo } from './types';
 import { PADRAO, type Catalogo, type Categoria, type Item, type Perfil } from './catalogoPadrao';
 
-export { PADRAO, idServico } from './catalogoPadrao';
+export { PADRAO, NOTA_PARCEIRO, idServico } from './catalogoPadrao';
 export type { Catalogo, Categoria, Item, Perfil };
 
 /** Etapas do fluxo que valem para todo projeto (o arquitetônico é o serviço-base). */
@@ -28,7 +28,7 @@ export async function carregarCatalogo(forcar = false): Promise<Catalogo> {
     const itens = (i.data ?? []) as { id: string; categoria_id: string; nome: string; ativo: boolean }[];
     atual = {
       doBanco: true,
-      categorias: (c.data as { id: string; nome: string; etapas: string[]; ativo: boolean }[]).map((x) => ({ id: x.id, nome: x.nome, etapas: x.etapas ?? [], ativo: x.ativo, itens: itens.filter((y) => y.categoria_id === x.id).map((y) => ({ id: y.id, nome: y.nome, ativo: y.ativo })) })),
+      categorias: (c.data as { id: string; nome: string; etapas: string[]; execucao?: 'escritorio' | 'parceiro'; ativo: boolean }[]).map((x) => ({ id: x.id, nome: x.nome, etapas: x.etapas ?? [], execucao: x.execucao ?? 'escritorio', ativo: x.ativo, itens: itens.filter((y) => y.categoria_id === x.id).map((y) => ({ id: y.id, nome: y.nome, ativo: y.ativo })) })),
       perfis: ((p.data ?? []) as (Omit<Perfil, 'area_min' | 'area_max'> & { area_min: number | null; area_max: number | null })[]).map((x) => ({ ...x, area_min: x.area_min === null ? null : Number(x.area_min), area_max: x.area_max === null ? null : Number(x.area_max), entregas: x.entregas ?? [] })),
     };
   }

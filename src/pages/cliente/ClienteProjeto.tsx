@@ -22,6 +22,8 @@ const ACAO: Record<string, string> = {
   '23': 'Participar da reunião de entrega e assinar o termo de retirada dos documentos.',
 };
 
+import { ResumoServicos } from '../../components/ServicosCliente';
+import { perfilPorId } from '../../lib/servicos';
 export default function ClienteProjeto() {
   const { id } = useParams();
   const [projeto, setProjeto] = useState<Projeto | null>(null);
@@ -75,6 +77,9 @@ export default function ClienteProjeto() {
         </section>
       )}
 
+      {(perfilPorId(projeto.perfil) || (projeto.servicos?.length ?? 0) > 0) && (
+        <ResumoServicos cliente titulo="O que vamos entregar" v={{ perfil: projeto.perfil ?? '', ids: projeto.servicos ?? [], estudo: projeto.tipo_estudo, aprovacao: projeto.tipo_aprovacao ?? '', obs: projeto.servicos_observacao ?? '' }} />
+      )}
       <h2>Andamento</h2>
       {[1, 2, 3, 4, 6].map((fase) => {
         const lista = modelos.filter((m) => m.fase === fase && st(m.codigo) && st(m.codigo)!.status !== 'nao_aplicavel');

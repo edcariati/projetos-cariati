@@ -62,6 +62,7 @@ export default function NovoProjeto() {
       const { data, error } = await supabase.from('projetos').insert({
         cliente_id: cid, nome, responsavel_id: responsavel || null, tem_legal: legal,
         tem_interiores: interiores, tem_complementares: compl, tem_habitese: habitese, tipo_estudo: tipoEstudo, tipo_aprovacao: legal ? aprovacao || null : null,
+        perfil: (clienteId ? clienteSel?.categoria : novoCliente.categoria) || null, servicos: clienteId ? clienteSel?.servicos ?? [] : [], servicos_observacao: clienteId ? clienteSel?.servicos_observacao ?? null : null,
       }).select('id').single();
       if (error) throw error;
       nav(`/projetos/${data.id}`);

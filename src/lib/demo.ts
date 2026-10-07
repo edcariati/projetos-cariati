@@ -215,7 +215,7 @@ const DEFAULTS: Record<string, () => Row> = {
     obra_condominio: null, obra_lote: null, obra_quadra: null, obra_inscricao_municipal: null, obra_matricula: null, obra_financiada: null, responsavel_comercial: null,
     atualizado_em: new Date().toISOString(), atualizado_por: null,
   }),
-  projetos: () => ({ tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ perfil: null, servicos: null, servicos_observacao: null, tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),
@@ -224,7 +224,7 @@ const DEFAULTS: Record<string, () => Row> = {
   banco_horas_ajustes: () => ({ data: data(0), criado_por: eu }),
 };
 const NEGADO = { data: null, error: { message: 'new row violates row-level security policy' } };
-DEFAULTS.servico_categorias = () => ({ etapas: [], ordem: 99, ativo: true });
+DEFAULTS.servico_categorias = () => ({ etapas: [], execucao: 'escritorio', ordem: 99, ativo: true });
 DEFAULTS.servico_itens = () => ({ ordem: 99, ativo: true });
 DEFAULTS.perfis_cliente = () => ({ faixa: '', estudo: 'padrao', entregas: [], area_min: null, area_max: null, sugerir: true, ordem: 99, ativo: true });
 DEFAULTS.parceiros = () => ({ tipo: 'outro', tipo_pessoa: 'juridica', documento: null, contato: null, telefone: null, whatsapp: null, email: null, cidade: null, uf: null, observacoes: null, ativo: true });
@@ -356,10 +356,10 @@ const doc = (projeto_id: string, etapa: string, nome: string, arquivo: string, l
   db.projeto_documentos.push({ id: uid(), projeto_id, etapa_codigo: etapa, modelo_id: null, nome, codigo_arquivo: null, arquivo_path: `${projeto_id}/${etapa}/${arquivo}`, arquivo_nome: arquivo, created_at: iso(-3), visivel_cliente: liberado });
 
 const silva = novoProjeto({ nome: 'Marcos Silva', codigo: 'CA000101', categoria: 'A2', premium: true, telefone: '(15) 99999-0101' },
-  { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tem_habitese: true, tipo_aprovacao: 'residencial' }, '09', 2);
+  { nome: 'Residência Silva', responsavel_id: 'marina', tem_legal: true, tem_interiores: true, tem_complementares: true, tem_habitese: true, tipo_aprovacao: 'residencial', perfil: 'A2', servicos: ['estrutural-04', 'estrutural-05', 'eletrico-02', 'hidro-02', 'hidro-04', 'interiores-02', 'interiores-07', 'prefeitura-06'], servicos_observacao: 'Complementares feitos por parceiros; a Cariati confere a compatibilização.' }, '09', 2);
 db.projeto_equipe.push({ id: uid(), projeto_id: silva.id, usuario_id: 'rafael', especialidade: 'interiores' });
 const oliveira = novoProjeto({ nome: 'Ana Oliveira', codigo: 'CA000102', categoria: 'B' },
-  { nome: 'Casa de Praia Oliveira', responsavel_id: 'marina', tem_legal: true, tipo_aprovacao: 'residencial' }, '16');
+  { nome: 'Casa de Praia Oliveira', responsavel_id: 'marina', tem_legal: true, tem_complementares: true, tipo_aprovacao: 'residencial', perfil: 'B', servicos: ['eletrico-02', 'eletrico-04'] }, '16');
 proto(oliveira.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/48213', status: 'exigencia', data_protocolo: data(-18), prazo: data(2), cliente_notificado: true });
 proto(oliveira.id, { tipo: 'condominio', orgao: 'Condomínio Praia Azul', status: 'em_analise', data_protocolo: data(-9), prazo: data(12), cliente_notificado: true });
 doc(oliveira.id, '05', 'Ata da reunião de briefing', 'ATA_CA000102_BRF.pdf', true);
@@ -501,7 +501,7 @@ function completarClientes() {
 }
 proto(silva.id, { tipo: 'prefeitura', orgao: 'Prefeitura Municipal', numero: '2026/50011', status: 'protocolado', data_protocolo: data(-30), prazo: data(-3), cliente_notificado: true });
 completarClientes();
-db.servico_categorias = PADRAO.categorias.map((c, i) => ({ id: c.id, nome: c.nome, etapas: c.etapas, ordem: i + 1, ativo: true }));
+db.servico_categorias = PADRAO.categorias.map((c, i) => ({ id: c.id, nome: c.nome, etapas: c.etapas, execucao: c.execucao, ordem: i + 1, ativo: true }));
 db.servico_itens = PADRAO.categorias.flatMap((c) => c.itens.map((x, i) => ({ id: x.id, categoria_id: c.id, nome: x.nome, ordem: i + 1, ativo: true })));
 db.perfis_cliente = PADRAO.perfis.map((p, i) => ({ ...p, ordem: i + 1 }));
 db.parceiros = [

@@ -107,6 +107,12 @@ function Servicos({ categorias, usoItem, gravar }: { categorias: Categoria[]; us
                   <p className="mudo pequeno" style={{ margin: 0 }}>Sem marcação, o serviço fica só registrado no cadastro do cliente.</p>
                 </fieldset>
               </div>
+              <label>Quem executa
+                <select value={c.execucao} onChange={(e) => void gravar(() => supabase.from('servico_categorias').update({ execucao: e.target.value }).eq('id', c.id), 'Execução atualizada.')}>
+                  <option value="escritorio">A Cariati executa</option>
+                  <option value="parceiro">Parceiro executa (a Cariati acompanha e confere a compatibilização)</option>
+                </select>
+              </label>
               <ul className="cad-itens">
                 {c.itens.map((x, i) => (
                   <li key={x.id} className={x.ativo ? '' : 'inativa'}>

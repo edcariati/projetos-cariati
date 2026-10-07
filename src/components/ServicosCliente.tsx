@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ESTUDOS, etapasDe, flagsDe, nomeServico, perfilPorId, perfilSugerido, semFluxo, useCatalogo } from '../lib/servicos';
+import { NOTA_PARCEIRO, ESTUDOS, etapasDe, flagsDe, nomeServico, perfilPorId, perfilSugerido, semFluxo, useCatalogo } from '../lib/servicos';
 import { TIPOS_APROVACAO } from '../lib/labels';
 
 export interface Escolha { perfil: string; ids: string[]; estudo: string; aprovacao: string; obs: string }
@@ -67,7 +67,7 @@ export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Es
 }
 
 /** O que vamos entregar: usado na confirmação do cadastro e na ficha do cliente. */
-export function ResumoServicos({ v, titulo = 'Serviços que vamos entregar', editar }: { v: Escolha; titulo?: string; editar?: string }) {
+export function ResumoServicos({ v, titulo = 'Serviços que vamos entregar', editar, cliente }: { v: Escolha; titulo?: string; editar?: string; cliente?: boolean }) {
   const cat = useCatalogo();
   const perfil = perfilPorId(v.perfil);
   const estudo = ESTUDOS.find((e) => e.id === (v.estudo || perfil?.estudo || 'padrao'));
@@ -83,11 +83,14 @@ export function ResumoServicos({ v, titulo = 'Serviços que vamos entregar', edi
           {perfil ? <ul>{perfil.entregas.map((e) => <li key={e}>{e}</li>)}</ul> : <p className="mudo pequeno">Escolha o perfil para listar as entregas.</p>}
         </li>
         {grupos.map(({ c, itens }) => (
-          <li key={c.id}><b>{c.nome}</b>{c.id === 'prefeitura' && v.aprovacao && <span className="tag">aprovação {v.aprovacao}</span>}<ul>{itens.map((e) => <li key={e}>{e}</li>)}</ul></li>
+          <li key={c.id}><b>{c.nome}</b>{c.id === 'prefeitura' && v.aprovacao && <span className="tag">aprovação {v.aprovacao}</span>}
+            {c.execucao === 'parceiro' && <span className="tag parceiro">Parceiro executa</span>}
+            <ul>{itens.map((e) => <li key={e}>{e}</li>)}</ul>
+            {c.execucao === 'parceiro' && <p className="nota-parceiro">{NOTA_PARCEIRO}</p>}</li>
         ))}
       </ul>
-      <p className="mudo pequeno">{etapas} etapas no fluxo deste cliente.{v.obs && <> Combinado: {v.obs}</>}</p>
-      {pend.length > 0 && <p className="mudo pequeno">Sem etapas próprias no fluxo ainda (ficam só registradas no cadastro): {pend.map((c) => c.nome).join(', ')}.</p>}
+      <p className="mudo pequeno">{!cliente && <>{etapas} etapas no fluxo.</>}{v.obs && <> Combinado: {v.obs}</>}</p>
+      {!cliente && pend.length > 0 && <p className="mudo pequeno">Sem etapas próprias no fluxo ainda (ficam só registradas no cadastro): {pend.map((c) => c.nome).join(', ')}.</p>}
       {editar && <p style={{ margin: 0 }}><Link to={editar}>Ver ou alterar os serviços →</Link></p>}
     </section>
   );

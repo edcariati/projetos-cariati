@@ -5,6 +5,7 @@ create table if not exists servico_categorias (
   id text primary key,
   nome text not null,
   etapas text[] not null default '{}',          -- etapas do fluxo acrescentadas quando algum serviço da categoria é contratado
+  execucao text not null default 'escritorio' check (execucao in ('escritorio','parceiro')),  -- parceiro = a Cariati acompanha e confere a compatibilização
   ordem int not null default 0,
   ativo boolean not null default true
 );
@@ -31,24 +32,24 @@ create table if not exists perfis_cliente (
 alter table servico_categorias enable row level security;
 alter table servico_itens enable row level security;
 alter table perfis_cliente enable row level security;
-create policy servcat_ler on servico_categorias for select to authenticated using ((select is_equipe()));
+create policy servcat_ler on servico_categorias for select to authenticated using (true);   -- o cliente também vê os nomes dos serviços do próprio projeto
 create policy servcat_escrever on servico_categorias for all to authenticated using ((select is_admin())) with check ((select is_admin()));
-create policy servit_ler on servico_itens for select to authenticated using ((select is_equipe()));
+create policy servit_ler on servico_itens for select to authenticated using (true);
 create policy servit_escrever on servico_itens for all to authenticated using ((select is_admin())) with check ((select is_admin()));
-create policy perfcli_ler on perfis_cliente for select to authenticated using ((select is_equipe()));
+create policy perfcli_ler on perfis_cliente for select to authenticated using (true);
 create policy perfcli_escrever on perfis_cliente for all to authenticated using ((select is_admin())) with check ((select is_admin()));
 grant select, insert, update, delete on servico_categorias, servico_itens, perfis_cliente to authenticated;
 
-insert into servico_categorias (id, nome, etapas, ordem) values
-  ('arq', 'Projeto Arquitetônico', array[]::text[], 1),
-  ('caixa', 'Documentação Caixa', array[]::text[], 2),
-  ('estrutural', 'Projeto Estrutural', array['19']::text[], 3),
-  ('hidro', 'Projeto Hidrossanitário', array['19']::text[], 4),
-  ('eletrico', 'Projeto Elétrico', array['19']::text[], 5),
-  ('reuso', 'Reuso de Água + Cisterna', array['19']::text[], 6),
-  ('evf', 'EVF — Estudo de Viabilidade Financeira', array[]::text[], 7),
-  ('interiores', 'Decoração de Interiores', array['17', '18']::text[], 8),
-  ('prefeitura', 'Serviços de Prefeitura', array['16']::text[], 9)
+insert into servico_categorias (id, nome, etapas, ordem, execucao) values
+  ('arq', 'Projeto Arquitetônico', array[]::text[], 1, 'escritorio'),
+  ('caixa', 'Documentação Caixa', array[]::text[], 2, 'escritorio'),
+  ('estrutural', 'Projeto Estrutural', array['19']::text[], 3, 'parceiro'),
+  ('hidro', 'Projeto Hidrossanitário', array['19']::text[], 4, 'parceiro'),
+  ('eletrico', 'Projeto Elétrico', array['19']::text[], 5, 'parceiro'),
+  ('reuso', 'Reuso de Água + Cisterna', array['19']::text[], 6, 'parceiro'),
+  ('evf', 'EVF — Estudo de Viabilidade Financeira', array[]::text[], 7, 'escritorio'),
+  ('interiores', 'Decoração de Interiores', array['17', '18']::text[], 8, 'escritorio'),
+  ('prefeitura', 'Serviços de Prefeitura', array['16']::text[], 9, 'escritorio')
 on conflict (id) do nothing;
 
 insert into servico_itens (id, categoria_id, nome, ordem) values

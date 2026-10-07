@@ -5,6 +5,8 @@ export interface Categoria {
   id: string; nome: string;
   /** etapas do fluxo acrescentadas quando algum serviço da categoria é contratado (vazio = ainda sem etapas próprias) */
   etapas: string[];
+  /** quem executa: o escritório ou um parceiro (nesse caso a Cariati acompanha e confere a compatibilização) */
+  execucao: 'escritorio' | 'parceiro';
   itens: Item[]; ativo: boolean;
 }
 export interface Perfil {
@@ -81,9 +83,11 @@ const FAIXAS: Record<string, [number | null, number | null, boolean]> = { A4: [1
 
 export const PADRAO: Catalogo = {
   doBanco: false,
-  categorias: CATEGORIAS_PADRAO.map((c) => ({ id: c.id, nome: c.nome, etapas: c.etapas ?? [], ativo: true, itens: c.itens.map((nome, i) => ({ id: idServico(c.id, i), nome, ativo: true })) })),
+  categorias: CATEGORIAS_PADRAO.map((c) => ({ id: c.id, nome: c.nome, etapas: c.etapas ?? [], execucao: ['estrutural', 'hidro', 'eletrico', 'reuso'].includes(c.id) ? 'parceiro' : 'escritorio', ativo: true, itens: c.itens.map((nome, i) => ({ id: idServico(c.id, i), nome, ativo: true })) })),
   perfis: PERFIS_PADRAO.map((p) => ({ ...p, area_min: FAIXAS[p.id][0], area_max: FAIXAS[p.id][1], sugerir: FAIXAS[p.id][2], ativo: true })),
 };
 
 export function idServico(cat: string, n: number) { return `${cat}-${String(n + 1).padStart(2, '0')}`; }
 
+
+export const NOTA_PARCEIRO = 'Executado por parceiro. A Cariati acompanha o projeto e confere a compatibilização com o arquitetônico.';

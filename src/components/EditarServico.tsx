@@ -60,6 +60,12 @@ export function EditarCategoria({ c, aoFechar }: { c: Categoria; aoFechar: () =>
       <div className="card modal-largo">
         <h2 style={{ margin: 0 }}>Editar serviços</h2>
         <label>Categoria<input defaultValue={c.nome} onBlur={(e) => renomearCat(e.target.value)} /></label>
+        <label>Quem executa
+          <select defaultValue={c.execucao} onChange={(e) => gravar(() => supabase.from('servico_categorias').update({ execucao: e.target.value }).eq('id', c.id), 'Execução atualizada.')}>
+            <option value="escritorio">A Cariati executa</option>
+            <option value="parceiro">Parceiro executa (a Cariati acompanha e confere a compatibilização)</option>
+          </select>
+        </label>
         <ul className="cad-itens modal-itens">
           {c.itens.map((x) => (
             <li key={x.id} className={x.ativo ? '' : 'inativa'}>
