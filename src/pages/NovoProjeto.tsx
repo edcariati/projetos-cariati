@@ -59,11 +59,17 @@ export default function NovoProjeto() {
         if (error) throw error;
         cid = data.id;
       }
-      const { data, error } = await supabase.from('projetos').insert({
+      const corpoProjeto = {
         cliente_id: cid, nome, responsavel_id: responsavel || null, tem_legal: legal,
         tem_interiores: interiores, tem_complementares: compl, tem_habitese: habitese, tipo_estudo: tipoEstudo, tipo_aprovacao: legal ? aprovacao || null : null,
         perfil: (clienteId ? clienteSel?.categoria : novoCliente.categoria) || null, servicos: clienteId ? clienteSel?.servicos ?? [] : [], servicos_observacao: clienteId ? clienteSel?.servicos_observacao ?? null : null,
-      }).select('id').single();
+      };
+      let r = await supabase.from('projetos').insert(corpoProjeto).select('id').single();
+      if (r.error && /perfil|servico|schema cache|column/i.test(r.error.message)) {   // banco sem a migração 0018: cria sem a cópia do perfil e dos serviços
+        const { perfil, servicos, servicos_observacao, ...basico } = corpoProjeto; void perfil; void servicos; void servicos_observacao;
+        r = await supabase.from('projetos').insert(basico).select('id').single();
+      }
+      const { data, error } = r;
       if (error) throw error;
       nav(`/projetos/${data.id}`);
     } catch (err) {

@@ -24,6 +24,13 @@ const COM_RODADAS = new Set(['09', '13', '17']);
 
 import { ResumoServicos, type Escolha } from '../components/ServicosCliente';
 import { perfilPorId, useCatalogo } from '../lib/servicos';
+/** Busca o projeto com os serviços do cliente; se o banco ainda não tem as colunas novas (atualizar_0018.sql), busca só o básico. */
+async function buscarProjeto(id: string) {
+  const r = await supabase.from('projetos').select('*, clientes(nome,codigo,categoria,servicos,servico_estudo,servico_aprovacao,servicos_observacao), profiles(nome)').eq('id', id).single();
+  if (r.error && /servico|column|schema cache/i.test(r.error.message)) return supabase.from('projetos').select('*, clientes(nome,codigo), profiles(nome)').eq('id', id).single();
+  return r;
+}
+
 export default function ProjetoDetalhe() {
   const { id } = useParams();
   const eu = usePerfil();
@@ -54,7 +61,7 @@ export default function ProjetoDetalhe() {
 
   const carregar = useCallback(async () => {
     const [p, e, h, pr, eq, ta, it, tp] = await Promise.all([
-      supabase.from('projetos').select('*, clientes(nome,codigo,categoria,servicos,servico_estudo,servico_aprovacao,servicos_observacao), profiles(nome)').eq('id', id!).single(),
+      buscarProjeto(id!),
       supabase.from('projeto_etapas').select('*').eq('projeto_id', id!),
       supabase.from('historico').select('*, profiles(nome)').eq('projeto_id', id!).order('created_at', { ascending: false }).limit(50),
       supabase.from('protocolos').select('*').eq('projeto_id', id!).order('created_at', { ascending: false }),

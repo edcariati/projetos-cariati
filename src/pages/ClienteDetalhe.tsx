@@ -17,6 +17,10 @@ const TEXTOS = ['codigo', 'nome', 'categoria', 'documento', 'rg', 'estado_civil'
   'obra_intencao', 'obra_cep', 'obra_logradouro', 'obra_numero', 'obra_complemento', 'obra_bairro', 'obra_cidade', 'obra_uf', 'obra_condominio', 'obra_lote', 'obra_quadra',
   'obra_inscricao_municipal', 'obra_matricula', 'observacoes'] as const;
 
+/** O banco ainda não tem as colunas de serviços (migração 0018)? Então grava o cadastro sem elas. */
+const semColunaServicos = (m: string) => /servico|schema cache|column/i.test(m);
+const semServicos = (c: Record<string, unknown>) => { const { servicos, servico_estudo, servico_aprovacao, servicos_observacao, ...resto } = c; void servicos; void servico_estudo; void servico_aprovacao; void servicos_observacao; return resto; };
+
 function Campo({ rotulo, children, largo }: { rotulo: string; children: ReactNode; largo?: boolean }) {
   return <label className={largo ? 'campo largo' : 'campo'}>{rotulo}{children}</label>;
 }
@@ -120,13 +124,17 @@ export default function ClienteDetalhe() {
     setBusy(true);
     try {
       if (novo) {
-        const { data, error } = await supabase.from('clientes').insert(corpo).select('id').single();
+        let r = await supabase.from('clientes').insert(corpo).select('id').single();
+        if (r.error && semColunaServicos(r.error.message)) { r = await supabase.from('clientes').insert(semServicos(corpo)).select('id').single(); avisar('Cliente salvo, mas os serviços não foram gravados: rode o atualizar_0018.sql no Supabase.', { tipo: 'erro' }); }
+        const { data, error } = r;
         if (error) throw error;
         try { localStorage.removeItem('rascunho-cliente'); } catch { /* ignora */ }
         avisar('Cliente cadastrado.');
         nav(`/clientes/${data.id}`, { replace: true });
       } else {
-        const { error } = await supabase.from('clientes').update(corpo).eq('id', id!);
+        let r = await supabase.from('clientes').update(corpo).eq('id', id!);
+        if (r.error && semColunaServicos(r.error.message)) { r = await supabase.from('clientes').update(semServicos(corpo)).eq('id', id!); avisar('Cadastro salvo, mas os serviços não foram gravados: rode o atualizar_0018.sql no Supabase.', { tipo: 'erro' }); }
+        const { error } = r;
         if (error) throw error;
         setOk('Cadastro salvo.'); setMeta({ atualizado_em: new Date().toISOString(), por: eu.nome });
       }
