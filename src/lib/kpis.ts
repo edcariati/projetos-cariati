@@ -205,7 +205,7 @@ export function calcular(b: Bruto, periodoId: string, resp: string, agoraMs = Da
     .map((p) => diasEntre(p.created_at, fimProjeto(p)!));
   const cicloA = ciclosDe(ini, fim), cicloB = ciclosDe(iniAnt, fimAnt);
 
-  const apres = projetos.flatMap((p) => p.projeto_etapas.filter((e) => ['09', '13'].includes(e.etapa_codigo) && (e.status === 'concluida' || e.status === 'em_andamento')));
+  const apres = projetos.flatMap((p) => p.projeto_etapas.filter((e) => ['07', '09', '11', '13'].includes(e.etapa_codigo) && (e.status === 'concluida' || e.status === 'em_andamento')));
   const rodadas = apres.length ? media(apres.map((e) => e.rodadas_ajuste)) : null;
 
   const entradasSerie = bal.map((x) => entradasDe(x.ini, x.fim)), saidasSerie = bal.map((x) => saidasDe(x.ini, x.fim));

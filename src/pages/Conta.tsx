@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { FormEvent, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { usePerfil } from '../lib/perfil';
@@ -39,6 +40,7 @@ export default function Conta() {
         {msg && <p className={msg.ok ? 'mudo' : 'erro'} role="status">{msg.ok ? '✓ ' : ''}{msg.texto}</p>}
         <button className="primario" disabled={busy}>{busy ? 'Salvando…' : 'Trocar senha'}</button>
       </form>
+      <p className="pequeno mudo"><Link to="/privacidade">Privacidade e dados pessoais</Link></p>
     </>
   );
 }

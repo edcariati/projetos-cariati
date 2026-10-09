@@ -663,3 +663,47 @@ html[data-theme="light"] .tag.parceiro{color:#6D28D9}
 .crono-tempo{display:inline-flex;align-items:center;gap:6px;min-width:3.4ch}
 .linha .crono-mini{margin-left:auto}
 .kanban{grid-auto-columns:minmax(260px,1fr)}
+.entregas-cab{display:flex;gap:var(--sp-3);align-items:center;flex-wrap:wrap}.entregas-cab b{flex:1;min-width:200px}
+.entregas-marcar{list-style:none;margin:0;padding:0;columns:2;column-gap:var(--sp-6)}
+.entregas-marcar li{break-inside:avoid;padding:4px 0}
+@media(max-width:700px){.entregas-marcar{columns:1}}
+.campo-erro{display:block;color:var(--red);font-size:12.5px;margin-top:2px}
+.campo-dica{display:block;color:var(--ink3);font-size:12.5px;margin-top:2px}
+.campo-ok{color:var(--green)}
+
+/* ajustes dos arquitetos: tarefas por projeto, registros de tempo, checklist editável */
+.kpi-btn{text-align:left;cursor:pointer;font:inherit;color:inherit;border:1px solid var(--line);width:100%}
+.kpi-btn.on{border-color:rgba(255,159,28,.75);box-shadow:0 0 0 2px rgba(255,159,28,.25)}
+.projeto-grupo{padding:0}
+.projeto-grupo>summary{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:center;padding:var(--sp-4) var(--sp-5);cursor:pointer;list-style:none}
+.projeto-grupo>summary::-webkit-details-marker{display:none}
+.projeto-grupo>summary::before{content:'▸';color:var(--ink3);transition:transform .15s}
+.projeto-grupo[open]>summary::before{transform:rotate(90deg)}
+.projeto-grupo>.tarefa-grupo{margin:0 var(--sp-4) var(--sp-4)}
+.resumo-projeto{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto}
+.tag.pendencia{background:rgba(251,191,36,.16);color:var(--amber);border-color:rgba(251,191,36,.5)}
+.grupo-etapas{margin:var(--sp-3) 0 var(--sp-2)}
+details.grupo-etapas>summary{cursor:pointer;font-weight:600;color:var(--ink2);padding:var(--sp-2) 0}
+h4.grupo-etapas{color:var(--ink2);font-size:13px;letter-spacing:.08em;text-transform:uppercase}
+.registros-tempo{margin-top:var(--sp-3);border:1px dashed var(--line);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3)}
+.registros-tempo>summary{cursor:pointer}
+.reg-tempo{display:flex;flex-wrap:wrap;gap:6px var(--sp-3);align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.reg-acoes{margin-left:auto;display:inline-flex;gap:var(--sp-3)}
+.linha-form{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:flex-end}
+.linha-form label{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.aviso-esquecido{color:var(--amber);font-size:12px;white-space:nowrap}
+.ck-edicao{margin:4px 0}
+.ck-linha{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);align-items:center}
+.ck-aceite{display:flex;flex-direction:column;gap:2px;margin-left:28px}
+.ck-aceite input{max-width:260px}
+.ck-crono{display:flex;align-items:center;gap:var(--sp-2);margin:4px 0 6px}
+.ck-crono button{min-height:28px;min-width:28px;padding:0;border-radius:50%;font-size:11px}
+.ck-crono.rodando{color:var(--ink)}
+.complementares-parceiros{margin:var(--sp-3) 0}
+.complementares-parceiros .nota input{flex:1}
+.linha-atualizacao{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+.linha-atualizacao a{flex:1;min-width:200px}
+.lista-simples{padding-left:20px;display:grid;gap:var(--sp-2)}
+fieldset{min-width:0}.grade-campos>*{min-width:0}.campo input,.campo select{max-width:100%}
+.servicos-resumo .tag{white-space:normal;max-width:100%}.servicos-resumo li{min-width:0}
+details.servico>summary{flex-wrap:wrap}details.servico .tag{white-space:normal;max-width:100%}

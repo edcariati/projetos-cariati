@@ -130,6 +130,7 @@ const REL: Record<string, Record<string, { t: string; fk: string; many: boolean 
   historico: { profiles: { t: 'profiles', fk: 'autor_id', many: false }, projetos: { t: 'projetos', fk: 'projeto_id', many: false } },
   tempos: { projetos: { t: 'projetos', fk: 'projeto_id', many: false }, profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
   projeto_equipe: { profiles: { t: 'profiles', fk: 'usuario_id', many: false } },
+  projeto_tarefa_itens: { projeto_tarefas: { t: 'projeto_tarefas', fk: 'tarefa_id', many: false } },
 };
 
 function splitTop(s: string): string[] {
@@ -289,11 +290,12 @@ class Q implements PromiseLike<any> {
       });
       return { data: null, error: null };
     } else if (this.op === 'delete') {
-      if (p.perfil !== 'admin' && !(t === 'banco_horas_ajustes' && podeBanco())) return { data: null, error: null };
-      const afetados = t === 'projeto_equipe' ? tabela.filter(casa).map((r) => r.projeto_id) : [];
-      db[t] = tabela.filter((r) => !casa(r));
+      const meu = (r: Row) => p.perfil === 'admin' || (t === 'banco_horas_ajustes' && podeBanco()) || (t === 'tempos' && r.usuario_id === eu) || t === 'projeto_tarefa_itens';
+      const apagar = tabela.filter((r) => casa(r) && meu(r));
+      const afetados = t === 'projeto_equipe' ? apagar.map((r) => r.projeto_id) : [];
+      db[t] = tabela.filter((r) => !apagar.includes(r));
       afetados.forEach(atribuirTarefas);
-      return { data: null, error: null };
+      return { data: apagar.map((r) => ({ id: r.id })), error: null };
     } else alvo = tabela.filter(casa);
     for (const [c, asc, nf] of [...this.ordem].reverse()) {
       alvo = [...alvo].sort((a, b) => {
@@ -555,7 +557,7 @@ function rpc(nome: string, args: any = {}) {
   if (nome === 'iniciar_cronometro') {
     if (!verProjeto(args.p_projeto)) return Promise.resolve(NEGADO);
     parar();
-    const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: eu, iniciado_em: agora, finalizado_em: null };
+    const r = { id: uid(), projeto_id: args.p_projeto, etapa_codigo: args.p_etapa, usuario_id: eu, iniciado_em: agora, finalizado_em: null, tarefa_id: args.p_tarefa ?? null, manual: false, nota: null };
     db.tempos.push(r);
     return Promise.resolve({ data: r, error: null });
   }

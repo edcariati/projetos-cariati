@@ -1,6 +1,6 @@
 import type { TipoEstudo } from './types';
 
-export interface Item { id: string; nome: string; ativo: boolean }
+export interface Item { id: string; nome: string; ativo: boolean; /** entra sozinho quando o cliente é Premium */ premium?: boolean }
 export interface Categoria {
   id: string; nome: string;
   /** etapas do fluxo acrescentadas quando algum serviço da categoria é contratado (vazio = ainda sem etapas próprias) */

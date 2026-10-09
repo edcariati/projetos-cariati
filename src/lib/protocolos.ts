@@ -140,10 +140,13 @@ export const TAREFAS: TarefaModelo[] = [
   "etapa": "03",
   "variante": "todas",
   "ordem": 1,
-  "titulo": "Avaliação interna",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
+  "titulo": "Apresentação do profissional no canal oficial do projeto",
+  "descricao": "Substitui a avaliação interna: o profissional se apresenta ao cliente e confere o envio do briefing.",
+  "prioridade": "Média",
+  "itens": [
+   "Profissional se apresentou ao cliente no canal oficial do projeto",
+   "Conferido o envio do briefing ao cliente"
+  ]
  },
  {
   "etapa": "03",
@@ -184,11 +187,12 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 1,
   "titulo": "Reunião de briefing",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Anexar ata de reunião no Vobi",
-   "Enviar ata de reunião ao cliente"
+   "Análise do briefing preenchido pelo cliente",
+   "Gerar a ata para a reunião",
+   "Redigir a ata",
+   "Enviar a ata para assinatura do cliente"
   ]
  },
  {
@@ -197,11 +201,13 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 2,
   "titulo": "Reunião de briefing",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Ata: dado aceite pelo cliente"
+   "Análise do briefing preenchido pelo cliente",
+   "Gerar a ata para a reunião",
+   "Redigir a ata",
+   "Enviar a ata para assinatura do cliente",
+   "Ata: dado aceite pelo cliente (registrar data e versão)"
   ]
  },
  {
@@ -210,11 +216,12 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 3,
   "titulo": "Reunião de briefing",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Anexar ata de reunião no Vobi",
-   "Enviar ata de reunião ao cliente"
+   "Análise do briefing preenchido pelo cliente",
+   "Gerar a ata para a reunião",
+   "Redigir a ata",
+   "Enviar a ata para assinatura do cliente"
   ]
  },
  {
@@ -223,8 +230,10 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 1,
   "titulo": "Aferição no terreno",
   "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
+  "prioridade": "Média",
+  "itens": [
+   "Salvar fotos e demais documentos no servidor"
+  ]
  },
  {
   "etapa": "06",
@@ -252,8 +261,10 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 4,
   "titulo": "Solicitação de fotos do terreno",
   "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
+  "prioridade": "Média",
+  "itens": [
+   "Salvar fotos e demais documentos no servidor"
+  ]
  },
  {
   "etapa": "07",
@@ -269,12 +280,13 @@ export const TAREFAS: TarefaModelo[] = [
   "variante": "padrao",
   "ordem": 2,
   "titulo": "Estudo layout",
-  "descricao": "Informar a data que começou o estudo inicial e das revisões que foram solicitadas. Dar como finalizada essa etapa apenas quando houver o aceite do cliente.",
-  "prioridade": "Baixa",
+  "descricao": null,
+  "prioridade": "Média",
   "itens": [
    "Elaboração inicial (REVIN)",
    "Revisão 01",
-   "Revisão 02"
+   "Revisão 02",
+   "Aceite do cliente (registrar data e versão)"
   ]
  },
  {
@@ -282,12 +294,13 @@ export const TAREFAS: TarefaModelo[] = [
   "variante": "ampliacao",
   "ordem": 3,
   "titulo": "Estudo layout",
-  "descricao": "Informar a data que começou o estudo inicial e das revisões que foram solicitadas. Dar como finalizada essa etapa apenas quando houver o aceite do cliente.",
-  "prioridade": "Baixa",
+  "descricao": null,
+  "prioridade": "Média",
   "itens": [
    "Elaboração inicial (REVIN)",
    "Revisão 01",
-   "Revisão 02"
+   "Revisão 02",
+   "Aceite do cliente (registrar data e versão)"
   ]
  },
  {
@@ -295,12 +308,13 @@ export const TAREFAS: TarefaModelo[] = [
   "variante": "mais_projetos",
   "ordem": 4,
   "titulo": "Estudo preliminar: formatar croqui e fazer fachadas",
-  "descricao": "Informar a data que começou o estudo inicial e das revisões que foram solicitadas. Dar como finalizada essa etapa apenas quando houver o aceite do cliente.",
-  "prioridade": "Baixa",
+  "descricao": null,
+  "prioridade": "Média",
   "itens": [
    "Elaboração inicial (REVIN)",
    "Revisão 01",
-   "Revisão 02"
+   "Revisão 02",
+   "Aceite do cliente (registrar data e versão)"
   ]
  },
  {
@@ -345,13 +359,13 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 1,
   "titulo": "Reunião de apresentação de estudo inicial",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Enviar projeto para aceite",
-   "Enviar ata para aceite",
-   "Ata e projeto: dado aceite pelo cliente"
+   "Impressão do PDF do estudo",
+   "Redigir a ata da reunião",
+   "Enviar a ata para assinatura",
+   "Enviar o estudo para aceite",
+   "Aceite dado pelo cliente (registrar data e versão)"
   ]
  },
  {
@@ -360,11 +374,13 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 2,
   "titulo": "Reunião para apresentação do estudo inicial",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Ata: dado aceite pelo cliente"
+   "Impressão do PDF do estudo",
+   "Redigir a ata da reunião",
+   "Enviar a ata para assinatura",
+   "Enviar o estudo para aceite",
+   "Aceite dado pelo cliente (registrar data e versão)"
   ]
  },
  {
@@ -373,13 +389,13 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 3,
   "titulo": "Reunião de apresentação de estudo preliminar",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Enviar projeto para aceite",
-   "Enviar ata para aceite",
-   "Ata e projeto: dado aceite pelo cliente"
+   "Impressão do PDF do estudo",
+   "Redigir a ata da reunião",
+   "Enviar a ata para assinatura",
+   "Enviar o estudo para aceite",
+   "Aceite dado pelo cliente (registrar data e versão)"
   ]
  },
  {
@@ -387,13 +403,13 @@ export const TAREFAS: TarefaModelo[] = [
   "variante": "padrao",
   "ordem": 1,
   "titulo": "Estudo fachada",
-  "descricao": "Informar a data que começou o estudo inicial e das revisões que foram solicitadas. Dar como finalizada essa etapa apenas quando houver o aceite do cliente.",
-  "prioridade": "Baixa",
+  "descricao": null,
+  "prioridade": "Média",
   "itens": [
    "Elaboração inicial (REVIN)",
    "Revisão 01",
    "Revisão 02",
-   "Aceite dado pelo cliente"
+   "Aceite do cliente (registrar data e versão)"
   ]
  },
  {
@@ -401,13 +417,13 @@ export const TAREFAS: TarefaModelo[] = [
   "variante": "ampliacao",
   "ordem": 2,
   "titulo": "Estudo 3D",
-  "descricao": "Informar a data que começou o estudo inicial e das revisões que foram solicitadas. Dar como finalizada essa etapa apenas quando houver o aceite do cliente.",
-  "prioridade": "Baixa",
+  "descricao": null,
+  "prioridade": "Média",
   "itens": [
    "Elaboração inicial (REVIN)",
    "Revisão 01",
    "Revisão 02",
-   "Aceite dado pelo cliente"
+   "Aceite do cliente (registrar data e versão)"
   ]
  },
  {
@@ -436,12 +452,13 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 1,
   "titulo": "Reunião de apresentação de estudo de fachada",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Enviar projeto para aceite",
-   "Ata e projeto: dado aceite pelo cliente"
+   "Preparação da sala de reunião",
+   "Redigir a ata da reunião",
+   "Enviar a ata para assinatura",
+   "Enviar o estudo para aceite",
+   "Aceite dado pelo cliente (registrar data e versão)"
   ]
  },
  {
@@ -450,234 +467,61 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 2,
   "titulo": "Reunião de apresentação do estudo 3D",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Média",
   "itens": [
-   "Preenchimento de ata",
-   "Enviar ata de reunião ao cliente",
-   "Enviar projeto para aceite",
-   "Ata e projeto: dado aceite pelo cliente"
+   "Preparação da sala de reunião",
+   "Redigir a ata da reunião",
+   "Enviar a ata para assinatura",
+   "Enviar o estudo para aceite",
+   "Aceite dado pelo cliente (registrar data e versão)"
   ]
  },
  {
-  "etapa": "P1",
+  "etapa": "15",
   "variante": "todas",
   "ordem": 1,
-  "titulo": "Solicitado pausa pelo cliente",
-  "descricao": "Caso o cliente venha a solicitar a pausa do projeto, deverá ser enviado o TERMO DE SOLICITAÇÃO PAUSA DE PROJETO.",
-  "prioridade": "Baixa",
+  "titulo": "Coleta de dados complementares e procuração",
+  "descricao": "Depois dos estudos aceitos: reúna os dados e a procuração antes de iniciar o projeto arquitetônico e o legal.",
+  "prioridade": "Alta",
   "itens": [
-   "Cliente solicitou pausa do projeto",
-   "Emissão do termo de pausa e envio para o cliente",
-   "Termo assinado"
+   "Documento de identidade com foto e CPF do cliente",
+   "Contrato de compra do lote",
+   "Capa do IPTU (se houver)",
+   "Comprovante de endereço",
+   "Matrícula do terreno (se houver)",
+   "Procuração assinada pelo cliente"
   ]
  },
  {
-  "etapa": "P2",
+  "etapa": "18",
   "variante": "todas",
   "ordem": 1,
-  "titulo": "1ª tentativa de contato (semana 01)",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "P2",
-  "variante": "todas",
-  "ordem": 2,
-  "titulo": "2ª tentativa de contato (semana 02)",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "P2",
-  "variante": "todas",
-  "ordem": 3,
-  "titulo": "3ª tentativa de contato (semana 03)",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "P2",
-  "variante": "todas",
-  "ordem": 4,
-  "titulo": "Notificação por e-mail da pausa de projeto",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "P2",
-  "variante": "todas",
-  "ordem": 5,
-  "titulo": "Solicitado pausa pelo cliente",
-  "descricao": "Caso o cliente retorne após as tentativas de contato solicitando a pausa do projeto, deverá ser enviado o TERMO DE SOLICITAÇÃO PAUSA DE PROJETO.",
-  "prioridade": "Baixa",
+  "titulo": "Detalhamentos de interiores",
+  "descricao": "Lista de detalhamentos possíveis; registre as horas em cada item.",
+  "prioridade": "Média",
   "itens": [
-   "Cliente solicitou pausa do projeto",
-   "Emissão do termo de pausa e envio para o cliente",
-   "Termo assinado"
+   "Detalhamento de marcenaria",
+   "Detalhamento de marmoraria",
+   "Paginação de pisos e revestimentos",
+   "Forro de gesso e iluminação",
+   "Detalhamento de esquadrias",
+   "Detalhamento de espelhos",
+   "Lista de móveis soltos",
+   "Detalhamento de cortinas e persianas",
+   "Detalhamento de bancadas e cubas",
+   "Detalhamento de mobiliário especial"
   ]
  },
  {
-  "etapa": "P3",
-  "variante": "apos_solicitacao",
-  "ordem": 1,
-  "titulo": "Retomada do projeto após pausa",
-  "descricao": "Quando o cliente entrar em contato solicitando a retomada, deverá ser enviado o TERMO DE SOLICITAÇÃO DE RETOMADA DE PROJETO APÓS SOLICITAÇÃO DE PAUSA.",
-  "prioridade": "Baixa",
-  "itens": [
-   "Emissão do termo e envio ao cliente",
-   "Termo assinado pelo cliente"
-  ]
- },
- {
-  "etapa": "P3",
-  "variante": "apos_ausencia",
-  "ordem": 2,
-  "titulo": "Retomada do projeto após pausa",
-  "descricao": "Quando o cliente entrar em contato solicitando a retomada, deverá ser enviado o TERMO DE SOLICITAÇÃO DE RETOMADA DE PROJETO APÓS PAUSA POR AUSÊNCIA DE RETORNO.",
-  "prioridade": "Baixa",
-  "itens": [
-   "Emissão do termo e envio ao cliente",
-   "Termo assinado pelo cliente"
-  ]
- },
- {
-  "etapa": "P3",
+  "etapa": "19",
   "variante": "todas",
-  "ordem": 3,
-  "titulo": "Aditivo de retomada",
-  "descricao": "Do fluxo do setor: com a retomada, as informações do projeto são reanalisadas e replanejadas antes de seguir.",
-  "prioridade": "Baixa",
-  "itens": [
-   "Conferir a etapa em que o projeto parou",
-   "Emissão do aditivo e envio ao cliente",
-   "Aditivo assinado pelo cliente"
-  ]
- },
- {
-  "etapa": "P4",
-  "variante": "todas",
-  "ordem": 1,
-  "titulo": "Rescisão por ausência de retomada",
-  "descricao": "Do fluxo do setor: passados 180 dias de pausa sem pedido de retomada.",
-  "prioridade": "Baixa",
-  "itens": [
-   "Enviar o termo de rescisão no 181º dia"
-  ]
- },
- {
-  "etapa": "H1",
-  "variante": "todas",
-  "ordem": 1,
-  "titulo": "Solicitação e emissão de documentos",
+  "ordem": 0,
+  "titulo": "Definir quem elabora os projetos complementares",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Alta",
   "itens": [
-   "Termo de Habite-se (análise simplificada)",
-   "Declaração de veracidade",
-   "Alvará de construção",
-   "Ficha cadastral com histórico",
-   "Certidão de registro de imóveis (matrícula) atualizada",
-   "Procuração assinada pelo responsável e proprietário",
-   "Documento de identidade do proprietário",
-   "E-mail do proprietário",
-   "Telefone do proprietário"
-  ]
- },
- {
-  "etapa": "H1",
-  "variante": "todas",
-  "ordem": 2,
-  "titulo": "Notas fiscais e declarações",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": [
-   "Notas fiscais de madeira ou estrutura metálica",
-   "Declaração de origem florestal",
-   "Notas fiscais de caçamba (CTRs)",
-   "Declaração de CTR (quando houver a dispensa do uso de transporte e controle de resíduos ou não houver nota fiscal)"
-  ]
- },
- {
-  "etapa": "H1",
-  "variante": "todas",
-  "ordem": 3,
-  "titulo": "PGRCC aprovado (quando necessário: acima de 300 m²)",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "H1",
-  "variante": "todas",
-  "ordem": 4,
-  "titulo": "AVCB (quando comercial enquadrado nesta exigência)",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "H1",
-  "variante": "todas",
-  "ordem": 5,
-  "titulo": "Relatório fotográfico",
-  "descricao": "As fotos devem enquadrar da melhor forma possível a totalidade da construção, sempre valorizando o posicionamento para melhor visualizar os afastamentos entre a construção e a divisa do lote e a presença de elementos importantes, como, por exemplo, a calçada e os acessos na foto da fachada.",
-  "prioridade": "Baixa",
-  "itens": [
-   "Foto da fachada (frente)",
-   "Foto do recuo frontal",
-   "Foto do recuo lateral esquerdo",
-   "Foto do recuo lateral direito",
-   "Foto do recuo posterior (fundos)",
-   "Foto das áreas livres (poço de luz), quando houver"
-  ]
- },
- {
-  "etapa": "H2",
-  "variante": "todas",
-  "ordem": 1,
-  "titulo": "Entrada do processo na Prefeitura",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": [
-   "Selecionar a modalidade Habite-se no Aprova Digital e seguir os passos para a situação da solicitação (nova, 2ª via, retificação, planta vistada)",
-   "Anexar os documentos adquiridos ou emitidos nas etapas anteriores em seus devidos campos",
-   "Preencher os dados do proprietário com as informações coletadas",
-   "Preencher o campo 9 (áreas licenciadas) com as metragens do terreno e das edificações, de acordo com o projeto e o alvará de construção",
-   "Preencher o campo 11 (quadro de compartimentos) com as informações do projeto, do alvará de construção e/ou do termo de compromisso, separados por pavimento",
-   "Encaminhar a taxa do Habite-se (guia eventual) para o financeiro",
-   "Anexar o comprovante de pagamento da guia eventual no Aprova Digital",
-   "Encaminhar a taxa de ISS para o financeiro",
-   "Anexar o comprovante de pagamento do ISS no Aprova Digital",
-   "Processo deferido"
-  ]
- },
- {
-  "etapa": "H3",
-  "variante": "todas",
-  "ordem": 1,
-  "titulo": "Agendar reunião de entrega dos documentos aprovados",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": [
-   "Marcar reunião com cliente"
-  ]
- },
- {
-  "etapa": "H3",
-  "variante": "todas",
-  "ordem": 2,
-  "titulo": "Reunião de entrega dos documentos aprovados",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": [
-   "Imprimir documentos aprovados",
-   "Imprimir documentos emitidos pela Prefeitura",
-   "Emitir e imprimir termo de retirada",
-   "Explicar e entregar todos os documentos ao cliente"
+   "Escolher o parceiro de cada complementar (elétrico, hidrossanitário, estrutural…)",
+   "Registrar o parceiro e as horas de compatibilização"
   ]
  },
  {
@@ -875,6 +719,228 @@ export const TAREFAS: TarefaModelo[] = [
   "itens": [
    "Dar como finalizado no Vobi",
    "Remover projeto do quadro físico"
+  ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Solicitação e emissão de documentos",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Termo de Habite-se (análise simplificada)",
+   "Declaração de veracidade",
+   "Alvará de construção",
+   "Ficha cadastral com histórico",
+   "Certidão de registro de imóveis (matrícula) atualizada",
+   "Procuração assinada pelo responsável e proprietário",
+   "Documento de identidade do proprietário",
+   "E-mail do proprietário",
+   "Telefone do proprietário"
+  ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Notas fiscais e declarações",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Notas fiscais de madeira ou estrutura metálica",
+   "Declaração de origem florestal",
+   "Notas fiscais de caçamba (CTRs)",
+   "Declaração de CTR (quando houver a dispensa do uso de transporte e controle de resíduos ou não houver nota fiscal)"
+  ]
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "PGRCC aprovado (quando necessário: acima de 300 m²)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 4,
+  "titulo": "AVCB (quando comercial enquadrado nesta exigência)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "H1",
+  "variante": "todas",
+  "ordem": 5,
+  "titulo": "Relatório fotográfico",
+  "descricao": "As fotos devem enquadrar da melhor forma possível a totalidade da construção, sempre valorizando o posicionamento para melhor visualizar os afastamentos entre a construção e a divisa do lote e a presença de elementos importantes, como, por exemplo, a calçada e os acessos na foto da fachada.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Foto da fachada (frente)",
+   "Foto do recuo frontal",
+   "Foto do recuo lateral esquerdo",
+   "Foto do recuo lateral direito",
+   "Foto do recuo posterior (fundos)",
+   "Foto das áreas livres (poço de luz), quando houver"
+  ]
+ },
+ {
+  "etapa": "H2",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Entrada do processo na Prefeitura",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Selecionar a modalidade Habite-se no Aprova Digital e seguir os passos para a situação da solicitação (nova, 2ª via, retificação, planta vistada)",
+   "Anexar os documentos adquiridos ou emitidos nas etapas anteriores em seus devidos campos",
+   "Preencher os dados do proprietário com as informações coletadas",
+   "Preencher o campo 9 (áreas licenciadas) com as metragens do terreno e das edificações, de acordo com o projeto e o alvará de construção",
+   "Preencher o campo 11 (quadro de compartimentos) com as informações do projeto, do alvará de construção e/ou do termo de compromisso, separados por pavimento",
+   "Encaminhar a taxa do Habite-se (guia eventual) para o financeiro",
+   "Anexar o comprovante de pagamento da guia eventual no Aprova Digital",
+   "Encaminhar a taxa de ISS para o financeiro",
+   "Anexar o comprovante de pagamento do ISS no Aprova Digital",
+   "Processo deferido"
+  ]
+ },
+ {
+  "etapa": "H3",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Agendar reunião de entrega dos documentos aprovados",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Marcar reunião com cliente"
+  ]
+ },
+ {
+  "etapa": "H3",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Reunião de entrega dos documentos aprovados",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": [
+   "Imprimir documentos aprovados",
+   "Imprimir documentos emitidos pela Prefeitura",
+   "Emitir e imprimir termo de retirada",
+   "Explicar e entregar todos os documentos ao cliente"
+  ]
+ },
+ {
+  "etapa": "P1",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Solicitado pausa pelo cliente",
+  "descricao": "Caso o cliente venha a solicitar a pausa do projeto, deverá ser enviado o TERMO DE SOLICITAÇÃO PAUSA DE PROJETO.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Cliente solicitou pausa do projeto",
+   "Emissão do termo de pausa e envio para o cliente",
+   "Termo assinado"
+  ]
+ },
+ {
+  "etapa": "P2",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "1ª tentativa de contato (semana 01)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "P2",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "2ª tentativa de contato (semana 02)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "P2",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "3ª tentativa de contato (semana 03)",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "P2",
+  "variante": "todas",
+  "ordem": 4,
+  "titulo": "Notificação por e-mail da pausa de projeto",
+  "descricao": null,
+  "prioridade": "Baixa",
+  "itens": []
+ },
+ {
+  "etapa": "P2",
+  "variante": "todas",
+  "ordem": 5,
+  "titulo": "Solicitado pausa pelo cliente",
+  "descricao": "Caso o cliente retorne após as tentativas de contato solicitando a pausa do projeto, deverá ser enviado o TERMO DE SOLICITAÇÃO PAUSA DE PROJETO.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Cliente solicitou pausa do projeto",
+   "Emissão do termo de pausa e envio para o cliente",
+   "Termo assinado"
+  ]
+ },
+ {
+  "etapa": "P3",
+  "variante": "apos_solicitacao",
+  "ordem": 1,
+  "titulo": "Retomada do projeto após pausa",
+  "descricao": "Quando o cliente entrar em contato solicitando a retomada, deverá ser enviado o TERMO DE SOLICITAÇÃO DE RETOMADA DE PROJETO APÓS SOLICITAÇÃO DE PAUSA.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Emissão do termo e envio ao cliente",
+   "Termo assinado pelo cliente"
+  ]
+ },
+ {
+  "etapa": "P3",
+  "variante": "apos_ausencia",
+  "ordem": 2,
+  "titulo": "Retomada do projeto após pausa",
+  "descricao": "Quando o cliente entrar em contato solicitando a retomada, deverá ser enviado o TERMO DE SOLICITAÇÃO DE RETOMADA DE PROJETO APÓS PAUSA POR AUSÊNCIA DE RETORNO.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Emissão do termo e envio ao cliente",
+   "Termo assinado pelo cliente"
+  ]
+ },
+ {
+  "etapa": "P3",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "Aditivo de retomada",
+  "descricao": "Do fluxo do setor: com a retomada, as informações do projeto são reanalisadas e replanejadas antes de seguir.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Conferir a etapa em que o projeto parou",
+   "Emissão do aditivo e envio ao cliente",
+   "Aditivo assinado pelo cliente"
+  ]
+ },
+ {
+  "etapa": "P4",
+  "variante": "todas",
+  "ordem": 1,
+  "titulo": "Rescisão por ausência de retomada",
+  "descricao": "Do fluxo do setor: passados 180 dias de pausa sem pedido de retomada.",
+  "prioridade": "Baixa",
+  "itens": [
+   "Enviar o termo de rescisão no 181º dia"
   ]
  }
 ];

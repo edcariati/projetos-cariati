@@ -3,14 +3,16 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
 import { podeBancoHoras, usePerfil } from '../lib/perfil';
-import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
+import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPOS_EXTERNOS, TIPOS_INTERNOS, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
   MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, iniciarHabitese, pausarProjeto, reabrirEtapa,
-  registrarRodada, rescindirProjeto, retomarProjeto,
+  registrarRodada, SEQUENCIA_APRESENTACAO, rescindirProjeto, retomarProjeto,
 } from '../lib/flow';
 import ProtocoloItem from '../components/ProtocoloItem';
 import Documentos from '../components/Documentos';
-import Cronometro, { CronometroMini } from '../components/Cronometro';
+import { CronometroMini } from '../components/Cronometro';
+import RegistrosTempo from '../components/RegistrosTempo';
+import ComplementaresParceiros from '../components/ComplementaresParceiros';
 import GanttEtapas from '../components/GanttEtapas';
 import { carregarCronograma } from '../lib/carga';
 import { useTemposDe } from '../lib/tempo';
@@ -19,8 +21,9 @@ import { confirmar, escolher, pedirTexto } from '../components/Dialogo';
 import { Medidor } from '../components/graficos';
 import Checklist from '../components/Checklist';
 import { Carregando, Vazio } from '../ui/Holo';
+import { percentualProjeto, type ItensPorEtapa } from '../lib/progresso';
 
-const COM_RODADAS = new Set(['09', '13', '17']);
+const COM_RODADAS = new Set(['07', '11', '17']);   // a rodada é registrada no estudo; as horas da revisão ficam nele
 
 import { ResumoServicos, type Escolha } from '../components/ServicosCliente';
 import { perfilPorId, useCatalogo } from '../lib/servicos';
@@ -102,10 +105,76 @@ export default function ProjetoDetalhe() {
   const dias = diasDePausa(projeto.pausado_em);
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
   const pendentes = (cod: string) => { const ids = tarefas.filter((t) => t.etapa_codigo === cod).map((t) => t.id); return itens.filter((i) => ids.includes(i.tarefa_id) && !i.feito).length; };
+  const itensMapa: ItensPorEtapa = new Map();
+  for (const t of tarefas) for (const i of itens.filter((x) => x.tarefa_id === t.id)) { const k = `${projeto.id}|${t.etapa_codigo}`; const x = itensMapa.get(k) ?? { feitos: 0, total: 0 }; x.total += 1; if (i.feito) x.feitos += 1; itensMapa.set(k, x); }
+  const aplicaveis = etapas.filter((e) => e.status !== 'nao_aplicavel' && modelos.find((m) => m.codigo === e.etapa_codigo)?.fase !== 5);
+  const pctProjeto = percentualProjeto(projeto.id, aplicaveis, itensMapa);
+  const pendConcluidas = etapas.filter((e) => e.status === 'concluida').reduce((s, e) => s + pendentes(e.etapa_codigo), 0);
   const temPausa = tarefas.some((t) => t.etapa_codigo.startsWith('P'));
   const etapaDe = (cod: string) => etapas.find((e) => e.etapa_codigo === cod);
   /** Quem pode agir na etapa: administrador, responsável pelo projeto ou alguém do setor da etapa. */
   const podeAgir = (m: EtapaModelo) => admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor);
+
+  const linhaEtapa = (m: EtapaModelo) => {
+              const e = etapaDe(m.codigo);
+              if (!e) return null;
+              const ativa = e.status === 'em_andamento';
+              return (
+                <li key={m.codigo} className={`et ${e.status}`}>
+                  <div className="linha" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)}>
+                    <span className="et-num">{m.codigo}</span>
+                    <div className="grow">
+                      <b>{tituloEtapa(m.codigo, m.titulo, projeto.tipo_estudo)}</b>
+                      <div className="pequeno mudo">
+                        {m.setores.map((s) => SETOR[s]).join(' · ')}{m.cliente_participa ? ' · Cliente' : ''}
+                        {m.aceite_formal ? ' · aceite formal' : ''}
+                      </div>
+                    </div>
+                    {e.status !== 'nao_aplicavel' && <CronometroMini projetoId={projeto.id} etapaCodigo={m.codigo} fechadoSeg={temp.fechado.get(`${projeto.id}|${m.codigo}`) ?? 0} ativo={temp.ativo}
+                      bloqueio={pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.' : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}.` : undefined} />}
+                    {e.status === 'concluida' && pendentes(m.codigo) > 0 && <span className="tag pendencia" title="Etapa concluída com itens do checklist em aberto">{pendentes(m.codigo)} pendência(s)</span>}
+                    <span className={`tag e-${e.status}`}>{ETAPA_STATUS[e.status]}</span>
+                  </div>
+                  {(aberta === m.codigo || ativa) && e.status !== 'nao_aplicavel' && (
+                    <div className="detalhe">
+                      <dl>
+                        {m.entrada && <><dt>Entra</dt><dd>{m.entrada}</dd></>}
+                        {m.saida && <><dt>Sai</dt><dd>{m.saida}</dd></>}
+                        {m.regra && <><dt>Regra</dt><dd>{m.regra}</dd></>}
+                        {e.iniciada_em && <><dt>Início</dt><dd>{fmtData(e.iniciada_em)}</dd></>}
+                        {e.concluida_em && <><dt>Conclusão</dt><dd>{fmtData(e.concluida_em)}</dd></>}
+                      </dl>
+                      {COM_RODADAS.has(m.codigo) && (
+                        <div className="rodadas">
+                          Rodadas de ajuste: <b className={e.rodadas_ajuste > MAX_RODADAS ? 'alerta' : ''}>{e.rodadas_ajuste}</b> / {MAX_RODADAS}
+                          {e.rodadas_ajuste >= MAX_RODADAS - 1 && ativa && <span className="aviso inline"> {e.rodadas_ajuste >= MAX_RODADAS ? 'Próximas rodadas têm custo adicional.' : 'Lembrar o cliente do limite na próxima reunião.'}</span>}
+                          {ativa && !pausado && podeAgir(m) && <button onClick={() => run(async () => {
+                            const seq = SEQUENCIA_APRESENTACAO[m.codigo];
+                            const destino = seq ? await escolher('Esta revisão precisa de nova apresentação ao cliente?', [['apresentar', 'Sim — nova apresentação (volta o agendamento e a reunião, em sequência)'], ['analise', 'Não — enviar o estudo ao cliente para análise']]) : null;
+                            if (seq && !destino) return;
+                            await registrarRodada(projeto.id, e, (destino as 'apresentar' | 'analise' | null) ?? undefined, etapas);
+                          })}>+ Registrar rodada (revisão)</button>}
+                        </div>
+                      )}
+                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} podeEditarLista={podeAgir(m) && !pausado} projetoId={projeto.id} />
+                      {m.codigo === '19' && <ComplementaresParceiros projeto={projeto} onChange={carregar} />}
+                      <RegistrosTempo projetoId={projeto.id} etapaCodigo={m.codigo} meuId={eu.id} admin={admin} nomes={nomes} />
+                      <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
+                      <div className="acoes">
+                        {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={async () => {
+                          const p = pendentes(m.codigo);
+                          if (p > 0 && !(await confirmar(`Ainda há ${p} item(ns) pendente(s) no checklist desta etapa. Concluir mesmo assim?`))) return;
+                          run(() => concluirEtapa(projeto.id, e, modelos, etapas));
+                        }}>
+                          {m.aceite_formal ? 'Aceite assinado — concluir' : 'Concluir etapa'}
+                        </button>}
+                        {e.status === 'concluida' && !pausado && podeAgir(m) && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+  };
 
   return (
     <>
@@ -127,6 +196,8 @@ export default function ProjetoDetalhe() {
           {projeto.tem_complementares && <span className="etiqueta">Complementares</span>}
           {!projeto.tem_legal && !projeto.tem_interiores && !projeto.tem_complementares && <span className="etiqueta">Somente arquitetônico</span>}
         </div>
+        <div className="barra" role="progressbar" aria-valuenow={pctProjeto} aria-valuemin={0} aria-valuemax={100} aria-label="Andamento do projeto"><i style={{ width: `${pctProjeto}%` }} /></div>
+        <p className="mudo pequeno" style={{ margin: '6px 0 0' }}>{pctProjeto}% do fluxo (etapas concluídas + itens já marcados da etapa em andamento){pendConcluidas > 0 && <b className="alerta"> · {pendConcluidas} pendência(s) em etapas concluídas</b>}</p>
         {pausado && (
           <p className={dias > MAX_DIAS_PAUSA ? 'erro' : 'aviso'}>
             Pausado desde {fmtData(projeto.pausado_em)} ({dias} dias){projeto.motivo_pausa ? ` — ${projeto.motivo_pausa}` : ''}.{' '}
@@ -178,6 +249,9 @@ export default function ProjetoDetalhe() {
             <Checklist key={c} etapa={c} titulo={{ P1: 'Pausa a pedido do cliente', P2: 'Pausa por falta de retorno', P3: 'Retomada do projeto', P4: 'Rescisão' }[c]}
               tarefas={tarefas} itens={itens} nomes={nomes} editavel onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto />
           ))}
+          {(['P1', 'P2'] as const).filter((c) => tarefas.some((t) => t.etapa_codigo === c)).map((c) => (
+            <div key={c}><h4>Termo de pausa assinado pelo cliente {c === 'P2' ? '(se houver)' : ''}</h4><Documentos projetoId={projeto.id} etapaCodigo={c} clienteCodigo={projeto.clientes?.codigo ?? null} /></div>
+          ))}
         </section>
       )}
 
@@ -217,7 +291,7 @@ export default function ProjetoDetalhe() {
         <h3>Equipe do projeto</h3>
         <div className="pessoa-linha">
           <span className="mudo">Responsável</span>
-          {admin
+          {(admin || eu.perfil === 'profissional')
             ? <select id="responsavel" value={projeto.responsavel_id ?? ''} onChange={(e) => run(async () => { await supabase.from('projetos').update({ responsavel_id: e.target.value || null }).eq('id', projeto.id); })}>
                 <option value="">— sem responsável —</option>
                 {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -262,63 +336,20 @@ export default function ProjetoDetalhe() {
       ) : (
         <section className="card" key={fase}>
           <h3>{fase}. {FASES[fase]}</h3>
-          <ul className="etapas">
-            {modelos.filter((m) => m.fase === fase).map((m) => {
-              const e = etapaDe(m.codigo);
-              if (!e) return null;
-              const ativa = e.status === 'em_andamento';
-              return (
-                <li key={m.codigo} className={`et ${e.status}`}>
-                  <div className="linha" onClick={() => setAberta(aberta === m.codigo ? null : m.codigo)}>
-                    <span className="et-num">{m.codigo}</span>
-                    <div className="grow">
-                      <b>{tituloEtapa(m.codigo, m.titulo, projeto.tipo_estudo)}</b>
-                      <div className="pequeno mudo">
-                        {m.setores.map((s) => SETOR[s]).join(' · ')}{m.cliente_participa ? ' · Cliente' : ''}
-                        {m.aceite_formal ? ' · aceite formal' : ''}
-                      </div>
-                    </div>
-                    {e.status !== 'nao_aplicavel' && <CronometroMini projetoId={projeto.id} etapaCodigo={m.codigo} fechadoSeg={temp.fechado.get(`${projeto.id}|${m.codigo}`) ?? 0} ativo={temp.ativo}
-                      bloqueio={pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.' : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}.` : undefined} />}
-                    <span className={`tag e-${e.status}`}>{ETAPA_STATUS[e.status]}</span>
-                  </div>
-                  {(aberta === m.codigo || ativa) && e.status !== 'nao_aplicavel' && (
-                    <div className="detalhe">
-                      <dl>
-                        {m.entrada && <><dt>Entra</dt><dd>{m.entrada}</dd></>}
-                        {m.saida && <><dt>Sai</dt><dd>{m.saida}</dd></>}
-                        {m.regra && <><dt>Regra</dt><dd>{m.regra}</dd></>}
-                        {e.iniciada_em && <><dt>Início</dt><dd>{fmtData(e.iniciada_em)}</dd></>}
-                        {e.concluida_em && <><dt>Conclusão</dt><dd>{fmtData(e.concluida_em)}</dd></>}
-                      </dl>
-                      {COM_RODADAS.has(m.codigo) && (
-                        <div className="rodadas">
-                          Rodadas de ajuste: <b className={e.rodadas_ajuste > MAX_RODADAS ? 'alerta' : ''}>{e.rodadas_ajuste}</b> / {MAX_RODADAS}
-                          {e.rodadas_ajuste >= MAX_RODADAS - 1 && ativa && <span className="aviso inline"> {e.rodadas_ajuste >= MAX_RODADAS ? 'Próximas rodadas têm custo adicional.' : 'Lembrar o cliente do limite na próxima reunião.'}</span>}
-                          {ativa && !pausado && podeAgir(m) && <button onClick={() => run(() => registrarRodada(projeto.id, e))}>+ Registrar rodada</button>}
-                        </div>
-                      )}
-                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} />
-                      <Cronometro projetoId={projeto.id} etapaCodigo={m.codigo} motivoBloqueio={
-                        pausado ? 'Projeto pausado: retome o projeto para usar o cronômetro.'
-                          : !podeAgir(m) ? `Esta etapa cabe a: ${m.setores.map((x) => SETOR[x]).join(' / ')}. Só quem é desse setor, o responsável pelo projeto ou o administrador pode iniciar.` : undefined} />
-                      <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
-                      <div className="acoes">
-                        {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={async () => {
-                          const p = pendentes(m.codigo);
-                          if (p > 0 && !(await confirmar(`Ainda há ${p} item(ns) pendente(s) no checklist desta etapa. Concluir mesmo assim?`))) return;
-                          run(() => concluirEtapa(projeto.id, e, modelos, etapas));
-                        }}>
-                          {m.aceite_formal ? 'Aceite assinado — concluir' : 'Concluir etapa'}
-                        </button>}
-                        {e.status === 'concluida' && !pausado && podeAgir(m) && <button onClick={async () => (await confirmar('Reabrir esta etapa? As etapas seguintes devem ser revistas.')) && run(() => reabrirEtapa(projeto.id, e))}>Reabrir</button>}
-                      </div>
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          {(() => {
+            const daFase = modelos.filter((m) => m.fase === fase && etapaDe(m.codigo));
+            const st = (m: EtapaModelo) => etapaDe(m.codigo)!.status;
+            const andamento = daFase.filter((m) => st(m) === 'em_andamento');
+            const concluidas = daFase.filter((m) => st(m) === 'concluida');
+            const proximas = daFase.filter((m) => st(m) === 'pendente' || st(m) === 'nao_aplicavel');
+            return (
+              <>
+                {andamento.length > 0 && <><h4 className="grupo-etapas">Em andamento</h4><ul className="etapas">{andamento.map(linhaEtapa)}</ul></>}
+                {concluidas.length > 0 && <details className="grupo-etapas"><summary>Concluídas ({concluidas.length})</summary><ul className="etapas">{concluidas.map(linhaEtapa)}</ul></details>}
+                {proximas.length > 0 && <details className="grupo-etapas" open={andamento.length === 0}><summary>A seguir ({proximas.length})</summary><ul className="etapas">{proximas.map(linhaEtapa)}</ul></details>}
+              </>
+            );
+          })()}
         </section>
       )))}
 
@@ -335,8 +366,9 @@ export default function ProjetoDetalhe() {
         }); }}>
           <div className="duas">
             <label>Tipo<select value={novoProt.tipo} onChange={(e) => setNovoProt({ ...novoProt, tipo: e.target.value as ProtocoloTipo })}>
-              {Object.entries(PROTOCOLO_TIPO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-            <label>Órgão<input value={novoProt.orgao} onChange={(e) => setNovoProt({ ...novoProt, orgao: e.target.value })} /></label>
+              <optgroup label="Externos (órgão)">{TIPOS_EXTERNOS.map((k) => <option key={k} value={k}>{PROTOCOLO_TIPO[k]}</option>)}</optgroup>
+              <optgroup label="Internos (processo com o cliente)">{TIPOS_INTERNOS.map((k) => <option key={k} value={k}>{PROTOCOLO_TIPO[k]}</option>)}</optgroup></select></label>
+            {!TIPOS_INTERNOS.includes(novoProt.tipo) && <label>Nome do órgão<input placeholder="Ex.: Prefeitura de Goiânia, Condomínio Alphaville, 1º Cartório de Registro de Imóveis" value={novoProt.orgao} onChange={(e) => setNovoProt({ ...novoProt, orgao: e.target.value })} /></label>}
           </div>
           <label>Número (se já houver)<input value={novoProt.numero} onChange={(e) => setNovoProt({ ...novoProt, numero: e.target.value })} /></label>
           <div className="acoes"><button className="primario">Adicionar</button><button type="button" onClick={() => setNovoProt(null)}>Cancelar</button></div>

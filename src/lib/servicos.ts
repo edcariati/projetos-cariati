@@ -25,10 +25,10 @@ export async function carregarCatalogo(forcar = false): Promise<Catalogo> {
   carregadoEm = Date.now();
   if (c.error || i.error || p.error || !c.data?.length) { atual = PADRAO; }
   else {
-    const itens = (i.data ?? []) as { id: string; categoria_id: string; nome: string; ativo: boolean }[];
+    const itens = (i.data ?? []) as { id: string; categoria_id: string; nome: string; ativo: boolean; premium?: boolean }[];
     atual = {
       doBanco: true,
-      categorias: (c.data as { id: string; nome: string; etapas: string[]; execucao?: 'escritorio' | 'parceiro'; ativo: boolean }[]).map((x) => ({ id: x.id, nome: x.nome, etapas: x.etapas ?? [], execucao: x.execucao ?? 'escritorio', ativo: x.ativo, itens: itens.filter((y) => y.categoria_id === x.id).map((y) => ({ id: y.id, nome: y.nome, ativo: y.ativo })) })),
+      categorias: (c.data as { id: string; nome: string; etapas: string[]; execucao?: 'escritorio' | 'parceiro'; ativo: boolean }[]).map((x) => ({ id: x.id, nome: x.nome, etapas: x.etapas ?? [], execucao: x.execucao ?? 'escritorio', ativo: x.ativo, itens: itens.filter((y) => y.categoria_id === x.id).map((y) => ({ id: y.id, nome: y.nome, ativo: y.ativo, premium: !!y.premium })) })),
       perfis: ((p.data ?? []) as (Omit<Perfil, 'area_min' | 'area_max'> & { area_min: number | null; area_max: number | null })[]).map((x) => ({ ...x, area_min: x.area_min === null ? null : Number(x.area_min), area_max: x.area_max === null ? null : Number(x.area_max), entregas: x.entregas ?? [] })),
     };
   }
@@ -89,3 +89,9 @@ export function etapasDe(ids: string[], perfil?: string | null): string[] {
 
 /** Categorias contratadas que ainda não têm etapas próprias no fluxo (viram só marca no cadastro). */
 export const semFluxo = (ids: string[]) => atual.categorias.filter((c) => !c.etapas.length && c.id !== 'arq' && ids.some((i) => i.startsWith(c.id + '-')));
+
+/** Tipos de aprovação escolhidos (podem ser vários, ex.: unificação + residencial). Guardados como texto separado por “ + ”. */
+export const lerAprovacoes = (t: string | null | undefined) => (t ?? '').split('+').map((x) => x.trim()).filter(Boolean);
+export const juntarAprovacoes = (a: string[]) => a.join(' + ');
+/** Serviços que entram sozinhos no pacote Premium. */
+export const idsPremium = () => atual.categorias.flatMap((c) => c.itens.filter((x) => x.ativo && x.premium).map((x) => x.id));

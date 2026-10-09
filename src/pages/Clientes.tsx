@@ -42,9 +42,12 @@ export default function Clientes() {
   });
   const mediaCompleta = lista && lista.length ? Math.round(lista.reduce((s, c) => s + completude(c).pct, 0) / lista.length) : 0;
 
+  /** CPF/CNPJ parcialmente oculto na planilha (LGPD): mantém só os dígitos do meio. */
+  const mascarar = (d: string) => (d.length > 6 ? d.slice(0, 3).replace(/\d/g, '•') + d.slice(3, -3) + d.slice(-3).replace(/\d/g, '•') : d);
+  const podeExportar = eu.perfil === 'admin' || eu.setor === 'administrativo';
   const exportar = () => baixarCsv('clientes.csv', [
     ['Código', 'Nome', 'Tipo', 'CPF/CNPJ', 'Telefone', 'WhatsApp', 'E-mail', 'Cidade', 'UF', 'Perfil', 'Premium', 'Projetos', 'Cadastro completo'],
-    ...filtrada.map((c) => [c.codigo ?? '', c.nome, c.tipo_pessoa === 'juridica' ? 'Jurídica' : 'Física', formatarDocumento(c.documento ?? '', c.tipo_pessoa), c.telefone ?? '', c.whatsapp ?? '', c.email ?? '', c.end_cidade ?? '', c.end_uf ?? '', c.categoria ?? '', c.premium ? 'sim' : 'não', qtd.get(c.id)?.total ?? 0, `${completude(c).pct}%`]),
+    ...filtrada.map((c) => [c.codigo ?? '', c.nome, c.tipo_pessoa === 'juridica' ? 'Jurídica' : 'Física', mascarar(formatarDocumento(c.documento ?? '', c.tipo_pessoa)), c.telefone ?? '', c.whatsapp ?? '', c.email ?? '', c.end_cidade ?? '', c.end_uf ?? '', c.categoria ?? '', c.premium ? 'sim' : 'não', qtd.get(c.id)?.total ?? 0, `${completude(c).pct}%`]),
   ]);
 
   return (
@@ -52,7 +55,7 @@ export default function Clientes() {
       <div className="titulo">
         <h1>Clientes</h1>
         <div className="acoes">
-          <button onClick={exportar} disabled={!filtrada.length}>Exportar CSV</button>
+          {podeExportar && <button onClick={exportar} disabled={!filtrada.length} title="Só administrador e Administrativo exportam; CPF/CNPJ sai parcialmente oculto">Exportar CSV</button>}
           {pessoaPodeEditarClientes(eu) && <Link className="primario btn" to="/clientes/novo">+ Novo cliente</Link>}
         </div>
       </div>

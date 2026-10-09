@@ -21,6 +21,8 @@ import Tempos from './pages/Tempos';
 import Tarefas from './pages/Tarefas';
 const Equipe = lazy(() => import('./pages/Equipe'));
 import Conta from './pages/Conta';
+import Privacidade from './pages/Privacidade';
+import { useSairPorInatividade } from './lib/inatividade';
 import Clientes from './pages/Clientes';
 import ClienteDetalhe from './pages/ClienteDetalhe';
 const Servicos = lazy(() => import('./pages/Servicos'));
@@ -33,6 +35,7 @@ import BarraCronometro from './components/BarraCronometro';
 export default function AppEquipe() {
   const { pathname } = useLocation();
   const eu = usePerfil();
+  useSairPorInatividade(30);
   const admin = eu.perfil === 'admin';
   const banco = podeBancoHoras(eu);
   const itens = itensMenu(eu);
@@ -129,6 +132,7 @@ export default function AppEquipe() {
             <Route path="/clientes/:id" element={<ClienteDetalhe />} />
             <Route path="/tarefas" element={<Tarefas />} />
             <Route path="/conta" element={<Conta />} />
+            <Route path="/privacidade" element={<Privacidade />} />
             <Route path="/protocolos" element={<Protocolos />} />
             <Route path="/tempos" element={<Tempos />} />
             <Route path="/fluxo" element={<Fluxo />} />

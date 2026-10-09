@@ -2,13 +2,13 @@ import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile, Projeto } from '../lib/types';
-import { CONTATOS, ESTADOS_CIVIS, INTENCOES, ORIGENS, UFS, cnpjValido, completude, cpfValido, digitos, formatarCep, formatarCnpj, formatarCpf, formatarDocumento, formatarTelefone } from '../lib/cadastro';
+import { CONTATOS, ESTADOS_CIVIS, INTENCOES, ORIGENS, UFS, cnpjValido, completude, cpfValido, digitos, formatarCep, formatarCnpj, formatarCpf, formatarDocumento, formatarTelefone, erroEmail, erroTelefone, proximoCodigo, telefoneLocal } from '../lib/cadastro';
 import { PROJETO_STATUS, fmtData } from '../lib/labels';
 import { pessoaPodeEditarClientes, usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
 import { avisar } from '../ui/avisos';
-import { perfilPorId, useCatalogo } from '../lib/servicos';
+import { flagsDe, idsPremium, perfilPorId, useCatalogo } from '../lib/servicos';
 import { EscolherServicos, ResumoServicos, type Escolha } from '../components/ServicosCliente';
 
 type Form = Record<string, string | boolean | null>;
@@ -19,10 +19,10 @@ const TEXTOS = ['codigo', 'nome', 'categoria', 'documento', 'rg', 'estado_civil'
 
 /** O banco ainda não tem as colunas de serviços (migração 0018)? Então grava o cadastro sem elas. */
 const semColunaServicos = (m: string) => /servico|schema cache|column/i.test(m);
-const semServicos = (c: Record<string, unknown>) => { const { servicos, servico_estudo, servico_aprovacao, servicos_observacao, ...resto } = c; void servicos; void servico_estudo; void servico_aprovacao; void servicos_observacao; return resto; };
+const semServicos = (c: Record<string, unknown>) => { const { servicos, servico_estudo, servico_aprovacao, servicos_observacao, entregas, lgpd_consentimento_em, ...resto } = c; void lgpd_consentimento_em; void servicos; void servico_estudo; void servico_aprovacao; void servicos_observacao; void entregas; return resto; };
 
-function Campo({ rotulo, children, largo }: { rotulo: string; children: ReactNode; largo?: boolean }) {
-  return <label className={largo ? 'campo largo' : 'campo'}>{rotulo}{children}</label>;
+function Campo({ rotulo, children, largo, erro, dica }: { rotulo: string; children: ReactNode; largo?: boolean; erro?: string; dica?: string }) {
+  return <label className={largo ? 'campo largo' : 'campo'}>{rotulo}{children}{erro ? <small className="campo-erro" role="alert">{erro}</small> : dica ? <small className="campo-dica">{dica}</small> : null}</label>;
 }
 function Secao({ titulo, sub, children }: { titulo: string; sub?: string; children: ReactNode }) {
   return <section className="card secao"><h2>{titulo}</h2>{sub && <p className="mudo pequeno">{sub}</p>}<div className="grade-campos">{children}</div></section>;
@@ -44,10 +44,20 @@ export default function ClienteDetalhe() {
   const [ok, setOk] = useState('');
   const [busy, setBusy] = useState(false);
   const [cepMsg, setCepMsg] = useState('');
+  const [codigos, setCodigos] = useState<string[]>([]);
+  const [tocou, setTocou] = useState<Record<string, boolean>>({});
   const [passo, setPasso] = useState(0);
   const [rascunho, setRascunho] = useState(false);
   const form = useRef<HTMLFormElement>(null);
 
+  useEffect(() => {
+    supabase.from('clientes').select('codigo').then(({ data }) => setCodigos(((data as { codigo: string | null }[]) ?? []).map((x) => x.codigo ?? '').filter(Boolean)));
+  }, []);
+  const sugestao = proximoCodigo(codigos);
+  useEffect(() => {   // cliente novo: já vem com o próximo código da sequência
+    if (novo && codigos.length >= 0 && !f.codigo && !rascunho) setF((x) => (x.codigo ? x : { ...x, codigo: sugestao.proximo }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [novo, sugestao.proximo]);
   useEffect(() => {
     if (!novo) return;
     try { const r = localStorage.getItem('rascunho-cliente'); if (r) { setF((x) => ({ ...x, ...JSON.parse(r) })); setRascunho(true); } } catch { /* sem rascunho */ }
@@ -71,7 +81,7 @@ export default function ClienteDetalhe() {
         x.documento = formatarDocumento(d.documento ?? '', d.tipo_pessoa); x.empresa_cnpj = formatarCnpj(d.empresa_cnpj ?? ''); x.empresa_responsavel_cpf = formatarCpf(d.empresa_responsavel_cpf ?? '');
         x.telefone = formatarTelefone(d.telefone ?? ''); x.telefone2 = formatarTelefone(d.telefone2 ?? ''); x.whatsapp = formatarTelefone(d.whatsapp ?? '');
         x.obra_metragem = d.obra_metragem === null || d.obra_metragem === undefined ? '' : String(d.obra_metragem).replace('.', ',');
-        x.servicos_ids = (d.servicos ?? []).join(','); x.servico_estudo = d.servico_estudo ?? ''; x.servico_aprovacao = d.servico_aprovacao ?? ''; x.servicos_observacao = d.servicos_observacao ?? '';
+        x.codigo_original = d.codigo ?? ''; x.servicos_ids = (d.servicos ?? []).join(','); x.entregas_json = d.entregas ? JSON.stringify(d.entregas) : ''; x.servico_estudo = d.servico_estudo ?? ''; x.servico_aprovacao = d.servico_aprovacao ?? ''; x.servicos_observacao = d.servicos_observacao ?? '';
         setF(x); setMeta({ atualizado_em: d.atualizado_em, por: pessoas.find((q) => q.id === d.atualizado_por)?.nome });
       }
       setProjetos((p.data as Projeto[]) ?? []); setCarregando(false);
@@ -83,8 +93,8 @@ export default function ClienteDetalhe() {
   const set = (k: string, val: string | boolean | null) => { setF((x) => ({ ...x, [k]: val })); setOk(''); };
   const catalogo = useCatalogo();
   const juridica = f.tipo_pessoa === 'juridica';
-  const escolha: Escolha = { perfil: String(f.categoria ?? ''), ids: String(f.servicos_ids ?? '').split(',').filter(Boolean), estudo: String(f.servico_estudo ?? ''), aprovacao: String(f.servico_aprovacao ?? ''), obs: String(f.servicos_observacao ?? '') };
-  const setEscolha = (e: Escolha) => { setF((x) => ({ ...x, categoria: e.perfil, servicos_ids: e.ids.join(','), servico_estudo: e.estudo, servico_aprovacao: e.aprovacao, servicos_observacao: e.obs })); setOk(''); };
+  const escolha: Escolha = { premium: !!f.premium, entregas: f.entregas_json ? (JSON.parse(String(f.entregas_json)) as string[]) : null, perfil: String(f.categoria ?? ''), ids: String(f.servicos_ids ?? '').split(',').filter(Boolean), estudo: String(f.servico_estudo ?? ''), aprovacao: String(f.servico_aprovacao ?? ''), obs: String(f.servicos_observacao ?? '') };
+  const setEscolha = (e: Escolha) => { setF((x) => ({ ...x, categoria: e.perfil, servicos_ids: e.ids.join(','), entregas_json: e.entregas ? JSON.stringify(e.entregas) : '', servico_estudo: e.estudo, servico_aprovacao: e.aprovacao, servicos_observacao: e.obs })); setOk(''); };
   const PASSOS = ['Identificação', 'Contato', 'Endereço', 'Obra', 'Observações', 'Serviços', 'Confirmação'];
   const mostra = (k: number) => !novo || passo === k;
   const avancar = () => {
@@ -112,13 +122,17 @@ export default function ClienteDetalhe() {
 
   async function salvar(e: FormEvent) {
     e.preventDefault(); setErro(''); setOk('');
+    const errosCampos = [erroTelefone(v('telefone')), erroTelefone(v('whatsapp')), erroTelefone(v('telefone2')), erroEmail(v('email'))].filter(Boolean);
+    if (errosCampos.length) { setTocou({ telefone: true, whatsapp: true, telefone2: true, email: true }); setPasso(1); return setErro(errosCampos[0]); }
+    if (codigoRepetido) { setPasso(0); return setErro(`O código ${v('codigo')} já existe. Use ${sugestao.proximo}.`); }
     const doc = digitos(v('documento'));
     if (doc && (juridica ? !cnpjValido(doc) : !cpfValido(doc))) return setErro(juridica ? 'O CNPJ informado não é válido.' : 'O CPF informado não é válido.');
     if (digitos(v('empresa_cnpj')) && !cnpjValido(v('empresa_cnpj'))) return setErro('O CNPJ da empresa não é válido.');
     if (digitos(v('empresa_responsavel_cpf')) && !cpfValido(v('empresa_responsavel_cpf'))) return setErro('O CPF do responsável pela empresa não é válido.');
     const corpo: Record<string, unknown> = { tipo_pessoa: f.tipo_pessoa, premium: !!f.premium, obra_financiada: f.obra_financiada ?? null, data_nascimento: v('data_nascimento') || null, responsavel_comercial: v('responsavel_comercial') || null };
-    corpo.servicos = escolha.ids; corpo.servico_estudo = escolha.estudo || null; corpo.servico_aprovacao = escolha.ids.includes('legal') ? escolha.aprovacao || null : null; corpo.servicos_observacao = escolha.obs.trim() || null;
+    corpo.entregas = escolha.entregas ?? null; corpo.servicos = escolha.ids; corpo.servico_estudo = escolha.estudo || null; corpo.servico_aprovacao = flagsDe(escolha.ids, escolha.perfil).legal ? escolha.aprovacao || null : null; corpo.servicos_observacao = escolha.obs.trim() || null;
     for (const k of TEXTOS) corpo[k] = v(k).trim() || null;
+    corpo.lgpd_consentimento_em = f.lgpd_consentimento_em ? String(f.lgpd_consentimento_em) : null;
     corpo.documento = doc || null; corpo.empresa_cnpj = digitos(v('empresa_cnpj')) || null; corpo.empresa_responsavel_cpf = digitos(v('empresa_responsavel_cpf')) || null;
     const m = v('obra_metragem').replace(',', '.'); corpo.obra_metragem = m && Number.isFinite(Number(m)) ? Number(m) : null;
     setBusy(true);
@@ -146,7 +160,10 @@ export default function ClienteDetalhe() {
   }
 
   if (carregando) return <Carregando tipo="cartoes" n={2} texto="Carregando cadastro…" />;
-  const wa = digitos(v('whatsapp') || v('telefone'));
+  const wa = telefoneLocal(v('whatsapp') || v('telefone'));
+  const codigoRepetido = !!v('codigo') && codigos.some((c) => c.toUpperCase() === v('codigo').toUpperCase()) && (novo || v('codigo').toUpperCase() !== String(f.codigo_original ?? '').toUpperCase());
+  const eTel = (k: string) => (tocou[k] ? erroTelefone(v(k)) : '');
+  const eMail = tocou.email ? erroEmail(v('email')) : '';
 
   return (
     <>
@@ -192,9 +209,9 @@ export default function ClienteDetalhe() {
               </span>
             </Campo>
             <Campo rotulo={juridica ? 'Nome fantasia ou nome do contato' : 'Nome completo'} largo><input required value={v('nome')} onChange={(e) => set('nome', e.target.value)} /></Campo>
-            <Campo rotulo="Código"><input placeholder="CA000123" value={v('codigo')} onChange={(e) => set('codigo', e.target.value.toUpperCase())} /></Campo>
+            <Campo rotulo="Código" erro={codigoRepetido ? `Este código já existe. Próximo livre: ${sugestao.proximo}` : undefined} dica={novo && sugestao.ultimo ? `Último cadastrado: ${sugestao.ultimo} · sugerido: ${sugestao.proximo}` : undefined}><input placeholder={sugestao.proximo} value={v('codigo')} onChange={(e) => set('codigo', e.target.value.toUpperCase())} />{codigoRepetido && <button type="button" className="link" onClick={() => set('codigo', sugestao.proximo)}>Usar {sugestao.proximo}</button>}</Campo>
             <Campo rotulo="Perfil (por metragem · D e E: + Projetos)"><select value={v('categoria')} onChange={(e) => { set('categoria', e.target.value); const pf = perfilPorId(e.target.value); if (pf) set('servico_estudo', pf.estudo); }}><option value="">—</option>{!perfilPorId(v('categoria')) && v('categoria') && <option value={v('categoria')}>{v('categoria')} (antigo)</option>}{catalogo.perfis.filter((c) => c.ativo || c.id === v('categoria')).map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}</select></Campo>
-            <label className="check campo largo"><input type="checkbox" checked={!!f.premium} onChange={(e) => set('premium', e.target.checked)} />Cliente premium (pendrive na entrega)</label>
+            <label className="check campo largo"><input type="checkbox" checked={!!f.premium} onChange={(e) => { set('premium', e.target.checked); if (e.target.checked) { const extra = idsPremium(); setEscolha({ ...escolha, premium: true, ids: [...new Set([...escolha.ids, ...extra])], entregas: null }); } }} />Cliente Premium (pendrive na entrega e todos os serviços do pacote Premium)</label>
           </Secao>
 
           <Secao titulo={juridica ? 'Dados da empresa' : 'Dados pessoais'}>
@@ -223,10 +240,10 @@ export default function ClienteDetalhe() {
           </div>
           <div className="passo" hidden={!mostra(1)}>
           <Secao titulo="Contato">
-            <Campo rotulo="Telefone"><input inputMode="tel" value={v('telefone')} onChange={(e) => set('telefone', formatarTelefone(e.target.value))} /></Campo>
-            <Campo rotulo="WhatsApp"><input inputMode="tel" value={v('whatsapp')} onChange={(e) => set('whatsapp', formatarTelefone(e.target.value))} /></Campo>
-            <Campo rotulo="Outro telefone"><input inputMode="tel" value={v('telefone2')} onChange={(e) => set('telefone2', formatarTelefone(e.target.value))} /></Campo>
-            <Campo rotulo="E-mail"><input type="email" value={v('email')} onChange={(e) => set('email', e.target.value)} /></Campo>
+            <Campo rotulo="Telefone" erro={eTel('telefone')} dica="Ex.: +55 (15) 99999-0000"><input inputMode="tel" placeholder="+55 (00) 90000-0000" value={v('telefone')} onChange={(e) => set('telefone', formatarTelefone(e.target.value))} onBlur={() => setTocou((t) => ({ ...t, telefone: true }))} aria-invalid={!!eTel('telefone')} /></Campo>
+            <Campo rotulo="WhatsApp" erro={eTel('whatsapp')}><input inputMode="tel" placeholder="+55 (00) 90000-0000" value={v('whatsapp')} onChange={(e) => set('whatsapp', formatarTelefone(e.target.value))} onBlur={() => setTocou((t) => ({ ...t, whatsapp: true }))} aria-invalid={!!eTel('whatsapp')} /></Campo>
+            <Campo rotulo="Outro telefone" erro={eTel('telefone2')}><input inputMode="tel" placeholder="+55 (00) 90000-0000" value={v('telefone2')} onChange={(e) => set('telefone2', formatarTelefone(e.target.value))} onBlur={() => setTocou((t) => ({ ...t, telefone2: true }))} aria-invalid={!!eTel('telefone2')} /></Campo>
+            <Campo rotulo="E-mail" erro={eMail}><input type="text" inputMode="email" autoComplete="off" placeholder="nome@dominio.com.br" value={v('email')} onChange={(e) => set('email', e.target.value)} onBlur={() => setTocou((t) => ({ ...t, email: true }))} aria-invalid={!!eMail} /></Campo>
             <Campo rotulo="Prefere ser contatado por"><select value={v('contato_preferido')} onChange={(e) => set('contato_preferido', e.target.value)}><option value="">—</option>{CONTATOS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></Campo>
             <Campo rotulo="Como chegou ao escritório"><select value={v('origem')} onChange={(e) => set('origem', e.target.value)}><option value="">—</option>{ORIGENS.map((o) => <option key={o}>{o}</option>)}</select></Campo>
             <Campo rotulo="Indicado por"><input value={v('indicado_por')} onChange={(e) => set('indicado_por', e.target.value)} /></Campo>
@@ -290,6 +307,10 @@ export default function ClienteDetalhe() {
                 </dl>
               </section>
               <ResumoServicos v={escolha} />
+              <section className="card secao">
+                <label className="check"><input type="checkbox" checked={!!f.lgpd_consentimento_em} onChange={(e) => set('lgpd_consentimento_em', e.target.checked ? new Date().toISOString() : null)} />O cliente foi informado de que seus dados pessoais são usados só para o projeto contratado, ficam guardados com segurança e podem ser corrigidos ou apagados a pedido (LGPD).</label>
+                <p className="pequeno mudo">Registra a data do aviso. Veja o texto completo em <Link to="/privacidade" target="_blank">Privacidade e dados</Link>.</p>
+              </section>
             </div>
           )}
         </fieldset>

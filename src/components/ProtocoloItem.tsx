@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Protocolo, ProtocoloStatus } from '../lib/types';
-import { PROTOCOLO_TIPO, diasAte, fmtData, opcoesStatus, statusProtocolo } from '../lib/labels';
+import { PROTOCOLO_TIPO, diasAte, ehInterno, fmtData, opcoesStatus, statusProtocolo } from '../lib/labels';
 
 export default function ProtocoloItem({ p, onChange, mostrarProjeto }: {
   p: Protocolo; onChange: () => void; mostrarProjeto?: boolean;
@@ -14,7 +14,7 @@ export default function ProtocoloItem({ p, onChange, mostrarProjeto }: {
 
   async function mudarStatus(status: ProtocoloStatus) {
     const patch: Partial<Protocolo> = { status };
-    if (status === 'protocolado' && p.tipo !== 'entrega_cliente' && !p.data_protocolo) patch.data_protocolo = new Date().toISOString().slice(0, 10);
+    if (status === 'protocolado' && !ehInterno(p.tipo) && !p.data_protocolo) patch.data_protocolo = new Date().toISOString().slice(0, 10);
     await supabase.from('protocolos').update(patch).eq('id', p.id);
     await supabase.from('protocolo_andamentos').insert({ protocolo_id: p.id, status, texto: `Status: ${statusProtocolo(p.tipo, status)}` });
     await supabase.from('historico').insert({ projeto_id: p.projeto_id, tipo: 'protocolo', texto: `${PROTOCOLO_TIPO[p.tipo]}${p.numero ? ' ' + p.numero : ''}: ${statusProtocolo(p.tipo, status)}` });

@@ -17,8 +17,8 @@ import { CronometroMini } from '../components/Cronometro';
 import GanttEtapas from '../components/GanttEtapas';
 import { useTemposDe } from '../lib/tempo';
 
-type Vista = 'checklists' | 'lista' | 'quadro' | 'kanban' | 'cronograma' | 'calendario';
-const VISTAS: [Vista, string][] = [['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['kanban', 'Kanban'], ['cronograma', 'Gantt'], ['calendario', 'Calendário']];
+type Vista = 'projetos' | 'checklists' | 'lista' | 'quadro' | 'kanban' | 'cronograma' | 'calendario';
+const VISTAS: [Vista, string][] = [['projetos', 'Por projeto'], ['checklists', 'Checklists'], ['lista', 'Lista'], ['quadro', 'Quadro'], ['kanban', 'Kanban'], ['cronograma', 'Gantt'], ['calendario', 'Calendário']];
 
 /** Fluxo de trabalho do profissional: as tarefas dos protocolos, já provisionadas e atribuídas a ele. */
 export default function Tarefas() {
@@ -27,9 +27,12 @@ export default function Tarefas() {
   const [pessoas, setPessoas] = useState<Profile[]>([]);
   const [alvoId, setAlvoId] = useState(eu.id);
   const [grupos, setGrupos] = useState<GrupoTarefas[] | null>(null);
-  const [vista, setVista] = useState<Vista>('checklists');
+  const [vista, setVista] = useState<Vista>('projetos');
   const [mostrarTudo, setMostrarTudo] = useState<Record<string, boolean>>({});
   const todas = alvoId === 'todas';
+  const [foco, setFoco] = useState<'' | 'agora' | 'concluida' | 'seguir'>('');
+  const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const [chaveAbrir, setChaveAbrir] = useState(0);
   const [agenda, setAgenda] = useState<{ crono: Crono; eventos: Evento[] } | null>(null);
   useEffect(() => { if ((vista === 'cronograma' || vista === 'calendario') && !agenda) carregarCronograma().then(setAgenda).catch(() => setAgenda({ crono: { linhas: [], inicio: Date.now(), fim: Date.now() }, eventos: [] })); }, [vista, agenda]);
 
@@ -97,11 +100,13 @@ export default function Tarefas() {
       </div>
 
       <div className="kpis">
-        <div className="kpi"><b>{itensAgora}</b><span>itens a fazer agora</span></div>
-        <div className="kpi"><b>{agora.length}</b><span>etapas em andamento</span></div>
-        <div className="kpi"><b className={atrasadas.length ? 'alerta' : ''}>{atrasadas.length}</b><span>pendências em etapas concluídas</span></div>
-        <div className="kpi"><b>{aSeguir.length}</b><span>etapas a seguir</span></div>
+        {([['agora', itensAgora, 'itens a fazer agora', ''], ['agora', agora.length, 'etapas em andamento', ''], ['concluida', atrasadas.length, 'pendências em etapas concluídas', atrasadas.length ? 'alerta' : ''], ['seguir', aSeguir.length, 'etapas a seguir (a próxima de cada projeto)', '']] as ['agora' | 'concluida' | 'seguir', number, string, string][]).map(([k, n, rot, cls]) => (
+          <button key={rot} type="button" className={`kpi kpi-btn${foco === k ? ' on' : ''}`} aria-pressed={foco === k} onClick={() => { setFoco(foco === k ? '' : k); if (vista !== 'projetos' && vista !== 'checklists') setVista('projetos'); }} title="Clique para ver só estas tarefas; clique de novo para voltar">
+            <b className={cls}>{n}</b><span>{rot}</span>
+          </button>
+        ))}
       </div>
+      {foco && <p className="pequeno mudo">Mostrando só: {{ agora: 'etapas em andamento', concluida: 'pendências em etapas concluídas', seguir: 'próxima etapa de cada projeto' }[foco]}. <button className="link" onClick={() => setFoco('')}>Mostrar tudo</button></p>}
 
       {grupos === null && <Carregando tipo="cartoes" n={2} />}
       {grupos && grupos.length === 0 && <section className="card"><p className="mudo">Nenhuma tarefa para {todas ? 'os projetos visíveis' : alvoId === eu.id ? 'você' : alvo?.nome} no momento.</p></section>}
@@ -204,9 +209,45 @@ export default function Tarefas() {
         </div>
       )}
 
-      {vista === 'checklists' && agora.length > 0 && <><h2>Agora</h2>{agora.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
-      {vista === 'checklists' && atrasadas.length > 0 && <><h2>Pendências em etapas já concluídas</h2>{atrasadas.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
-      {vista === 'checklists' && aSeguir.length > 0 && <>
+      {vista === 'projetos' && grupos && grupos.length > 0 && (() => {
+        const visiveis = grupos.filter((g) => !foco || (foco === 'agora' ? g.status === 'em_andamento' : foco === 'concluida' ? g.status === 'concluida' : g.status === 'pendente'));
+        const porProjeto = new Map<string, GrupoTarefas[]>();
+        for (const g of visiveis) porProjeto.set(g.projeto.id, [...(porProjeto.get(g.projeto.id) ?? []), g]);
+        const lista = [...porProjeto.values()].sort((a, b) => (a[0].projeto.nome).localeCompare(b[0].projeto.nome));
+        return (
+          <>
+            <div className="acoes">
+              <span className="mudo pequeno">{lista.length} projeto(s)</span>
+              <button onClick={() => { setAbertos(Object.fromEntries(lista.map((l) => [l[0].projeto.id, true]))); setChaveAbrir((n) => n + 1); }}>Abrir todos</button>
+              <button onClick={() => { setAbertos({}); setChaveAbrir((n) => n + 1); }}>Fechar todos</button>
+            </div>
+            {lista.map((gs) => {
+              const p = gs[0].projeto;
+              const and = gs.filter((g) => g.status === 'em_andamento'), pen = gs.filter((g) => g.status === 'concluida'), seg = gs.filter((g) => g.status === 'pendente');
+              const itensP = and.reduce((n, g) => n + g.pendentes, 0);
+              return (
+                <details className="card projeto-grupo" key={`${p.id}-${chaveAbrir}`} open={!!abertos[p.id]} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setAbertos((a) => (a[p.id] === o ? a : { ...a, [p.id]: o })); }}>
+                  <summary>
+                    <b>{p.nome}</b><span className="mudo pequeno"> {p.clientes?.nome}</span>
+                    <span className="resumo-projeto">
+                      {and.length > 0 && <span className="tag e-em_andamento">{and.map((g) => `${g.etapa.codigo} em andamento`).join(' · ')} · {itensP} item(ns)</span>}
+                      {pen.length > 0 && <span className="tag pendencia">{pen.length} pendência(s)</span>}
+                      {seg.length > 0 && <span className="tag">a seguir: {seg[0].etapa.codigo} · {seg[0].etapa.rotulo}</span>}
+                    </span>
+                  </summary>
+                  {and.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto />)}
+                  {pen.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto />)}
+                  {seg.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto={false} />)}
+                </details>
+              );
+            })}
+          </>
+        );
+      })()}
+
+      {vista === 'checklists' && (!foco || foco === 'agora') && agora.length > 0 && <><h2>Agora</h2>{agora.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
+      {vista === 'checklists' && (!foco || foco === 'concluida') && atrasadas.length > 0 && <><h2>Pendências em etapas já concluídas</h2>{atrasadas.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
+      {vista === 'checklists' && (!foco || foco === 'seguir') && aSeguir.length > 0 && <>
         <h2>A seguir</h2>
         <p className="mudo pequeno">Já provisionadas; liberam quando a etapa começar.{grupos && ` Mais antiga: ${fmtData(aSeguir[0].projeto.created_at)}.`}</p>
         {aSeguir.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto={false} />)}

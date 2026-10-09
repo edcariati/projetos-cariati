@@ -25,6 +25,13 @@ export async function carregarTarefas(alvo: Profile | 'todas'): Promise<GrupoTar
     }
     const lotes = await Promise.all(consultas);
     tarefas = lotes.flatMap((l) => (l.data as ProjetoTarefa[]) ?? []);
+    // cronômetro ligado numa etapa cujas tarefas não são da pessoa: a etapa aparece (e conta como em andamento) mesmo assim
+    const { data: rodando } = await supabase.from('tempos').select('projeto_id,etapa_codigo').eq('usuario_id', alvo.id).is('finalizado_em', null).limit(1);
+    const r = ((rodando as { projeto_id: string; etapa_codigo: string }[]) ?? [])[0];
+    if (r && !tarefas.some((t) => t.projeto_id === r.projeto_id && t.etapa_codigo === r.etapa_codigo)) {
+      const { data: extra } = await supabase.from('projeto_tarefas').select('*').eq('projeto_id', r.projeto_id).eq('etapa_codigo', r.etapa_codigo);
+      tarefas = [...tarefas, ...((extra as ProjetoTarefa[]) ?? [])];
+    }
   }
   if (!tarefas.length) return [];
 
@@ -56,5 +63,9 @@ export async function carregarTarefas(alvo: Profile | 'todas'): Promise<GrupoTar
         diasNaEtapa: status === 'em_andamento' && linhaEtapa?.iniciada_em ? (Date.now() - new Date(linhaEtapa.iniciada_em).getTime()) / 86_400_000 : null });
     }
   }
-  return grupos.sort((a, b) => a.etapa.ordem - b.etapa.ordem);
+  grupos.sort((a, b) => a.etapa.ordem - b.etapa.ordem);
+  // “A seguir” mostra só a próxima etapa de cada projeto (as demais já provisionadas ficam fora da fila)
+  const proxima = new Map<string, GrupoTarefas>();
+  for (const g of grupos) if (g.status === 'pendente' && !proxima.has(g.projeto.id)) proxima.set(g.projeto.id, g);
+  return grupos.filter((g) => g.status !== 'pendente' || proxima.get(g.projeto.id) === g);
 }

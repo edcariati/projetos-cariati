@@ -7,6 +7,7 @@ import { MAX_DIAS_PAUSA, diasDePausa } from '../lib/flow';
 import { usePerfil } from '../lib/perfil';
 import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
 import { Carregando, Contador, Orbe, Vazio } from '../ui/Holo';
+import AtualizacaoSemanal from '../components/AtualizacaoSemanal';
 
 export default function Painel() {
   const eu = usePerfil();
@@ -121,6 +122,8 @@ export default function Painel() {
           </ul>
         </section>
       )}
+
+      {eu.perfil !== 'cliente' && <AtualizacaoSemanal />}
 
       <section className="card">
         <h2>Atividade recente</h2>

@@ -1,6 +1,7 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { usePerfil } from './lib/perfil';
+import { useSairPorInatividade } from './lib/inatividade';
 import ClienteInicio from './pages/cliente/ClienteInicio';
 import ClienteProjeto from './pages/cliente/ClienteProjeto';
 import ClienteComoFunciona from './pages/cliente/ClienteComoFunciona';
@@ -12,6 +13,7 @@ import { useTema } from './ui/tema';
 /** Área do cliente: acompanha o próprio projeto, sem nada interno do escritório. */
 export default function AppCliente() {
   const eu = usePerfil();
+  useSairPorInatividade(30);
   const [tema, alternarTema] = useTema();
   return (
     <div className="shell cliente">

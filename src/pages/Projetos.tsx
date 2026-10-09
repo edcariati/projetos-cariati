@@ -7,6 +7,7 @@ import { usePerfil } from '../lib/perfil';
 import { Atraso, ProjetoK, etapasAbertas, refEtapas } from '../lib/kpis';
 import { STATUS_ICONE, STATUS_ROTULO } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
+import { percentualProjeto, useItensPorEtapa } from '../lib/progresso';
 
 type Vista = 'cartoes' | 'quadro' | 'lista';
 const VISTAS: [Vista, string][] = [['cartoes', 'Cartões'], ['quadro', 'Quadro'], ['lista', 'Lista']];
@@ -30,6 +31,7 @@ function Avatares({ nomes }: { nomes: string[] }) {
 }
 
 export default function Projetos() {
+  const itensEtapa = useItensPorEtapa();
   const [projetos, setProjetos] = useState<ProjetoK[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
   const [equipe, setEquipe] = useState<{ projeto_id: string; profiles: { nome: string } | null }[]>([]);
@@ -113,9 +115,8 @@ export default function Projetos() {
         <ul className="cards">
           {lista.map((p) => {
             const aplic = p.projeto_etapas.filter((e) => e.status !== 'nao_aplicavel' && modelos.find((m) => m.codigo === e.etapa_codigo)?.fase !== 5);
-            const feitas = aplic.filter((e) => e.status === 'concluida').length;
             const atual = etapaAtual(p);
-            const pct = aplic.length ? Math.round((feitas / aplic.length) * 100) : 0;
+            const pct = percentualProjeto(p.id, aplic, itensEtapa);
             return (
               <li key={p.id}><Link className="card item" to={`/projetos/${p.id}`}>
                 <div><b>{p.nome}</b><span className={`tag ${p.status}`}>{PROJETO_STATUS[p.status]}</span></div>

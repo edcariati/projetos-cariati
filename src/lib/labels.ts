@@ -18,19 +18,37 @@ export const PROTOCOLO_STATUS: Record<ProtocoloStatus, string> = {
   exigencia: 'Com exigência', aprovado: 'Aprovado', entregue_ao_cliente: 'Entregue ao cliente',
 };
 export const PROTOCOLO_TIPO: Record<ProtocoloTipo, string> = {
-  prefeitura: 'Prefeitura', condominio: 'Condomínio', outro_orgao: 'Outro órgão', entrega_cliente: 'Entrega ao cliente',
+  prefeitura: 'Prefeitura', condominio: 'Condomínio', receita_federal: 'Receita Federal', cartorio: 'Cartório', concessionaria: 'Concessionária',
+  outro_orgao: 'Outro órgão', entrega_cliente: 'Entrega de projeto ao cliente', pausa_cliente: 'Pausa a pedido do cliente',
 };
+/** Protocolos internos (processo do escritório com o cliente) × externos (junto a um órgão). */
+export const TIPOS_INTERNOS: ProtocoloTipo[] = ['entrega_cliente', 'pausa_cliente'];
+export const TIPOS_EXTERNOS: ProtocoloTipo[] = ['prefeitura', 'condominio', 'receita_federal', 'cartorio', 'concessionaria', 'outro_orgao'];
+export const ehInterno = (t: ProtocoloTipo) => TIPOS_INTERNOS.includes(t);
 
-/** Entregas ao cliente usam os mesmos status com nomes e opções próprios. */
-const STATUS_ENTREGA: Partial<Record<ProtocoloStatus, string>> = {
-  a_protocolar: 'A entregar', protocolado: 'Entrega agendada', entregue_ao_cliente: 'Entregue (termo assinado)',
+/** Protocolos internos usam os mesmos status com nomes próprios. */
+const STATUS_INTERNO: Partial<Record<ProtocoloTipo, Partial<Record<ProtocoloStatus, string>>>> = {
+  entrega_cliente: { a_protocolar: 'A entregar', protocolado: 'Entrega agendada', entregue_ao_cliente: 'Entregue (termo assinado)' },
+  pausa_cliente: { a_protocolar: 'Termo a emitir', protocolado: 'Termo enviado ao cliente', entregue_ao_cliente: 'Termo assinado' },
 };
-export const statusProtocolo = (tipo: ProtocoloTipo, s: ProtocoloStatus) =>
-  (tipo === 'entrega_cliente' && STATUS_ENTREGA[s]) || PROTOCOLO_STATUS[s];
+export const statusProtocolo = (tipo: ProtocoloTipo, s: ProtocoloStatus) => STATUS_INTERNO[tipo]?.[s] || PROTOCOLO_STATUS[s];
 export const opcoesStatus = (tipo: ProtocoloTipo) =>
-  (Object.keys(PROTOCOLO_STATUS) as ProtocoloStatus[]).filter((s) => tipo !== 'entrega_cliente' || s in STATUS_ENTREGA);
+  (Object.keys(PROTOCOLO_STATUS) as ProtocoloStatus[]).filter((s) => !ehInterno(tipo) || s in (STATUS_INTERNO[tipo] ?? {}));
 
-export const TIPOS_APROVACAO = ['residencial', 'comercial', 'habite-se', 'unificação', 'averbação'];
+/** Tipos de aprovação do projeto legal (Habite-se é um serviço à parte e não entra aqui). */
+export const TIPOS_APROVACAO = ['residencial', 'comercial', 'unificação', 'averbação', 'regularização'];
+
+/** Tipos de projeto do “Novo projeto”: etiqueta do nome e o que cada um preenche sozinho. */
+export const TIPOS_PROJETO: { id: string; rotulo: string; etiqueta: string; legal?: boolean; aprov?: string[]; estudo?: 'ampliacao'; interiores?: boolean }[] = [
+  { id: 'unifamiliar', rotulo: 'Residencial unifamiliar', etiqueta: 'RESIDÊNCIA', legal: true, aprov: ['residencial'] },
+  { id: 'multifamiliar', rotulo: 'Residencial multifamiliar', etiqueta: 'PORTAL', legal: true, aprov: ['residencial'] },
+  { id: 'comercial', rotulo: 'Comercial', etiqueta: 'COMERCIAL', legal: true, aprov: ['comercial'] },
+  { id: 'reforma', rotulo: 'Reforma', etiqueta: 'REFORMA' },
+  { id: 'interiores', rotulo: 'Interiores', etiqueta: 'INTERIORES', interiores: true },
+  { id: 'ampliacao', rotulo: 'Ampliação', etiqueta: 'AMPLIAÇÃO', legal: true, aprov: ['residencial'], estudo: 'ampliacao' },
+  { id: 'regularizacao', rotulo: 'Regularização', etiqueta: 'REGULARIZAÇÃO', legal: true, aprov: ['regularização'] },
+  { id: 'outros', rotulo: 'Outros…', etiqueta: '' },
+];
 
 export const fmtData = (d: string | null | undefined) =>
   d ? new Date(d.length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '—';

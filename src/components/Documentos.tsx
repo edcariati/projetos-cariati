@@ -53,7 +53,7 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
     await carregar();
   }
   const Liberar = ({ d }: { d: Doc }) => (
-    <label className="check pequeno liberar"><input type="checkbox" checked={d.visivel_cliente} onChange={(e) => liberar(d, e.target.checked)} />Liberado para o cliente</label>
+    <label className="check pequeno liberar"><input type="checkbox" checked={d.visivel_cliente} onChange={(e) => liberar(d, e.target.checked)} />Liberado para o cliente <span className="mudo" title="Marcado: o cliente vê e baixa este arquivo na área dele. Desmarcado: o arquivo é só interno do escritório.">(o cliente vê na área dele)</span></label>
   );
 
   const Envio = ({ modelo, rotulo }: { modelo: Modelo | null; rotulo: string }) => (
