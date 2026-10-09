@@ -113,6 +113,10 @@ export interface Visao {
   mix: { rotulo: string; n: number }[];
   pausas: { projeto: ProjetoK; dias: number }[];
   itensSerie: number[]; itensTotal: number; itensAnt: number;
+  /** etapas concluídas no período e quantas ficaram dentro do prazo de referência */
+  concluidasPeriodo: { n: number; noPrazo: number };
+  /** listas por trás de cada número, para o resumo que abre ao clicar */
+  carteira_lista: ProjetoK[]; novos: ProjetoK[]; concluidos: { projeto: ProjetoK; ciclo: number }[]; comRodadas: { projeto: ProjetoK; etapa: string; rodadas: number }[];
   insights: Insight[];
 }
 
@@ -125,7 +129,9 @@ export function calcular(b: Bruto, periodoId: string, resp: string, agoraMs = Da
   const hoje = dataLocal(new Date(agoraMs));
   const ini = somaDias(hoje, -(per.dias - 1)), fim = hoje;
   const iniAnt = somaDias(ini, -per.dias), fimAnt = somaDias(ini, -1);
-  const projetos = resp ? b.projetos.filter((p) => p.responsavel_id === resp) : b.projetos;
+  // “da pessoa”: projetos que ela conduz ou em que registrou tempo (quem não é responsável, como o Administrativo, também aparece)
+  const noProjeto = new Set(resp ? b.tempos.filter((t) => t.usuario_id === resp && dia(t.iniciado_em) >= iniAnt).map((t) => t.projeto_id) : []);
+  const projetos = resp ? b.projetos.filter((p) => p.responsavel_id === resp || noProjeto.has(p.id)) : b.projetos;
   const tempos = resp ? b.tempos.filter((t) => t.usuario_id === resp) : b.tempos;
   const pessoasTodas = b.pessoas.filter((p) => p.perfil !== 'cliente' && p.ativo);
   const pessoas = resp ? pessoasTodas.filter((p) => p.id === resp) : pessoasTodas;
@@ -204,9 +210,17 @@ export function calcular(b: Bruto, periodoId: string, resp: string, agoraMs = Da
   const ciclosDe = (a: string, z: string) => projetos.filter((p) => { const f = fimProjeto(p); return p.status === 'finalizado' && f && dia(f) >= a && dia(f) <= z; })
     .map((p) => diasEntre(p.created_at, fimProjeto(p)!));
   const cicloA = ciclosDe(ini, fim), cicloB = ciclosDe(iniAnt, fimAnt);
+  const concluidos = projetos.filter((p) => { const f = fimProjeto(p); return p.status === 'finalizado' && f && dia(f) >= ini && dia(f) <= fim; })
+    .map((p) => ({ projeto: p, ciclo: diasEntre(p.created_at, fimProjeto(p)!) })).sort((a, b2) => b2.ciclo - a.ciclo);
+  let concN = 0, concOk = 0;
+  for (const p of projetos) for (const e of p.projeto_etapas)
+    if (e.status === 'concluida' && e.iniciada_em && e.concluida_em && dia(e.concluida_em) >= ini && dia(e.concluida_em) <= fim) {
+      concN++; if (diasEntre(e.iniciada_em, e.concluida_em) <= (ref[e.etapa_codigo]?.dias ?? 7)) concOk++;
+    }
 
   const apres = projetos.flatMap((p) => p.projeto_etapas.filter((e) => ['07', '09', '11', '13'].includes(e.etapa_codigo) && (e.status === 'concluida' || e.status === 'em_andamento')));
   const rodadas = apres.length ? media(apres.map((e) => e.rodadas_ajuste)) : null;
+  const comRodadas = projetos.flatMap((p) => p.projeto_etapas.filter((e) => ['07', '09', '11', '13'].includes(e.etapa_codigo) && e.rodadas_ajuste > 0).map((e) => ({ projeto: p, etapa: e.etapa_codigo, rodadas: e.rodadas_ajuste }))).sort((a, b2) => b2.rodadas - a.rodadas);
 
   const entradasSerie = bal.map((x) => entradasDe(x.ini, x.fim)), saidasSerie = bal.map((x) => saidasDe(x.ini, x.fim));
   const horasSerie = bal.map((x) => horasEm(x.ini, x.fim));
@@ -225,6 +239,7 @@ export function calcular(b: Bruto, periodoId: string, resp: string, agoraMs = Da
     abertas, atrasadas, porEtapa, duracaoEtapas, horasEtapa, pessoas: pessoasK,
     protocolosStatus, protocolosProx, protocolosVencidos, mix, pausas,
     itensSerie, itensTotal: itensEm(ini, fim), itensAnt: itensEm(iniAnt, fimAnt), insights: [],
+    concluidasPeriodo: { n: concN, noPrazo: concOk }, carteira_lista: carteiraAtual, novos: projetos.filter((p) => dia(p.created_at) >= ini && dia(p.created_at) <= fim), concluidos, comRodadas,
   };
   v.insights = insights(v, rot, ms);
   return v;
@@ -254,6 +269,14 @@ function insights(v: Visao, rot: (c: string) => string, _ms: (c: string) => Etap
   const sobre = v.pessoas.filter((p) => p.meta > 0 && p.horas / p.meta > 1.15);
   if (sobre.length) out.push({ nivel: 'atencao', texto: `${sobre.map((p) => p.nome).join(', ')} ${sobre.length > 1 ? 'passaram' : 'passou'} de 115% da meta de horas no período.` });
 
+  const cp = v.concluidasPeriodo;
+  if (cp.n) out.push({ nivel: cp.noPrazo / cp.n >= 0.7 ? 'bom' : 'atencao', texto: `No período foram concluídas ${cp.n} etapa${cp.n === 1 ? '' : 's'}; ${cp.noPrazo} (${Math.round((cp.noPrazo / cp.n) * 100)}%) dentro do prazo de referência.` });
+  else out.push({ nivel: 'info', texto: 'Nenhuma etapa foi concluída no período.' });
+  if (v.itensTotal || v.itensAnt) out.push({ nivel: 'info', texto: `${v.itensTotal} ${v.itensTotal === 1 ? 'item' : 'itens'} de checklist marcado${v.itensTotal === 1 ? '' : 's'} no período${v.itensAnt ? ` (${v.itensTotal >= v.itensAnt ? '+' : '−'}${Math.abs(v.itensTotal - v.itensAnt)} em relação ao período anterior)` : ''}.` });
+  const topH = v.horasEtapa[0];
+  if (topH) out.push({ nivel: 'info', texto: `A etapa que mais consumiu horas por projeto foi ${nomeEtapa(topH.codigo, rot)}: ${fmt1(topH.horas)} h em média (${topH.n} projeto${topH.n === 1 ? '' : 's'}).` });
+  const topP = v.pessoas[0];
+  if (v.pessoas.length > 1 && topP && topP.horas > 0) out.push({ nivel: 'info', texto: `Quem mais registrou horas: ${topP.nome}, com ${fmt1(topP.horas)} h${topP.meta ? ` (${Math.round((topP.horas / topP.meta) * 100)}% da meta)` : ''}.` });
   const pc = v.pausas.filter((p) => p.dias > 150);
   if (pc.length) out.push({ nivel: 'critico', texto: `${pc.map((p) => `${p.projeto.nome} (${p.dias} dias)`).join(', ')} em pausa perto do limite de 180 dias: contatar o cliente ou preparar a rescisão.` });
   if (v.protocolosVencidos) out.push({ nivel: 'critico', texto: `${v.protocolosVencidos} protocolo${v.protocolosVencidos === 1 ? '' : 's'} com prazo vencido.` });

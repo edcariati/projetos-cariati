@@ -13,8 +13,8 @@ import { Anel, Carregando, Contador } from '../ui/Holo';
 const NIVEL_TEXTO: Record<string, string> = { ok: 'var(--bom)', atrasada: 'var(--amber)', grave: 'var(--ruim)', critica: 'var(--ruim)' };
 const ICONE_INSIGHT = { bom: '✓', atencao: '▲', critico: '⬣', info: '●' } as const;
 
-function Tile({ rotulo, valor, sub, delta, boaQuandoSobe = true, unidade = '', abs, serie, cor, nivel }: {
-  rotulo: string; valor: string; sub?: string; delta?: Delta; boaQuandoSobe?: boolean; unidade?: string; abs?: boolean; serie?: number[]; cor?: string; nivel?: string;
+function Tile({ rotulo, valor, sub, delta, boaQuandoSobe = true, unidade = '', abs, serie, cor, nivel, aoClicar }: {
+  aoClicar?: () => void; rotulo: string; valor: string; sub?: string; delta?: Delta; boaQuandoSobe?: boolean; unidade?: string; abs?: boolean; serie?: number[]; cor?: string; nivel?: string;
 }) {
   let d: { txt: string; bom: boolean | null } | null = null;
   if (delta) {
@@ -26,11 +26,24 @@ function Tile({ rotulo, valor, sub, delta, boaQuandoSobe = true, unidade = '', a
     }
   }
   return (
-    <div className="viz-tile">
-      <span className="viz-tile-r">{rotulo}</span>
+    <div className={`viz-tile${aoClicar ? ' clicavel' : ''}`} {...(aoClicar ? { role: 'button', tabIndex: 0, 'aria-haspopup': 'dialog' as const, onClick: aoClicar, onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); aoClicar(); } }, title: 'Clique para ver o resumo' } : {})}>
+      <span className="viz-tile-r">{rotulo}{aoClicar && <i className="ver-mais" aria-hidden="true">ver resumo ›</i>}</span>
       <div className="viz-tile-v"><b style={nivel ? { color: NIVEL_TEXTO[nivel] } : undefined}><Contador valor={valor} /></b>{serie && <Mini valores={serie} cor={cor} />}</div>
       {sub && <span className="viz-tile-s">{sub}</span>}
       {d && <span className={`viz-delta ${d.bom === null ? '' : d.bom ? 'bom' : 'ruim'}`}>{d.txt}</span>}
+    </div>
+  );
+}
+
+function ResumoKpi({ titulo, escopo, aoFechar, children }: { titulo: string; escopo: string; aoFechar: () => void; children: React.ReactNode }) {
+  useEffect(() => { const t = (e: KeyboardEvent) => e.key === 'Escape' && aoFechar(); addEventListener('keydown', t); return () => removeEventListener('keydown', t); }, [aoFechar]);
+  return (
+    <div className="modal" role="dialog" aria-modal="true" aria-label={`Resumo: ${titulo}`} onMouseDown={(e) => e.target === e.currentTarget && aoFechar()}>
+      <div className="card modal-largo resumo-kpi">
+        <div className="resumo-kpi-cab"><h2>{titulo}</h2><button className="icone-btn" onClick={aoFechar} aria-label="Fechar resumo">✕</button></div>
+        <p className="mudo pequeno">{escopo}</p>
+        {children}
+      </div>
     </div>
   );
 }
@@ -44,6 +57,7 @@ export default function Visao() {
   const [periodo, setPeriodo] = useState('90d');
   const [resp, setResp] = useState('');
   const [atualizado, setAtualizado] = useState<Date | null>(null);
+  const [aberto, setAberto] = useState<string | null>(null);
 
   const carregar = useCallback(async (forcar = false) => {
     setCarregando(true); setErro('');
@@ -65,23 +79,72 @@ export default function Visao() {
   const acima = (horasProj?.linhas ?? []).filter((l) => l.status === 'ativo' && l.pct !== null && l.pct > 100);
   const tarefasK = useMemo(() => {
     let pendentes = 0, atrasadas = 0;
-    for (const g of grupos) {
+    for (const g of grupos.filter((x) => !resp || x.tarefas.some((t) => t.responsavel_id === resp))) {
       const n = g.tarefas.filter((t) => g.itens.some((i) => i.tarefa_id === t.id && !i.feito)).length;
       if (g.status === 'concluida') atrasadas += n;
       else if (g.status === 'em_andamento') { pendentes += n; if (g.diasNaEtapa !== null && g.diasNaEtapa > (ref[g.etapa.codigo]?.dias ?? 7)) atrasadas += n; }
     }
     return { pendentes, atrasadas };
-  }, [grupos, ref]);
+  }, [grupos, ref, resp]);
 
   if (erro) return <div className="card"><p className="erro">{erro}</p><button onClick={() => carregar(true)}>Tentar de novo</button></div>;
   if (!v || !bruto) return <Carregando tipo="kpis" n={4} texto="Carregando indicadores…" />;
 
   const gran = v.gran === 'semana' ? 'Semana' : 'Mês';
+  const quemNome = resp ? equipe.find((p) => p.id === resp)?.nome ?? '' : 'toda a equipe';
+  const escopo = `${per.rotulo} · ${quemNome}`;
+  const cp = v.concluidasPeriodo;
+  const anel = cp.n
+    ? { valor: cp.noPrazo, max: cp.n, rotulo: 'Etapas concluídas no prazo', sub: `${cp.noPrazo} de ${cp.n} concluídas no período` }
+    : { valor: v.abertas.length - v.atrasadas.length, max: v.abertas.length || 1, rotulo: 'Etapas no prazo agora', sub: `${v.abertas.length - v.atrasadas.length} de ${v.abertas.length} em andamento` };
+  const gruposDaPessoa = grupos.filter((x) => !resp || x.tarefas.some((t) => t.responsavel_id === resp));
   const uso = v.baldes.map((_, i) => (v.metaSerie[i] ? (v.horasSerie[i] / v.metaSerie[i]) * 100 : 0));
   const pior = v.atrasadas[0];
   const nivelGeral = pior ? (nivelDe(pior.razao) === 'atrasada' ? 'atrasada' : nivelDe(pior.razao)) : undefined;
   const pctUso = v.utilizacao.atual;
   const rotEtapa = (cod: string) => `${cod} ${bruto.modelos.find((m) => m.codigo === cod)?.rotulo ?? ''}`.trim();
+
+  const lista = (itens: React.ReactNode[], vazio: string) => (itens.length ? <ul className="resumo-lista">{itens}</ul> : <p className="mudo">{vazio}</p>);
+  const pj = (p: { id: string; nome: string; clientes?: { nome: string } | null }) => <Link to={`/projetos/${p.id}`}><b>{p.nome}</b></Link>;
+  const etapaAtualDe = (p: (typeof bruto.projetos)[number]) => { const e = p.projeto_etapas.find((x) => x.status === 'em_andamento'); return e ? rotEtapa(e.etapa_codigo) : '—'; };
+  const resumoDe = (k: string): React.ReactNode => {
+    switch (k) {
+      case 'Projetos ativos': return <>
+        <p>{v.ativos} ativo{v.ativos === 1 ? '' : 's'} e {v.pausados} pausado{v.pausados === 1 ? '' : 's'} na carteira de {quemNome}.</p>
+        {lista(v.carteira_lista.map((p) => <li key={p.id}>{pj(p)}<span className="mudo"> · {p.clientes?.nome} · {p.status === 'pausado' ? 'pausado' : etapaAtualDe(p)}</span></li>), 'Nenhum projeto na carteira.')}</>;
+      case 'Etapas atrasadas': return <>
+        <p>{v.atrasadas.length} de {v.abertas.length} etapas em andamento passaram do prazo de referência.</p>
+        {lista(v.atrasadas.map((a) => <li key={a.projeto.id + a.etapa}>{pj(a.projeto)}<span className="mudo"> · {rotEtapa(a.etapa)} · {Math.round(a.dias)} d (previsto {fmtN(a.ref, 0)})</span></li>), 'Tudo dentro do prazo de referência.')}</>;
+      case 'Horas registradas': return <>
+        <p>{fmtN(v.horas.atual, 0)} h no período ({fmtData(v.ini)} a {fmtData(v.fim)}), contra {fmtN(v.horas.anterior, 0)} h no período anterior.</p>
+        {lista(v.pessoas.filter((p) => p.horas > 0).map((p) => <li key={p.id}><b>{p.nome}</b><span className="mudo"> · {fmtN(p.horas, 1)} h (meta {fmtN(p.meta, 0)} h)</span></li>), 'Sem horas registradas no período.')}
+        <h3>Etapas que mais consumiram horas</h3>
+        {lista(v.horasEtapa.slice(0, 5).map((e) => <li key={e.codigo}>{rotEtapa(e.codigo)}<span className="mudo"> · {fmtN(e.horas, 1)} h por projeto</span></li>), 'Sem dados.')}</>;
+      case 'Uso da carga horária': return <>
+        <p>{fmtN(pctUso, 0)}% da carga contratada (capacidade {fmtN(v.capacidadeSemanal, 0)} h por semana).</p>
+        {lista(v.pessoas.map((p) => <li key={p.id}><b>{p.nome}</b><span className="mudo"> · {p.meta ? `${Math.round((p.horas / p.meta) * 100)}%` : '—'} · {fmtN(p.horas, 1)} de {fmtN(p.meta, 0)} h</span></li>), 'Sem pessoas.')}</>;
+      case 'Novos projetos': return <>
+        <p>{v.entradas.atual} projeto{v.entradas.atual === 1 ? '' : 's'} entraram no período (antes: {v.entradas.anterior}).</p>
+        {lista(v.novos.map((p) => <li key={p.id}>{pj(p)}<span className="mudo"> · {p.clientes?.nome} · {fmtData(p.created_at)}</span></li>), 'Nenhum projeto novo no período.')}</>;
+      case 'Projetos concluídos': return <>
+        <p>{v.saidas.atual} projeto{v.saidas.atual === 1 ? '' : 's'} saíram no período (antes: {v.saidas.anterior}).</p>
+        {lista(v.concluidos.map(({ projeto: p, ciclo }) => <li key={p.id}>{pj(p)}<span className="mudo"> · {p.clientes?.nome} · {Math.round(ciclo)} dias do contrato à entrega</span></li>), 'Nenhum projeto concluído no período.')}</>;
+      case 'Ciclo médio': return <>
+        <p>{v.ciclosN ? `Média de ${fmtN(v.ciclo.atual, 0)} dias do contrato à entrega em ${v.ciclosN} projeto${v.ciclosN === 1 ? '' : 's'}${v.ciclo.anterior ? ` (período anterior: ${fmtN(v.ciclo.anterior, 0)} dias)` : ''}.` : 'Nenhum projeto concluído no período.'}</p>
+        {lista(v.concluidos.map(({ projeto: p, ciclo }) => <li key={p.id}>{pj(p)}<span className="mudo"> · {Math.round(ciclo)} dias</span></li>), 'Sem projetos.')}
+        <h3>Etapas mais lentas que o previsto</h3>
+        {lista(v.duracaoEtapas.filter((e) => e.dias > e.ref).slice(0, 5).map((e) => <li key={e.codigo}>{rotEtapa(e.codigo)}<span className="mudo"> · {fmtN(e.dias, 1)} d (previsto {fmtN(e.ref, 0)} d) em {e.n}</span></li>), 'Nenhuma etapa passou do previsto.')}</>;
+      case 'Tarefas atrasadas': return <>
+        <p>{tarefasK.atrasadas} tarefa{tarefasK.atrasadas === 1 ? '' : 's'} em atraso e {tarefasK.pendentes} pendentes nas etapas em andamento.</p>
+        {lista(gruposDaPessoa.filter((g) => g.pendentes > 0 && (g.status === 'concluida' || (g.diasNaEtapa !== null && g.diasNaEtapa > (ref[g.etapa.codigo]?.dias ?? 7)))).map((g) => <li key={g.projeto.id + g.etapa.codigo}>{pj(g.projeto)}<span className="mudo"> · {g.etapa.codigo} {g.etapa.rotulo} · {g.pendentes} item(ns) {g.status === 'concluida' ? 'em etapa concluída' : 'pendentes'}</span></li>), 'Nenhuma tarefa atrasada.')}</>;
+      case 'Acima da estimativa': return <>
+        <p>{acima.length} projeto{acima.length === 1 ? '' : 's'} passaram das horas previstas.</p>
+        {lista(acima.map((l) => <li key={l.nome}><b>{l.nome}</b><span className="mudo"> · {Math.round(l.pct!)}% das horas previstas</span></li>), 'Nenhum projeto acima da estimativa.')}</>;
+      default: return <>
+        <p>{v.rodadas === null ? 'Sem apresentações no período.' : `Média de ${fmtN(v.rodadas, 1)} rodadas por estudo (o contrato prevê até 3).`}</p>
+        {lista(v.comRodadas.slice(0, 12).map((r) => <li key={r.projeto.id + r.etapa}>{pj(r.projeto)}<span className="mudo"> · {rotEtapa(r.etapa)} · {r.rodadas} rodada{r.rodadas === 1 ? '' : 's'}</span></li>), 'Nenhuma rodada registrada.')}</>;
+    }
+  };
 
   const itensSeries = (() => {
     const base = v.pessoas.filter((p) => p.itens.some((x) => x > 0)).sort((a, b) => b.itens.reduce((s, x) => s + x, 0) - a.itens.reduce((s, x) => s + x, 0));
@@ -119,10 +182,10 @@ export default function Visao() {
       </div>
 
       <section className="card holo hero-painel viz-leitura" aria-label="Leitura rápida">
-        <Anel valor={v.abertas.length - v.atrasadas.length} max={v.abertas.length || 1} formato={v.abertas.length ? `${Math.round(((v.abertas.length - v.atrasadas.length) / v.abertas.length) * 100)}%` : '100%'} rotulo="Etapas no prazo" sub={`${v.abertas.length - v.atrasadas.length} de ${v.abertas.length} em andamento`} />
+        <Anel key={`${periodo}|${resp}`} valor={anel.valor} max={anel.max} formato={`${Math.round((anel.valor / anel.max) * 100)}%`} rotulo={anel.rotulo} sub={anel.sub} />
         <div className="viz-leitura-lista">
-        <h2>Leitura rápida</h2>
-        <ul>
+        <h2>Leitura rápida <span className="escopo">{escopo}</span></h2>
+        <ul key={`${periodo}|${resp}`}>
           {v.insights.map((i, k) => (
             <li key={k} className={`ins ${i.nivel}`}><span className="ins-i" aria-hidden="true">{ICONE_INSIGHT[i.nivel]}</span><span>{i.texto}</span></li>
           ))}
@@ -131,16 +194,16 @@ export default function Visao() {
       </section>
 
       <div className="viz-tiles">
-        <Tile rotulo="Projetos ativos" valor={String(v.ativos)} sub={`${v.pausados} pausado${v.pausados === 1 ? '' : 's'}`} delta={v.carteira} abs serie={v.carteiraSerie} />
-        <Tile rotulo="Etapas atrasadas" valor={`${v.atrasadas.length} de ${v.abertas.length}`} nivel={v.atrasadas.length ? nivelGeral : 'ok'} sub={v.atrasadas.length ? `${STATUS_ICONE[nivelGeral!]} ${STATUS_ROTULO[nivelGeral!]}: ${pior.projeto.nome}` : '✓ Tudo no prazo de referência'} />
-        <Tile rotulo="Horas registradas" valor={`${fmtN(v.horas.atual, 0)} h`} delta={v.horas} serie={v.horasSerie} />
-        <Tile rotulo="Uso da carga horária" valor={`${fmtN(pctUso, 0)}%`} sub={`capacidade ${fmtN(v.capacidadeSemanal, 0)} h por semana`} delta={v.utilizacao} abs unidade=" pts" serie={uso} />
-        <Tile rotulo="Novos projetos" valor={String(v.entradas.atual)} delta={v.entradas} serie={v.entradasSerie} />
-        <Tile rotulo="Projetos concluídos" valor={String(v.saidas.atual)} delta={v.saidas} serie={v.saidasSerie} />
-        <Tile rotulo="Ciclo médio" valor={v.ciclosN ? `${fmtN(v.ciclo.atual, 0)} dias` : '—'} sub={v.ciclosN ? `do contrato à entrega · ${v.ciclosN} projeto${v.ciclosN === 1 ? '' : 's'}` : 'sem projeto concluído no período'} delta={v.ciclosN ? v.ciclo : undefined} boaQuandoSobe={false} abs unidade=" dias" />
-        <Tile rotulo="Tarefas atrasadas" valor={String(tarefasK.atrasadas)} nivel={tarefasK.atrasadas ? 'atrasada' : 'ok'} sub={`${tarefasK.pendentes} pendentes nas etapas em andamento`} />
-        <Tile rotulo="Acima da estimativa" valor={String(acima.length)} nivel={acima.length ? 'atrasada' : 'ok'} sub={acima.length ? `▲ ${acima[0].nome} em ${Math.round(acima[0].pct!)}%` : '✓ Nenhum projeto passou das horas previstas'} />
-        <Tile rotulo="Rodadas de ajuste" valor={v.rodadas === null ? '—' : fmtN(v.rodadas, 1)} sub="por apresentação (contrato: até 3)" nivel={v.rodadas !== null && v.rodadas >= 2.5 ? 'grave' : undefined} />
+        <Tile aoClicar={() => setAberto("Projetos ativos")} rotulo="Projetos ativos" valor={String(v.ativos)} sub={`${v.pausados} pausado${v.pausados === 1 ? '' : 's'}`} delta={v.carteira} abs serie={v.carteiraSerie} />
+        <Tile aoClicar={() => setAberto("Etapas atrasadas")} rotulo="Etapas atrasadas" valor={`${v.atrasadas.length} de ${v.abertas.length}`} nivel={v.atrasadas.length ? nivelGeral : 'ok'} sub={v.atrasadas.length ? `${STATUS_ICONE[nivelGeral!]} ${STATUS_ROTULO[nivelGeral!]}: ${pior.projeto.nome}` : '✓ Tudo no prazo de referência'} />
+        <Tile aoClicar={() => setAberto("Horas registradas")} rotulo="Horas registradas" valor={`${fmtN(v.horas.atual, 0)} h`} delta={v.horas} serie={v.horasSerie} />
+        <Tile aoClicar={() => setAberto("Uso da carga horária")} rotulo="Uso da carga horária" valor={`${fmtN(pctUso, 0)}%`} sub={`capacidade ${fmtN(v.capacidadeSemanal, 0)} h por semana`} delta={v.utilizacao} abs unidade=" pts" serie={uso} />
+        <Tile aoClicar={() => setAberto("Novos projetos")} rotulo="Novos projetos" valor={String(v.entradas.atual)} delta={v.entradas} serie={v.entradasSerie} />
+        <Tile aoClicar={() => setAberto("Projetos concluídos")} rotulo="Projetos concluídos" valor={String(v.saidas.atual)} delta={v.saidas} serie={v.saidasSerie} />
+        <Tile aoClicar={() => setAberto("Ciclo médio")} rotulo="Ciclo médio" valor={v.ciclosN ? `${fmtN(v.ciclo.atual, 0)} dias` : '—'} sub={v.ciclosN ? `do contrato à entrega · ${v.ciclosN} projeto${v.ciclosN === 1 ? '' : 's'}` : 'sem projeto concluído no período'} delta={v.ciclosN ? v.ciclo : undefined} boaQuandoSobe={false} abs unidade=" dias" />
+        <Tile aoClicar={() => setAberto("Tarefas atrasadas")} rotulo="Tarefas atrasadas" valor={String(tarefasK.atrasadas)} nivel={tarefasK.atrasadas ? 'atrasada' : 'ok'} sub={`${tarefasK.pendentes} pendentes nas etapas em andamento`} />
+        <Tile aoClicar={() => setAberto("Acima da estimativa")} rotulo="Acima da estimativa" valor={String(acima.length)} nivel={acima.length ? 'atrasada' : 'ok'} sub={acima.length ? `▲ ${acima[0].nome} em ${Math.round(acima[0].pct!)}%` : '✓ Nenhum projeto passou das horas previstas'} />
+        <Tile aoClicar={() => setAberto("Rodadas de ajuste")} rotulo="Rodadas de ajuste" valor={v.rodadas === null ? '—' : fmtN(v.rodadas, 1)} sub="por apresentação (contrato: até 3)" nivel={v.rodadas !== null && v.rodadas >= 2.5 ? 'grave' : undefined} />
       </div>
 
       <div className="viz-grid">
@@ -263,6 +326,10 @@ export default function Visao() {
       <p className="mudo pequeno" style={{ marginTop: 16 }}>
         Indicadores do período “{per.rotulo}”{resp ? ` para ${equipe.find((p) => p.id === resp)?.nome}` : ''}. Comparações usam o período anterior de mesma duração. Os dados vêm do cronômetro, das etapas e dos checklists: quanto mais a equipe registra, mais confiáveis ficam.
       </p>
+      {aberto && <ResumoKpi titulo={aberto} escopo={escopo} aoFechar={() => setAberto(null)}>
+        {resumoDe(aberto)}
+      </ResumoKpi>}
     </div>
   );
 }
+

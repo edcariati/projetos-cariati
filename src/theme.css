@@ -707,3 +707,17 @@ h4.grupo-etapas{color:var(--ink2);font-size:13px;letter-spacing:.08em;text-trans
 fieldset{min-width:0}.grade-campos>*{min-width:0}.campo input,.campo select{max-width:100%}
 .servicos-resumo .tag{white-space:normal;max-width:100%}.servicos-resumo li{min-width:0}
 details.servico>summary{flex-wrap:wrap}details.servico .tag{white-space:normal;max-width:100%}
+
+/* visão geral: resumo ao clicar e leitura rápida com escopo */
+.viz-tile.clicavel{cursor:pointer;transition:transform .15s,border-color .15s}
+.viz-tile.clicavel:hover,.viz-tile.clicavel:focus-visible{transform:translateY(-2px);border-color:rgba(255,159,28,.6)}
+.ver-mais{font-style:normal;margin-left:auto;font-size:11px;color:var(--ink3);opacity:0;transition:opacity .15s}
+.viz-tile.clicavel:hover .ver-mais,.viz-tile.clicavel:focus-visible .ver-mais{opacity:1}
+.viz-tile-r{display:flex;align-items:center;gap:6px}
+.escopo{font-size:12px;font-weight:600;color:var(--ink3);margin-left:8px;text-transform:none;letter-spacing:0}
+.resumo-kpi{max-width:620px!important;width:100%}
+.resumo-kpi-cab{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
+.resumo-kpi h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:var(--sp-4) 0 var(--sp-2)}
+.resumo-lista{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;gap:6px;max-height:50vh;overflow:auto}
+.resumo-lista li{padding:6px 0;border-bottom:1px solid var(--line)}
+@media(hover:none){.ver-mais{opacity:1}}
