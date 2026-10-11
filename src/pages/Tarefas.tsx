@@ -68,7 +68,7 @@ export default function Tarefas() {
       : atrasada(g) ? <span className="situ grave">▲ Atrasada · {Math.round(g.diasNaEtapa!)} d</span> : <span className="situ ok">✓ Em andamento</span>
   );
 
-  const Grupo = ({ g, aberto }: { g: GrupoTarefas; aberto: boolean }) => (
+  const grupoCard = (g: GrupoTarefas, aberto: boolean) => (
     <section className="card tarefa-grupo" key={g.projeto.id + g.etapa.codigo}>
       <div className="grupo-h">
         <h3><Link to={`/projetos/${g.projeto.id}`}>{g.projeto.nome}</Link></h3>
@@ -235,9 +235,9 @@ export default function Tarefas() {
                       {seg.length > 0 && <span className="tag">a seguir: {seg[0].etapa.codigo} · {seg[0].etapa.rotulo}</span>}
                     </span>
                   </summary>
-                  {and.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto />)}
-                  {pen.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto />)}
-                  {seg.map((g) => <Grupo key={g.etapa.codigo} g={g} aberto={false} />)}
+                  {and.map((g) => grupoCard(g, true))}
+                  {pen.map((g) => grupoCard(g, true))}
+                  {seg.map((g) => grupoCard(g, false))}
                 </details>
               );
             })}
@@ -245,12 +245,12 @@ export default function Tarefas() {
         );
       })()}
 
-      {vista === 'checklists' && (!foco || foco === 'agora') && agora.length > 0 && <><h2>Agora</h2>{agora.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
-      {vista === 'checklists' && (!foco || foco === 'concluida') && atrasadas.length > 0 && <><h2>Pendências em etapas já concluídas</h2>{atrasadas.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto />)}</>}
+      {vista === 'checklists' && (!foco || foco === 'agora') && agora.length > 0 && <><h2>Agora</h2>{agora.map((g) => grupoCard(g, true))}</>}
+      {vista === 'checklists' && (!foco || foco === 'concluida') && atrasadas.length > 0 && <><h2>Pendências em etapas já concluídas</h2>{atrasadas.map((g) => grupoCard(g, true))}</>}
       {vista === 'checklists' && (!foco || foco === 'seguir') && aSeguir.length > 0 && <>
         <h2>A seguir</h2>
         <p className="mudo pequeno">Já provisionadas; liberam quando a etapa começar.{grupos && ` Mais antiga: ${fmtData(aSeguir[0].projeto.created_at)}.`}</p>
-        {aSeguir.map((g) => <Grupo key={g.projeto.id + g.etapa.codigo} g={g} aberto={false} />)}
+        {aSeguir.map((g) => grupoCard(g, false))}
       </>}
     </>
   );

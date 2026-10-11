@@ -18,6 +18,9 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
   aoAtribuir?: (id: string, patch: Partial<ProjetoTarefa>) => void;
 }) {
   const [editando, setEditando] = useState(false);
+  // a aba só fecha quando a pessoa fecha: marcar item, usar o cronômetro ou recarregar não a recolhe
+  const [aberta, setAberta] = useState(!!aberto);
+  useEffect(() => { if (aberto) setAberta(true); }, [aberto]);
   const [novoTexto, setNovoTexto] = useState<Record<string, string>>({});
   const [erro, setErro] = useState('');
   const minhas = tarefas.filter((t) => t.etapa_codigo === etapa).sort((a, b) => a.ordem - b.ordem);
@@ -77,8 +80,9 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
   );
 
   return (
-    <details className="checklist" open={aberto}>
+    <details className="checklist" open={aberta} onToggle={(e) => setAberta((e.currentTarget as HTMLDetailsElement).open)}>
       <summary><b>{titulo}</b><span className={`ck-prog ${feitos === doEtapa.length ? 'ok' : ''}`}>{feitos}/{doEtapa.length}</span></summary>
+      <div className="ck-topo"><button type="button" className="ck-fechar" onClick={() => setAberta(false)} aria-label="Fechar este checklist">✕ Fechar</button></div>
       {podeEditarLista && projetoId && <div className="ck-edicao"><button className="link" onClick={() => setEditando(!editando)}>{editando ? 'Concluir edição da lista' : 'Editar lista (incluir ou excluir itens)'}</button></div>}
       {erro && <p className="erro pequeno">{erro}</p>}
       {minhas.map((t) => {

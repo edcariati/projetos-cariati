@@ -721,3 +721,4 @@ details.servico>summary{flex-wrap:wrap}details.servico .tag{white-space:normal;m
 .resumo-lista{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:grid;gap:6px;max-height:50vh;overflow:auto}
 .resumo-lista li{padding:6px 0;border-bottom:1px solid var(--line)}
 @media(hover:none){.ver-mais{opacity:1}}
+.ck-topo{display:flex;justify-content:flex-end;margin:4px 0}.ck-fechar{min-height:34px;padding:0 14px;font-size:13px}
