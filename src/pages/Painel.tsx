@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import type { EtapaModelo, Projeto, Protocolo } from '../lib/types';
 import { FASES, diasAte, fmtData, statusProtocolo } from '../lib/labels';
 import { MAX_DIAS_PAUSA, diasDePausa } from '../lib/flow';
-import { usePerfil } from '../lib/perfil';
+import { usePerfil, verTudo } from '../lib/perfil';
 import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
 import { Carregando, Contador, Orbe, Vazio } from '../ui/Holo';
 import AtualizacaoSemanal from '../components/AtualizacaoSemanal';
@@ -52,7 +52,7 @@ export default function Painel() {
 
   return (
     <>
-      <div className="titulo"><h1>{eu.perfil === 'admin' ? 'Painel geral' : 'Meu painel'}</h1><Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link></div>
+      <div className="titulo"><h1>{verTudo(eu) ? 'Painel geral' : 'Meu painel'}</h1>{eu.perfil !== 'gestor' && <Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link>}</div>
       {!carregado ? <Carregando tipo="kpis" n={4} /> : (
       <div className="kpis">
         <div className="kpi"><b><Contador valor={ativos.length} /></b><span>projetos ativos</span></div>
@@ -63,7 +63,7 @@ export default function Painel() {
       )}
 
       <div className="atalhos" aria-label="Atalhos">
-        <Link className="atalho" to="/projetos/novo"><Orbe n="mais" tam={36} />Novo projeto</Link>
+        {eu.perfil !== 'gestor' && <Link className="atalho" to="/projetos/novo"><Orbe n="mais" tam={36} />Novo projeto</Link>}
         <Link className="atalho" to="/tarefas"><Orbe n="tarefas" tam={36} />Minhas tarefas</Link>
         <Link className="atalho" to="/clientes/novo"><Orbe n="clientes" tam={36} />Novo cliente</Link>
         <Link className="atalho" to="/protocolos"><Orbe n="protocolos" tam={36} />Protocolos</Link>
@@ -89,7 +89,7 @@ export default function Painel() {
         );
       })()}
 
-      {eu.perfil === 'admin' && porPessoa.length > 0 && (
+      {verTudo(eu) && porPessoa.length > 0 && (
         <section className="card">
           <h2>Por profissional</h2>
           <ul className="lista">

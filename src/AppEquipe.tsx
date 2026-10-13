@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { supabase } from './lib/supabase';
-import { podeBancoHoras, usePerfil } from './lib/perfil';
+import { ehParceiro, podeBancoHoras, usePerfil, verTudo } from './lib/perfil';
 import Icone from './ui/Icone';
 import logo from './assets/logo-cariati.jpg';
 import Paleta from './ui/Paleta';
@@ -37,6 +37,9 @@ export default function AppEquipe() {
   const eu = usePerfil();
   useSairPorInatividade(30);
   const admin = eu.perfil === 'admin';
+  const tudo = verTudo(eu);
+  const consulta = eu.perfil === 'gestor';
+  const parceiro = ehParceiro(eu);
   const banco = podeBancoHoras(eu);
   const itens = itensMenu(eu);
   const [tema, alternarTema] = useTema();
@@ -62,7 +65,7 @@ export default function AppEquipe() {
     setFavs(novo); gravarFavoritos(novo);
   }
   const grupos = [...new Set(itens.map((i) => i.grupo))];
-  const largo = pathname === '/fluxo' || pathname === '/servicos' || (admin && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' || pathname === '/horas' || pathname === '/projetos' || pathname === '/tarefas' || pathname === '/clientes' || pathname.startsWith('/cadastros');
+  const largo = pathname === '/fluxo' || pathname === '/servicos' || (tudo && pathname === '/') || pathname === '/equipe' || pathname === '/banco-de-horas' || pathname === '/horas' || pathname === '/projetos' || pathname === '/tarefas' || pathname === '/clientes' || pathname.startsWith('/cadastros');
   const principais = [itens.find((i) => i.icone === 'painel') ?? itens[0], itens.find((i) => i.to === '/projetos')!, itens.find((i) => i.to === '/tarefas')!, itens.find((i) => i.to === '/clientes')!];
   const inicio = admin ? itens[0] : principais[0];
 
@@ -78,8 +81,8 @@ export default function AppEquipe() {
           <button className="criar" onClick={() => setRapido((r) => !r)} aria-expanded={rapido} aria-haspopup="menu" title="Criar"><Icone n="mais" /><span className="rot">Criar novo</span></button>
           {rapido && (
             <div className="rapido-menu" role="menu">
-              <Link role="menuitem" to="/projetos/novo">Novo projeto</Link>
-              <Link role="menuitem" to="/clientes/novo">Novo cliente</Link>
+              {!consulta && <Link role="menuitem" to="/projetos/novo">Novo projeto</Link>}
+              {!consulta && <Link role="menuitem" to="/clientes/novo">Novo cliente</Link>}
               {admin && <Link role="menuitem" to="/cadastros/parceiros">Novo parceiro</Link>}
               {admin && <Link role="menuitem" to="/cadastros/usuarios">Novo acesso</Link>}
             </div>
@@ -119,12 +122,13 @@ export default function AppEquipe() {
           </div>
         </div>
         <div className="trilha-pagina"><Migalhas /></div>
+        {consulta && <p className="aviso aviso-consulta" role="status">Perfil de gestor: você vê tudo, mas não altera nada. Quem altera projetos e prazos é o administrador e quem conduz cada projeto.</p>}
         <BarraCronometro />
         <main className={largo ? 'largo' : ''}>
           <Suspense fallback={<Carregando tipo="cartoes" />}>
           <Routes>
-            <Route path="/" element={admin ? <Visao /> : <Painel />} />
-            {admin && <Route path="/painel" element={<Painel />} />}
+            <Route path="/" element={tudo ? <Visao /> : <Painel />} />
+            {tudo && <Route path="/painel" element={<Painel />} />}
             <Route path="/projetos" element={<Projetos />} />
             <Route path="/projetos/novo" element={<NovoProjeto />} />
             <Route path="/projetos/:id" element={<ProjetoDetalhe />} />
@@ -134,7 +138,7 @@ export default function AppEquipe() {
             <Route path="/conta" element={<Conta />} />
             <Route path="/privacidade" element={<Privacidade />} />
             <Route path="/protocolos" element={<Protocolos />} />
-            <Route path="/tempos" element={<Tempos />} />
+            {!parceiro && <Route path="/tempos" element={<Tempos />} />}
             <Route path="/fluxo" element={<Fluxo />} />
             <Route path="/servicos" element={<Servicos />} />
             {banco && <Route path="/horas" element={<GestaoHoras />} />}

@@ -72,7 +72,7 @@ export function fmtRelogio(seg: number) {
   return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
 }
 
-export const PERFIL: Record<string, string> = { admin: 'Administrador', profissional: 'Profissional', cliente: 'Cliente' };
+export const PERFIL: Record<string, string> = { admin: 'Administrador', gestor: 'Gestor (só consulta)', profissional: 'Profissional', cliente: 'Cliente' };
 export const ESPECIALIDADE: Record<string, string> = {
   arquitetonico: 'Arquitetônico', interiores: 'Interiores', legal: 'Legal (aprovações)', complementares: 'Complementares',
 };

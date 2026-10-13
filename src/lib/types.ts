@@ -6,7 +6,7 @@ export type ProtocoloTipo = 'prefeitura' | 'condominio' | 'outro_orgao' | 'entre
 export type ProtocoloStatus =
   | 'a_protocolar' | 'protocolado' | 'em_analise' | 'exigencia' | 'aprovado' | 'entregue_ao_cliente';
 
-export type PerfilTipo = 'admin' | 'profissional' | 'cliente';
+export type PerfilTipo = 'admin' | 'gestor' | 'profissional' | 'cliente';
 export type Especialidade = 'arquitetonico' | 'interiores' | 'legal' | 'complementares';
 export interface Profile {
   id: string; nome: string; setor: Setor; perfil: PerfilTipo; especialidades: Especialidade[];

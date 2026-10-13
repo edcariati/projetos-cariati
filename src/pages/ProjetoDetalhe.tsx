@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
-import { podeBancoHoras, usePerfil } from '../lib/perfil';
+import { ehParceiro, podeBancoHoras, usePerfil } from '../lib/perfil';
 import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPOS_EXTERNOS, TIPOS_INTERNOS, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
   MAX_DIAS_PAUSA, MAX_RODADAS, concluirEtapa, diasDePausa, iniciarHabitese, pausarProjeto, reabrirEtapa,
@@ -114,7 +114,8 @@ export default function ProjetoDetalhe() {
   const temPausa = tarefas.some((t) => t.etapa_codigo.startsWith('P'));
   const etapaDe = (cod: string) => etapas.find((e) => e.etapa_codigo === cod);
   /** Quem pode agir na etapa: administrador, responsável pelo projeto ou alguém do setor da etapa. */
-  const podeAgir = (m: EtapaModelo) => admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor);
+  const consulta = eu.perfil === 'gestor';
+  const podeAgir = (m: EtapaModelo) => !consulta && (admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor));
 
   const linhaEtapa = (m: EtapaModelo) => {
               const e = etapaDe(m.codigo);
@@ -234,14 +235,14 @@ export default function ProjetoDetalhe() {
           </ol>
         </section>
       )}
-      {linhaGantt && crono && (
+      {linhaGantt && crono && !ehParceiro(eu) && (
         <section className="card" aria-label="Cronograma do projeto">
           <h2>Cronograma do projeto (Gantt)</h2>
           <GanttEtapas linha={linhaGantt} inicio={crono.inicio} fim={crono.fim} segundos={segEtapa} parceiro={parceiro19 ? new Set(['19']) : undefined} />
         </section>
       )}
       {temEntregas && <ResumoServicos v={escolha} titulo="Entregas contratadas" />}
-      {temEntregas && <EntregaveisContrato projeto={projeto} editavel={admin || projeto.responsavel_id === eu.id || eu.perfil === 'profissional'} nomes={nomes} meuId={eu.id} />}
+      {temEntregas && <EntregaveisContrato projeto={projeto} editavel={!consulta && (admin || projeto.responsavel_id === eu.id || eu.perfil === 'profissional')} nomes={nomes} meuId={eu.id} />}
 
 
       {temPausa && (

@@ -359,6 +359,7 @@ function AbaUsuarios() {
               </fieldset>
             </>
           )}
+          {f.perfil === 'gestor' && <p className="aviso">O gestor enxerga o escritório inteiro (painéis, horas e prazos), mas não altera nada.</p>}
           {f.perfil === 'admin' && <p className="aviso">O administrador enxerga e gerencia tudo, inclusive estes cadastros e as senhas dos outros.</p>}
           {erro && <p className="erro" role="alert">{erro}</p>}
           <div className="acoes"><button className="primario" disabled={salvando}>{salvando ? 'Criando…' : 'Criar acesso'}</button><button type="button" onClick={() => setAberto(false)}>Cancelar</button></div>

@@ -9,6 +9,7 @@ import { MAX_DIAS_PAUSA } from '../lib/flow';
 import { Bruto, PERIODOS, calcular, nivelDe, refEtapas, Delta } from '../lib/kpis';
 import { BarrasH, Calor, Cartao, Colunas, Legenda, Linhas, Medidor, Mini, SERIE, STATUS_COR, STATUS_ICONE, STATUS_ROTULO, fmtN } from '../components/graficos';
 import { Anel, Carregando, Contador } from '../ui/Holo';
+import { usePerfil } from '../lib/perfil';
 
 const NIVEL_TEXTO: Record<string, string> = { ok: 'var(--bom)', atrasada: 'var(--amber)', grave: 'var(--ruim)', critica: 'var(--ruim)' };
 const ICONE_INSIGHT = { bom: '✓', atencao: '▲', critico: '⬣', info: '●' } as const;
@@ -49,6 +50,7 @@ function ResumoKpi({ titulo, escopo, aoFechar, children }: { titulo: string; esc
 }
 
 export default function Visao() {
+  const eu = usePerfil();
   const nav = useNavigate();
   const [bruto, setBruto] = useState<Bruto | null>(null);
   const [grupos, setGrupos] = useState<GrupoTarefas[]>([]);
@@ -72,7 +74,7 @@ export default function Visao() {
 
   const v = useMemo(() => (bruto ? calcular(bruto, periodo, resp) : null), [bruto, periodo, resp]);
   const ref = useMemo(() => (bruto ? refEtapas(bruto.projetos) : {}), [bruto]);
-  const equipe = useMemo(() => (bruto?.pessoas ?? []).filter((p) => p.perfil !== 'cliente'), [bruto]);
+  const equipe = useMemo(() => (bruto?.pessoas ?? []).filter((p) => p.perfil !== 'cliente' && p.perfil !== 'gestor'), [bruto]);
   const per = PERIODOS.find((p) => p.id === periodo)!;
 
   const horasProj = useMemo(() => (bruto ? calcularHoras(bruto, 'projeto', intervalo('tudo', bruto.tempos[0]?.iniciado_em ?? null).ini, intervalo('tudo', null).fim, { somenteAtivos: true, projetoId: '' }) : null), [bruto]);
@@ -163,7 +165,7 @@ export default function Visao() {
             {fmtData(v.ini)} a {fmtData(v.fim)}{atualizado ? ` · atualizado às ${atualizado.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}
           </p>
         </div>
-        <Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link>
+        {eu.perfil !== 'gestor' && <Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link>}
       </div>
 
       <div className="viz-filtros" role="group" aria-label="Filtros">

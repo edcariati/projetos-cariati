@@ -56,6 +56,7 @@ export const personas = [
   { id: 'marina', email: 'marina@cariati.com.br', nome: 'Marina Souza', rotulo: 'Arquiteta (Residência Silva, Casa de Praia, Apto. Lima)' },
   { id: 'rafael', email: 'rafael@cariati.com.br', nome: 'Rafael Lima', rotulo: 'Arq. de interiores (Loja Centro, Sobrado Costa)' },
   { id: 'julia', email: 'julia@cariati.com.br', nome: 'Júlia Prado', rotulo: 'Administrativo (agendamentos, vê todos os projetos)' },
+  { id: 'gestor', email: 'contato@cariati.com.br', nome: 'Gestor Cariati', rotulo: 'Gestor (vê tudo, só consulta)' },
   { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', rotulo: 'Cliente (Casa de Praia Oliveira)' },
 ];
 let eu = 'demo';
@@ -69,6 +70,7 @@ const db: Record<string, Row[]> = {
     { id: 'marina', email: 'marina@cariati.com.br', nome: 'Marina Souza', setor: 'projetos', perfil: 'profissional', especialidades: ['arquitetonico', 'legal'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
     { id: 'rafael', email: 'rafael@cariati.com.br', nome: 'Rafael Lima', setor: 'projetos', perfil: 'profissional', especialidades: ['interiores', 'complementares'], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
     { id: 'julia', email: 'julia@cariati.com.br', nome: 'Júlia Prado', setor: 'administrativo', perfil: 'profissional', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 40 },
+    { id: 'gestor', email: 'contato@cariati.com.br', nome: 'Gestor Cariati', setor: 'projetos', perfil: 'gestor', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
     { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
   servico_categorias: [], servico_itens: [], perfis_cliente: [], parceiros: [], clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
@@ -94,11 +96,11 @@ db.documento_modelos = parseTuples(sqlDocs).map((t) => ({ id: uid(), etapa_codig
 
 /* ---------- regras de acesso (espelham o RLS do banco) ---------- */
 const perfilEu = () => db.profiles.find((p) => p.id === eu)!;
-const podeBanco = () => { const p = perfilEu(); return p.perfil === 'admin' || (p.perfil === 'profissional' && p.setor === 'administrativo'); };
+const podeBanco = () => { const p = perfilEu(); return p.perfil === 'admin' || p.perfil === 'gestor' || (p.perfil === 'profissional' && p.setor === 'administrativo'); };
 function verProjeto(pid: string) {
   const pr = db.projetos.find((x) => x.id === pid); const p = perfilEu();
   if (!pr) return false;
-  if (p.perfil === 'admin') return true;
+  if (p.perfil === 'admin' || p.perfil === 'gestor') return true;
   if (p.perfil === 'cliente') return pr.cliente_id === p.cliente_id;
   return pr.responsavel_id === eu || db.projeto_equipe.some((e) => e.projeto_id === pid && e.usuario_id === eu)
     || ['administrativo', 'comercial', 'financeiro'].includes(p.setor);
@@ -265,6 +267,7 @@ class Q implements PromiseLike<any> {
     let alvo: Row[];
     if (this.op !== 'select') {
       if (p.perfil === 'cliente') return NEGADO;
+      if (p.perfil === 'gestor') return { data: null, error: { message: 'O perfil Gestor é só de consulta: peça ao administrador ou a quem conduz o projeto.' } };
       if (SO_ADMIN.has(t) && p.perfil !== 'admin') return NEGADO;
       if (t === 'banco_horas_ajustes' && !podeBanco()) return NEGADO;
       if (t === 'parceiros' && this.op !== 'delete' && !(p.perfil === 'admin' || ['administrativo', 'comercial', 'financeiro'].includes(p.setor))) return NEGADO;
@@ -521,6 +524,7 @@ semearDias();
 void lima;
 
 function rpc(nome: string, args: any = {}) {
+  if (perfilEu().perfil === 'gestor' && ['iniciar_cronometro', 'parar_cronometro', 'instanciar_tarefas_etapa', 'iniciar_habitese'].includes(nome)) return Promise.resolve({ data: null, error: { message: 'O perfil Gestor é só de consulta: peça ao administrador ou a quem conduz o projeto.' } });
   const agora = new Date().toISOString();
   const parar = () => db.tempos.filter((t) => t.usuario_id === eu && !t.finalizado_em).forEach((t) => { t.finalizado_em = agora; });
   const admin = perfilEu().perfil === 'admin';

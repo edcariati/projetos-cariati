@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/types';
 import { SETOR, fmtData } from '../lib/labels';
-import { usePerfil } from '../lib/perfil';
+import { ehParceiro, usePerfil, verTudo } from '../lib/perfil';
 import { GrupoTarefas, carregarTarefas } from '../lib/tarefas';
 import Checklist from '../components/Checklist';
 import { REF_PADRAO } from '../lib/kpis';
@@ -24,6 +24,8 @@ const VISTAS: [Vista, string][] = [['projetos', 'Por projeto'], ['checklists', '
 export default function Tarefas() {
   const eu = usePerfil();
   const admin = eu.perfil === 'admin';
+  const tudo = verTudo(eu);
+  const parceiro = ehParceiro(eu);
   const [pessoas, setPessoas] = useState<Profile[]>([]);
   const [alvoId, setAlvoId] = useState(eu.id);
   const [grupos, setGrupos] = useState<GrupoTarefas[] | null>(null);
@@ -76,6 +78,7 @@ export default function Tarefas() {
   const Situacao = ({ g }: { g: GrupoTarefas }) => (
     g.status === 'concluida' ? <span className="situ atrasada">▲ Pendência em etapa concluída</span>
       : g.status === 'pendente' ? <span className="mudo">A seguir</span>
+      : parceiro ? <span className="situ ok">Em andamento</span>   // arquiteto parceiro não vê prazos
       : atrasada(g) ? <span className="situ grave">▲ Atrasada · {Math.round(g.diasNaEtapa!)} d</span> : <span className="situ ok">✓ Em andamento</span>
   );
 
@@ -86,7 +89,7 @@ export default function Tarefas() {
         <span className="mudo pequeno">{g.projeto.clientes?.nome} · etapa {g.etapa.codigo} · {g.etapa.titulo}</span>
         <span style={{ marginLeft: 'auto' }}><CronometroMini projetoId={g.projeto.id} etapaCodigo={g.etapa.codigo} fechadoSeg={temp.fechado.get(`${g.projeto.id}|${g.etapa.codigo}`) ?? 0} ativo={temp.ativo} bloqueio={g.projeto.status === 'pausado' ? 'Projeto pausado' : undefined} /></span>
       </div>
-      <Checklist etapa={g.etapa.codigo} tarefas={g.tarefas} itens={g.itens} nomes={nomes} editavel
+      <Checklist etapa={g.etapa.codigo} tarefas={g.tarefas} itens={g.itens} nomes={nomes} editavel={eu.perfil !== 'gestor'}
         meuId={eu.id} podeAtribuir={admin} pessoas={pessoas} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={aberto} titulo={`${g.pendentes} item(ns) a fazer`} />
     </section>
   );
@@ -99,14 +102,14 @@ export default function Tarefas() {
         {fila ? ` (${SETOR[alvo!.setor]}). Use “Assumir” para pegar uma tarefa da fila.` : '.'}
       </p>
       <div className="filtros filtros-linha">
-        {admin && (
+        {tudo && (
           <select id="tarefas-pessoa" value={alvoId} onChange={(e) => { setGrupos(null); setAlvoId(e.target.value); }}>
             <option value="todas">Todas as pessoas</option>
             {pessoas.map((p) => <option key={p.id} value={p.id}>{p.id === eu.id ? `${p.nome} (eu)` : p.nome}</option>)}
           </select>
         )}
         <div className="seg vistas" role="radiogroup" aria-label="Visualização">
-          {VISTAS.map(([k, v]) => <button key={k} role="radio" aria-checked={vista === k} className={vista === k ? 'on' : ''} onClick={() => setVista(k)}>{v}</button>)}
+          {VISTAS.filter(([k]) => !parceiro || (k !== 'cronograma' && k !== 'calendario')).map(([k, v]) => <button key={k} role="radio" aria-checked={vista === k} className={vista === k ? 'on' : ''} onClick={() => setVista(k)}>{v}</button>)}
         </div>
       </div>
 

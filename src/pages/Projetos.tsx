@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { EtapaModelo, ProjetoStatus } from '../lib/types';
 import { FASES, PROJETO_STATUS, TIPO_ESTUDO, fmtData } from '../lib/labels';
-import { usePerfil } from '../lib/perfil';
+import { ehParceiro, usePerfil, verTudo } from '../lib/perfil';
 import { Atraso, ProjetoK, etapasAbertas, refEtapas } from '../lib/kpis';
 import { STATUS_ICONE, STATUS_ROTULO } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
@@ -31,6 +31,7 @@ function Avatares({ nomes }: { nomes: string[] }) {
 }
 
 export default function Projetos() {
+  const parceiro = ehParceiro(usePerfil());
   const itensEtapa = useItensPorEtapa();
   const [projetos, setProjetos] = useState<ProjetoK[]>([]);
   const [modelos, setModelos] = useState<EtapaModelo[]>([]);
@@ -69,6 +70,7 @@ export default function Projetos() {
   const pessoasDe = (p: ProjetoK) => [...new Set([p.profiles?.nome, ...equipe.filter((e) => e.projeto_id === p.id).map((e) => e.profiles?.nome)].filter(Boolean) as string[])];
   const Situacao = ({ p }: { p: ProjetoK }) => {
     const a = atraso.get(p.id);
+    if (parceiro) return <span className="mudo">{p.status === 'ativo' ? 'Em andamento' : '—'}</span>;   // arquiteto parceiro não vê prazos
     return a ? <span className={`situ ${a.nivel}`}>{STATUS_ICONE[a.nivel]} {STATUS_ROTULO[a.nivel]} · {Math.round(a.dias)} d</span> : p.status === 'ativo' ? <span className="situ ok">✓ No prazo</span> : <span className="mudo">—</span>;
   };
 
@@ -85,7 +87,7 @@ export default function Projetos() {
 
   return (
     <>
-      <div className="titulo"><h1>Projetos</h1><Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link></div>
+      <div className="titulo"><h1>Projetos</h1>{eu.perfil !== 'gestor' && <Link className="primario btn" to="/projetos/novo">+ Novo projeto</Link>}</div>
       <div className="filtros">
         <input placeholder="Buscar projeto, cliente ou código…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         <select id="filtro-status" value={filtro} onChange={(e) => setFiltro(e.target.value as ProjetoStatus | 'todos')}>
@@ -98,18 +100,18 @@ export default function Projetos() {
           <option value="">Todas as etiquetas</option>
           {OPCOES_ETIQUETA.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
-        {eu.perfil === 'admin' && responsaveis.length > 0 && (
+        {verTudo(eu) && responsaveis.length > 0 && (
           <select id="filtro-responsavel" value={resp} onChange={(e) => setParams(e.target.value ? { resp: e.target.value } : {})}>
             <option value="">Todos os responsáveis</option>
             {responsaveis.map(([rid, nome]) => <option key={rid} value={rid}>{nome}</option>)}
           </select>
         )}
-        <label className="check"><input type="checkbox" checked={soAtrasados} onChange={(e) => setSoAtrasados(e.target.checked)} />Só atrasados</label>
+        {!parceiro && <label className="check"><input type="checkbox" checked={soAtrasados} onChange={(e) => setSoAtrasados(e.target.checked)} />Só atrasados</label>}
         <div className="seg vistas" role="radiogroup" aria-label="Visualização">
           {VISTAS.map(([k, v]) => <button key={k} role="radio" aria-checked={vista === k} className={vista === k ? 'on' : ''} onClick={() => setVista(k)}>{v}</button>)}
         </div>
       </div>
-      <p className="mudo pequeno">{lista.length} projeto{lista.length === 1 ? '' : 's'}{atraso.size ? ` · ${[...atraso.keys()].filter((id) => lista.some((p) => p.id === id)).length} com etapa atrasada` : ''}</p>
+      <p className="mudo pequeno">{lista.length} projeto{lista.length === 1 ? '' : 's'}{atraso.size && !parceiro ? ` · ${[...atraso.keys()].filter((id) => lista.some((p) => p.id === id)).length} com etapa atrasada` : ''}</p>
 
       {vista === 'cartoes' && (
         <ul className="cards">
@@ -123,7 +125,7 @@ export default function Projetos() {
                 <div className="mudo">{p.clientes?.nome}{p.profiles?.nome ? ` · ${p.profiles.nome}` : ''}</div>
                 <div className="barra"><i style={{ width: `${pct}%` }} /></div>
                 <div className="mudo pequeno">{pct}% · {atual ? `Etapa ${atual.codigo} — ${atual.titulo}` : '—'}</div>
-                {atraso.has(p.id) && <div className="pequeno"><Situacao p={p} /></div>}
+                {atraso.has(p.id) && !parceiro && <div className="pequeno"><Situacao p={p} /></div>}
               </Link></li>
             );
           })}

@@ -1,19 +1,21 @@
 import type { Profile } from '../lib/types';
-import { podeBancoHoras } from '../lib/perfil';
+import { ehParceiro, podeBancoHoras, verTudo } from '../lib/perfil';
 
 export interface ItemMenu { to: string; rotulo: string; icone: string; grupo: string; end?: boolean }
 
 /** Páginas do menu, conforme o perfil de quem entrou. */
 export function itensMenu(eu: Profile): ItemMenu[] {
   const admin = eu.perfil === 'admin';
+  const tudo = verTudo(eu);
   const l: ItemMenu[] = [];
-  if (admin) l.push({ to: '/', rotulo: 'Visão geral', icone: 'visao', grupo: 'Principal', end: true });
-  l.push({ to: admin ? '/painel' : '/', rotulo: 'Painel', icone: 'painel', grupo: 'Principal', end: true });
+  if (tudo) l.push({ to: '/', rotulo: 'Visão geral', icone: 'visao', grupo: 'Principal', end: true });
+  l.push({ to: tudo ? '/painel' : '/', rotulo: 'Painel', icone: 'painel', grupo: 'Principal', end: true });
   l.push({ to: '/projetos', rotulo: 'Projetos', icone: 'projetos', grupo: 'Principal' });
   l.push({ to: '/tarefas', rotulo: 'Minhas tarefas', icone: 'tarefas', grupo: 'Principal' });
   l.push({ to: '/clientes', rotulo: 'Clientes', icone: 'clientes', grupo: 'Relacionamento' });
   l.push({ to: '/protocolos', rotulo: 'Protocolos', icone: 'protocolos', grupo: 'Relacionamento' });
-  l.push(podeBancoHoras(eu) ? { to: '/horas', rotulo: 'Horas', icone: 'horas', grupo: 'Gestão' } : { to: '/tempos', rotulo: 'Tempos', icone: 'horas', grupo: 'Gestão' });
+  if (podeBancoHoras(eu)) l.push({ to: '/horas', rotulo: 'Horas', icone: 'horas', grupo: 'Gestão' });
+  else if (!ehParceiro(eu)) l.push({ to: '/tempos', rotulo: 'Tempos', icone: 'horas', grupo: 'Gestão' });
   l.push({ to: '/servicos', rotulo: 'Serviços', icone: 'pasta', grupo: 'Gestão' });
   l.push({ to: '/fluxo', rotulo: 'Fluxo', icone: 'fluxo', grupo: 'Gestão' });
   if (admin) {

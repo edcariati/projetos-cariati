@@ -133,7 +133,7 @@ export function calcular(b: Bruto, periodoId: string, resp: string, agoraMs = Da
   const noProjeto = new Set(resp ? b.tempos.filter((t) => t.usuario_id === resp && dia(t.iniciado_em) >= iniAnt).map((t) => t.projeto_id) : []);
   const projetos = resp ? b.projetos.filter((p) => p.responsavel_id === resp || noProjeto.has(p.id)) : b.projetos;
   const tempos = resp ? b.tempos.filter((t) => t.usuario_id === resp) : b.tempos;
-  const pessoasTodas = b.pessoas.filter((p) => p.perfil !== 'cliente' && p.ativo);
+  const pessoasTodas = b.pessoas.filter((p) => p.perfil !== 'cliente' && p.perfil !== 'gestor' && p.ativo);
   const pessoas = resp ? pessoasTodas.filter((p) => p.id === resp) : pessoasTodas;
   const ref = refEtapas(b.projetos);
   const rot = (cod: string) => b.modelos.find((m) => m.codigo === cod)?.rotulo ?? cod;
