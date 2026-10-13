@@ -13,6 +13,7 @@ import Documentos from '../components/Documentos';
 import { CronometroMini } from '../components/Cronometro';
 import RegistrosTempo from '../components/RegistrosTempo';
 import ComplementaresParceiros from '../components/ComplementaresParceiros';
+import EntregaveisContrato from '../components/EntregaveisContrato';
 import GanttEtapas from '../components/GanttEtapas';
 import { carregarCronograma } from '../lib/carga';
 import { useTemposDe } from '../lib/tempo';
@@ -240,6 +241,7 @@ export default function ProjetoDetalhe() {
         </section>
       )}
       {temEntregas && <ResumoServicos v={escolha} titulo="Entregas contratadas" />}
+      {temEntregas && <EntregaveisContrato projeto={projeto} editavel={admin || projeto.responsavel_id === eu.id || eu.perfil === 'profissional'} nomes={nomes} meuId={eu.id} />}
 
 
       {temPausa && (

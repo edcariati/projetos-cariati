@@ -33,6 +33,7 @@ export default function Tarefas() {
   const [foco, setFoco] = useState<'' | 'agora' | 'concluida' | 'seguir'>('');
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
   const [chaveAbrir, setChaveAbrir] = useState(0);
+  const [entregaveis, setEntregaveis] = useState<Map<string, { feitos: number; total: number }>>(new Map());
   const [agenda, setAgenda] = useState<{ crono: Crono; eventos: Evento[] } | null>(null);
   useEffect(() => { if ((vista === 'cronograma' || vista === 'calendario') && !agenda) carregarCronograma().then(setAgenda).catch(() => setAgenda({ crono: { linhas: [], inicio: Date.now(), fim: Date.now() }, eventos: [] })); }, [vista, agenda]);
 
@@ -51,6 +52,16 @@ export default function Tarefas() {
     return { ...g, itens, pendentes: itens.filter((x) => !x.feito).length };
   }));
   const atribuirTarefa = (tid: string, patch: Partial<import('../lib/types').ProjetoTarefa>) => setGrupos((gs) => gs && gs.map((g) => (g.tarefas.some((t) => t.id === tid) ? { ...g, tarefas: g.tarefas.map((t) => (t.id === tid ? { ...t, ...patch } : t)) } : g)));
+  const idsProj = [...new Set((grupos ?? []).map((g) => g.projeto.id))].sort().join(',');
+  useEffect(() => {
+    if (!idsProj) return;
+    supabase.from('projeto_entregaveis').select('projeto_id,feito').in('projeto_id', idsProj.split(',')).then(({ data, error }) => {
+      if (error) return;
+      const m = new Map<string, { feitos: number; total: number }>();
+      for (const x of (data as { projeto_id: string; feito: boolean }[]) ?? []) { const c = m.get(x.projeto_id) ?? { feitos: 0, total: 0 }; c.total++; if (x.feito) c.feitos++; m.set(x.projeto_id, c); }
+      setEntregaveis(m);
+    });
+  }, [idsProj]);
   const temp = useTemposDe((grupos ?? []).map((g) => g.projeto.id));
   const [detalhe, setDetalhe] = useState('');
   const nomes = new Map(pessoas.map((p) => [p.id, p.nome]));
@@ -230,6 +241,7 @@ export default function Tarefas() {
                   <summary>
                     <b>{p.nome}</b><span className="mudo pequeno"> {p.clientes?.nome}</span>
                     <span className="resumo-projeto">
+                      {entregaveis.get(p.id) && <Link className="tag" to={`/projetos/${p.id}`} onClick={(e) => e.stopPropagation()} title="Entregáveis do contrato deste cliente">Contrato: {entregaveis.get(p.id)!.feitos}/{entregaveis.get(p.id)!.total} entregas</Link>}
                       {and.length > 0 && <span className="tag e-em_andamento">{and.map((g) => `${g.etapa.codigo} em andamento`).join(' · ')} · {itensP} item(ns)</span>}
                       {pen.length > 0 && <span className="tag pendencia">{pen.length} pendência(s)</span>}
                       {seg.length > 0 && <span className="tag">a seguir: {seg[0].etapa.codigo} · {seg[0].etapa.rotulo}</span>}

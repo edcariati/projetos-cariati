@@ -17,4 +17,5 @@ select
   exists (select 1 from information_schema.columns where table_name='clientes' and column_name='servicos') as tem_0018_servicos,
   to_regclass('public.perfis_cliente') is not null                                  as tem_0019_catalogo,
   exists (select 1 from information_schema.columns where table_name='tempos' and column_name='tarefa_id') as tem_0020_ajustes_arquitetos,
+  to_regclass('public.projeto_entregaveis') is not null                             as tem_0021_entregaveis,
   (select count(*) from auth.users where email like '%@cariati.com.br')             as usuarios_cariati;

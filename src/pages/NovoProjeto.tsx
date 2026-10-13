@@ -8,6 +8,7 @@ import { usePerfil } from '../lib/perfil';
 import { flagsDe, idsPremium, juntarAprovacoes, lerAprovacoes, perfilPorId, useCatalogo } from '../lib/servicos';
 import { erroEmail, erroTelefone, formatarTelefone, proximoCodigo, telefoneLocal } from '../lib/cadastro';
 import { preencherEtapa01 } from '../lib/flow';
+import { sincronizarEntregaveis } from '../lib/entregaveis';
 
 const primeiroNome = (n: string) => (n.trim().split(/\s+/)[0] ?? '').toUpperCase();
 
@@ -117,6 +118,7 @@ export default function NovoProjeto() {
       }
       const { data, error } = r;
       if (error) throw error;
+      try { await sincronizarEntregaveis(data.id, { perfil: corpoProjeto.perfil, entregas: corpoProjeto.entregas, servicos: corpoProjeto.servicos }); } catch { /* sem a migração 0021: a lista aparece quando o banco for atualizado */ }
       try { await preencherEtapa01(data.id, clienteId ? clienteSel : { ...novoCliente } as Partial<Cliente>, eu.id); } catch { /* a etapa 01 pode ser preenchida à mão */ }
       nav(`/projetos/${data.id}`);
     } catch (err) {

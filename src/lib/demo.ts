@@ -72,7 +72,7 @@ const db: Record<string, Row[]> = {
     { id: 'cliente', email: 'ana.oliveira@email.com', nome: 'Ana Oliveira', setor: 'projetos', perfil: 'cliente', especialidades: [], cliente_id: null, ativo: true, carga_semanal_horas: 0 },
   ],
   servico_categorias: [], servico_itens: [], perfis_cliente: [], parceiros: [], clientes: [], etapa_modelos: [], projetos: [], projeto_etapas: [], historico: [], projeto_equipe: [],
-  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [], projeto_tarefas: [], projeto_tarefa_itens: [],
+  protocolos: [], protocolo_andamentos: [], documento_modelos: [], projeto_documentos: [], tempos: [], banco_horas_ajustes: [], projeto_tarefas: [], projeto_tarefa_itens: [], projeto_entregaveis: [],
 };
 
 const COLS_ETAPA = ['codigo', 'ordem', 'fase', 'titulo', 'rotulo', 'setores', 'cliente_participa', 'entrada', 'saida', 'regra', 'opcional', 'aceite_formal', 'escopo'];
@@ -114,7 +114,7 @@ function ver(t: string, r: Row): boolean {
     case 'projeto_documentos': return verProjeto(r.projeto_id) && (!cli || r.visivel_cliente);
     case 'tempos': return podeBanco() || r.usuario_id === eu;
     case 'banco_horas_ajustes': return podeBanco() || r.usuario_id === eu;
-    case 'projeto_tarefas': case 'projeto_tarefa_itens': return !cli && verProjeto(r.projeto_id);
+    case 'projeto_tarefas': case 'projeto_tarefa_itens': case 'projeto_entregaveis': return !cli && verProjeto(r.projeto_id);
     case 'etapa_modelos': case 'documento_modelos': case 'parceiros': case 'servico_categorias': case 'servico_itens': case 'perfis_cliente': return !cli;
     case 'profiles': return !cli || r.id === eu || db.projetos.some((pr) => pr.responsavel_id === r.id && pr.cliente_id === p.cliente_id);
     default: return true;
@@ -221,6 +221,7 @@ const DEFAULTS: Record<string, () => Row> = {
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),
   projeto_documentos: () => ({ modelo_id: null, codigo_arquivo: null, visivel_cliente: false }),
+  projeto_entregaveis: () => ({ origem: 'perfil', servico_id: null, etapa_codigo: null, ordem: 0, feito: false, feito_por: null, feito_em: null, nota: null }),
   tempos: () => ({ usuario_id: eu, iniciado_em: new Date().toISOString(), finalizado_em: null }),
   banco_horas_ajustes: () => ({ data: data(0), criado_por: eu }),
 };
@@ -283,14 +284,15 @@ class Q implements PromiseLike<any> {
       if (t === 'projeto_tarefas') campos = Object.fromEntries(Object.entries(campos).filter(([k]) => ['responsavel_id', 'atribuicao_manual'].includes(k)));
       if (t === 'profiles' && p.perfil !== 'admin') for (const k of ['perfil', 'setor', 'cliente_id', 'ativo', 'especialidades', 'carga_semanal_horas']) delete campos[k];
       tabela.filter((r) => casa(r) && (t !== 'profiles' || p.perfil === 'admin' || r.id === eu)).forEach((r) => {
-        if (t === 'projeto_tarefa_itens' && 'feito' in campos) {
+        if (t === 'projeto_entregaveis' && 'feito' in campos) Object.assign(r, campos, campos.feito ? { feito_por: eu, feito_em: new Date().toISOString() } : { feito_por: null, feito_em: null });
+        else if (t === 'projeto_tarefa_itens' && 'feito' in campos) {
           Object.assign(r, campos, campos.feito ? (r.feito ? {} : { feito_por: eu, feito_em: new Date().toISOString() }) : { feito_por: null, feito_em: null });
         } else Object.assign(r, campos);
         if (t === 'projetos' && 'responsavel_id' in campos) atribuirTarefas(r.id);
       });
       return { data: null, error: null };
     } else if (this.op === 'delete') {
-      const meu = (r: Row) => p.perfil === 'admin' || (t === 'banco_horas_ajustes' && podeBanco()) || (t === 'tempos' && r.usuario_id === eu) || t === 'projeto_tarefa_itens';
+      const meu = (r: Row) => p.perfil === 'admin' || (t === 'banco_horas_ajustes' && podeBanco()) || (t === 'tempos' && r.usuario_id === eu) || t === 'projeto_tarefa_itens' || t === 'projeto_entregaveis';
       const apagar = tabela.filter((r) => casa(r) && meu(r));
       const afetados = t === 'projeto_equipe' ? apagar.map((r) => r.projeto_id) : [];
       db[t] = tabela.filter((r) => !apagar.includes(r));
