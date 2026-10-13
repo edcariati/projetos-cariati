@@ -93,5 +93,5 @@ export const semFluxo = (ids: string[]) => atual.categorias.filter((c) => !c.eta
 /** Tipos de aprovação escolhidos (podem ser vários, ex.: unificação + residencial). Guardados como texto separado por “ + ”. */
 export const lerAprovacoes = (t: string | null | undefined) => (t ?? '').split('+').map((x) => x.trim()).filter(Boolean);
 export const juntarAprovacoes = (a: string[]) => a.join(' + ');
-/** Serviços que entram sozinhos no pacote Premium. */
-export const idsPremium = () => atual.categorias.flatMap((c) => c.itens.filter((x) => x.ativo && x.premium).map((x) => x.id));
+/** Perfis A (A1 a A4) levam a entrega com pendrive e o pacote completo de entregas do perfil. */
+export const ehPerfilA = (id: string | null | undefined) => /^A\d?$/.test(id ?? '');

@@ -114,7 +114,7 @@ export function ResumoServicos({ v, titulo = 'Serviços que vamos entregar', edi
   return (
     <section className="card resumo-servicos" aria-label={titulo}>
       <h2>{titulo} <span className="badge">{(perfil ? 1 : 0) + grupos.length}</span></h2>
-      {v.premium && <p className="aviso" style={{ marginTop: 0 }}>Cliente <b>Premium</b>: inclui a entrega do pendrive com os documentos do projeto.</p>}
+      {v.premium && <p className="aviso" style={{ marginTop: 0 }}>Entrega com <b>pendrive</b>: os documentos do projeto vão num pendrive (perfis A1 a A4).</p>}
       <ul className="servicos-resumo">
         <li>
           <b>Projeto arquitetônico</b>{perfil ? <span className="tag">{perfil.nome} · {perfil.faixa}</span> : <span className="tag">perfil não escolhido</span>}{estudo && <span className="tag">{estudo.nome}</span>}

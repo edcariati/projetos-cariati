@@ -46,7 +46,7 @@ export default function Clientes() {
   const mascarar = (d: string) => (d.length > 6 ? d.slice(0, 3).replace(/\d/g, '•') + d.slice(3, -3) + d.slice(-3).replace(/\d/g, '•') : d);
   const podeExportar = eu.perfil === 'admin' || eu.setor === 'administrativo';
   const exportar = () => baixarCsv('clientes.csv', [
-    ['Código', 'Nome', 'Tipo', 'CPF/CNPJ', 'Telefone', 'WhatsApp', 'E-mail', 'Cidade', 'UF', 'Perfil', 'Premium', 'Projetos', 'Cadastro completo'],
+    ['Código', 'Nome', 'Tipo', 'CPF/CNPJ', 'Telefone', 'WhatsApp', 'E-mail', 'Cidade', 'UF', 'Perfil', 'Pendrive', 'Projetos', 'Cadastro completo'],
     ...filtrada.map((c) => [c.codigo ?? '', c.nome, c.tipo_pessoa === 'juridica' ? 'Jurídica' : 'Física', mascarar(formatarDocumento(c.documento ?? '', c.tipo_pessoa)), c.telefone ?? '', c.whatsapp ?? '', c.email ?? '', c.end_cidade ?? '', c.end_uf ?? '', c.categoria ?? '', c.premium ? 'sim' : 'não', qtd.get(c.id)?.total ?? 0, `${completude(c).pct}%`]),
   ]);
 

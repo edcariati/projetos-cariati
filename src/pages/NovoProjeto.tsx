@@ -5,7 +5,7 @@ import type { Cliente, Profile } from '../lib/types';
 import { TIPOS_APROVACAO, TIPOS_PROJETO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
 import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
-import { flagsDe, idsPremium, juntarAprovacoes, lerAprovacoes, perfilPorId, useCatalogo } from '../lib/servicos';
+import { ehPerfilA, flagsDe, juntarAprovacoes, lerAprovacoes, perfilPorId, useCatalogo } from '../lib/servicos';
 import { erroEmail, erroTelefone, formatarTelefone, proximoCodigo, telefoneLocal } from '../lib/cadastro';
 import { preencherEtapa01 } from '../lib/flow';
 import { sincronizarEntregaveis } from '../lib/entregaveis';
@@ -97,12 +97,11 @@ export default function NovoProjeto() {
         const { data, error } = await supabase.from('clientes').insert({
           nome: novoCliente.nome, codigo: novoCliente.codigo.trim().toUpperCase() || null, categoria: novoCliente.categoria || null,
           premium, telefone: telefoneLocal(novoCliente.telefone) ? formatarTelefone(novoCliente.telefone) : null, email: novoCliente.email.trim() || null,
-          ...(premium ? { servicos: idsPremium() } : {}),
         }).select('id').single();
         if (error) throw error;
         cid = data.id;
       }
-      const servicos = clienteId ? clienteSel?.servicos ?? [] : premium ? idsPremium() : [];
+      const servicos = clienteId ? clienteSel?.servicos ?? [] : [];
       const corpoProjeto = {
         cliente_id: cid, nome: nomeProjeto, responsavel_id: responsavel || null, tem_legal: legal,
         tem_interiores: interiores, tem_complementares: compl, tem_habitese: habitese, tipo_estudo: tipoEstudo,
@@ -150,7 +149,7 @@ export default function NovoProjeto() {
                   : <span className="campo-dica">{sugestao.ultimo ? `Último cadastrado: ${sugestao.ultimo} → sugerido: ${sugestao.proximo}` : `Sugerido: ${sugestao.proximo}`}</span>}
               </label>
               <label>Perfil (por metragem · D e E: + Projetos)
-                <select value={novoCliente.categoria} onChange={(e) => setNovoCliente({ ...novoCliente, categoria: e.target.value })}>
+                <select value={novoCliente.categoria} onChange={(e) => setNovoCliente({ ...novoCliente, categoria: e.target.value, premium: ehPerfilA(e.target.value) })}>
                   <option value="">—</option>{catalogo.perfis.filter((c) => c.ativo).map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}
                 </select>
               </label>
@@ -165,7 +164,7 @@ export default function NovoProjeto() {
                 {eMail && <span className="campo-erro" role="alert">{eMail}</span>}
               </label>
             </div>
-            <label className="check"><input type="checkbox" checked={novoCliente.premium} onChange={(e) => setNovoCliente({ ...novoCliente, premium: e.target.checked })} />Cliente Premium (pendrive na entrega + todos os serviços da categoria Premium)</label>
+            <label className="check"><input type="checkbox" checked={novoCliente.premium} onChange={(e) => setNovoCliente({ ...novoCliente, premium: e.target.checked })} />Entrega com pendrive (marcado sozinho nos perfis A1 a A4)</label>
           </fieldset>
         )}
         <fieldset>

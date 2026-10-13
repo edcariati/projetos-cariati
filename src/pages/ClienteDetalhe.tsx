@@ -8,7 +8,7 @@ import { pessoaPodeEditarClientes, usePerfil } from '../lib/perfil';
 import { Medidor } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
 import { avisar } from '../ui/avisos';
-import { flagsDe, idsPremium, perfilPorId, useCatalogo } from '../lib/servicos';
+import { ehPerfilA, flagsDe, perfilPorId, useCatalogo } from '../lib/servicos';
 import { EscolherServicos, ResumoServicos, type Escolha } from '../components/ServicosCliente';
 
 type Form = Record<string, string | boolean | null>;
@@ -171,7 +171,7 @@ export default function ClienteDetalhe() {
       <div className="titulo">
         <div>
           <h1>{novo ? 'Novo cliente' : v('nome') || 'Cliente'}</h1>
-          {!novo && <div className="mudo">{v('codigo') || 'sem código'} · {juridica ? 'Pessoa jurídica' : 'Pessoa física'}{v('categoria') ? ` · perfil ${v('categoria')}` : ''}{f.premium ? ' · premium' : ''}</div>}
+          {!novo && <div className="mudo">{v('codigo') || 'sem código'} · {juridica ? 'Pessoa jurídica' : 'Pessoa física'}{v('categoria') ? ` · perfil ${v('categoria')}` : ''}{f.premium ? ' · com pendrive' : ''}</div>}
         </div>
         {!novo && (
           <div className="acoes">
@@ -210,8 +210,8 @@ export default function ClienteDetalhe() {
             </Campo>
             <Campo rotulo={juridica ? 'Nome fantasia ou nome do contato' : 'Nome completo'} largo><input required value={v('nome')} onChange={(e) => set('nome', e.target.value)} /></Campo>
             <Campo rotulo="Código" erro={codigoRepetido ? `Este código já existe. Próximo livre: ${sugestao.proximo}` : undefined} dica={novo && sugestao.ultimo ? `Último cadastrado: ${sugestao.ultimo} · sugerido: ${sugestao.proximo}` : undefined}><input placeholder={sugestao.proximo} value={v('codigo')} onChange={(e) => set('codigo', e.target.value.toUpperCase())} />{codigoRepetido && <button type="button" className="link" onClick={() => set('codigo', sugestao.proximo)}>Usar {sugestao.proximo}</button>}</Campo>
-            <Campo rotulo="Perfil (por metragem · D e E: + Projetos)"><select value={v('categoria')} onChange={(e) => { set('categoria', e.target.value); const pf = perfilPorId(e.target.value); if (pf) set('servico_estudo', pf.estudo); }}><option value="">—</option>{!perfilPorId(v('categoria')) && v('categoria') && <option value={v('categoria')}>{v('categoria')} (antigo)</option>}{catalogo.perfis.filter((c) => c.ativo || c.id === v('categoria')).map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}</select></Campo>
-            <label className="check campo largo"><input type="checkbox" checked={!!f.premium} onChange={(e) => { set('premium', e.target.checked); if (e.target.checked) { const extra = idsPremium(); setEscolha({ ...escolha, premium: true, ids: [...new Set([...escolha.ids, ...extra])], entregas: null }); } }} />Cliente Premium (pendrive na entrega e todos os serviços do pacote Premium)</label>
+            <Campo rotulo="Perfil (por metragem · D e E: + Projetos)"><select value={v('categoria')} onChange={(e) => { set('categoria', e.target.value); set('premium', ehPerfilA(e.target.value)); const pf = perfilPorId(e.target.value); if (pf) set('servico_estudo', pf.estudo); }}><option value="">—</option>{!perfilPorId(v('categoria')) && v('categoria') && <option value={v('categoria')}>{v('categoria')} (antigo)</option>}{catalogo.perfis.filter((c) => c.ativo || c.id === v('categoria')).map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.faixa}</option>)}</select></Campo>
+            <label className="check campo largo"><input type="checkbox" checked={!!f.premium} onChange={(e) => set('premium', e.target.checked)} />Entrega com pendrive (marcado sozinho nos perfis A1 a A4; as entregas do perfil já vêm marcadas)</label>
           </Secao>
 
           <Secao titulo={juridica ? 'Dados da empresa' : 'Dados pessoais'}>
