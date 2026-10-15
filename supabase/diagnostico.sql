@@ -20,4 +20,6 @@ select
   to_regclass('public.projeto_entregaveis') is not null                             as tem_0021_entregaveis,
   exists (select 1 from pg_proc where proname='is_gestor')                          as tem_0022_gestor,
   exists (select 1 from information_schema.columns where table_name='projeto_tarefa_itens' and column_name='agenda_em') as tem_0023_planta_baixa,
+  case when to_regclass('public.servico_categorias') is null then false
+       else (xpath('/row/c/text()', query_to_xml('select count(*) = 3 as c from servico_categorias where id in (''obras'',''admobra'',''engenharia'')', false, true, '')))[1]::text::boolean end as tem_0024_catalogo_obras,
   (select count(*) from auth.users where email like '%@cariati.com.br')             as usuarios_cariati;
