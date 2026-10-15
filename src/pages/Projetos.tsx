@@ -7,6 +7,7 @@ import { ehParceiro, usePerfil, verTudo } from '../lib/perfil';
 import { Atraso, ProjetoK, etapasAbertas, refEtapas } from '../lib/kpis';
 import { STATUS_ICONE, STATUS_ROTULO } from '../components/graficos';
 import { Carregando, Vazio } from '../ui/Holo';
+import { confirmar } from '../components/Dialogo';
 import { percentualProjeto, useItensPorEtapa } from '../lib/progresso';
 
 type Vista = 'cartoes' | 'quadro' | 'lista';
@@ -53,6 +54,16 @@ export default function Projetos() {
     supabase.from('projeto_equipe').select('projeto_id, profiles(nome)').then(({ data }) => setEquipe((data as unknown as typeof equipe) ?? []));
   }, []);
 
+  const podeAcao = eu.perfil !== 'gestor' && eu.perfil !== 'cliente';
+  async function mudarStatus(p: ProjetoK, status: 'finalizado' | 'ativo') {
+    const msg = status === 'finalizado' ? `Finalizar “${p.nome}”? Ele vai para o banco de projetos e dá para reativar depois.` : `Reativar “${p.nome}”?`;
+    if (!(await confirmar(msg))) return;
+    const { error } = await supabase.from('projetos').update({ status }).eq('id', p.id);
+    if (error) return alert(error.message);
+    await supabase.from('historico').insert({ projeto_id: p.id, tipo: 'nota', texto: status === 'finalizado' ? 'Projeto finalizado à mão e enviado ao banco de projetos' : 'Projeto reativado a partir do banco de projetos' });
+    setProjetos((l) => l.map((x) => (x.id === p.id ? { ...x, status } : x)));
+  }
+
   const ref = useMemo(() => refEtapas(projetos), [projetos]);
   const atraso = useMemo(() => {
     const m = new Map<string, Atraso>();
@@ -92,7 +103,7 @@ export default function Projetos() {
         <input placeholder="Buscar projeto, cliente ou código…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         <select id="filtro-status" value={filtro} onChange={(e) => setFiltro(e.target.value as ProjetoStatus | 'todos')}>
           <option value="todos">Todos</option>
-          {Object.entries(PROJETO_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          {Object.entries(PROJETO_STATUS).map(([k, v]) => <option key={k} value={k}>{k === 'finalizado' ? 'Banco de projetos (finalizados)' : v}</option>)}
         </select>
       </div>
       <div className="filtros filtros-linha">
@@ -157,7 +168,7 @@ export default function Projetos() {
 
       {vista === 'lista' && (
         <div className="viz-tab card"><table className="tab-projetos">
-          <thead><tr><th>Projeto</th><th>Cliente</th><th>Etapa atual</th><th>Etiquetas</th><th>Criado em</th><th>Situação</th><th>Responsáveis</th></tr></thead>
+          <thead><tr><th>Projeto</th><th>Cliente</th><th>Etapa atual</th><th>Etiquetas</th><th>Criado em</th><th>Situação</th><th>Responsáveis</th>{podeAcao && <th>Ações</th>}</tr></thead>
           <tbody>
             {lista.map((p) => (
               <tr key={p.id}>
@@ -168,6 +179,7 @@ export default function Projetos() {
                 <td>{fmtData(p.created_at)}</td>
                 <td><Situacao p={p} /></td>
                 <td><Avatares nomes={pessoasDe(p)} /></td>
+                {podeAcao && <td>{(p.status === 'ativo' || p.status === 'pausado') ? <button className="btn-sm" onClick={() => mudarStatus(p, 'finalizado')} title="Finaliza e envia para o banco de projetos (dá para reativar depois)">Finalizar</button> : p.status === 'finalizado' ? <button className="btn-sm" onClick={() => mudarStatus(p, 'ativo')}>Reativar</button> : null}</td>}
               </tr>
             ))}
           </tbody>

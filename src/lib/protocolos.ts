@@ -9,7 +9,6 @@ export const TAREFAS: TarefaModelo[] = [
   "descricao": null,
   "prioridade": "Média",
   "itens": [
-   "Intenção de projeto (residencial, comercial, institucional etc.)",
    "Metragem aproximada",
    "Nome completo",
    "Telefone",
@@ -137,15 +136,48 @@ export const TAREFAS: TarefaModelo[] = [
   ]
  },
  {
-  "etapa": "03",
+  "etapa": "02",
   "variante": "todas",
   "ordem": 1,
-  "titulo": "Apresentação do profissional no canal oficial do projeto",
-  "descricao": "Substitui a avaliação interna: o profissional se apresenta ao cliente e confere o envio do briefing.",
-  "prioridade": "Média",
+  "titulo": "Comercial: envio do dossiê ao profissional responsável",
+  "descricao": null,
+  "prioridade": "Alta",
   "itens": [
-   "Profissional se apresentou ao cliente no canal oficial do projeto",
-   "Conferido o envio do briefing ao cliente"
+   "Dossiê com as informações do cliente enviado ao profissional responsável pelo projeto"
+  ]
+ },
+ {
+  "etapa": "02",
+  "variante": "todas",
+  "ordem": 2,
+  "titulo": "Administrativo: pasta no servidor e informações do grupo",
+  "descricao": null,
+  "prioridade": "Alta",
+  "itens": [
+   "Criação da pasta do cliente no servidor",
+   "Envio das informações sobre o grupo, o projeto e o escritório"
+  ]
+ },
+ {
+  "etapa": "02",
+  "variante": "todas",
+  "ordem": 3,
+  "titulo": "Projetos: mensagem inicial do profissional responsável",
+  "descricao": null,
+  "prioridade": "Alta",
+  "itens": [
+   "Profissional responsável se apresentou ao cliente no canal oficial (grupo de WhatsApp)"
+  ]
+ },
+ {
+  "etapa": "02",
+  "variante": "regularizacao",
+  "ordem": 4,
+  "titulo": "Agendar o levantamento do local da regularização",
+  "descricao": "Em regularização não há briefing: depois da mensagem do profissional, agenda-se o levantamento do local.",
+  "prioridade": "Alta",
+  "itens": [
+   "Agendar o levantamento do local alvo da regularização"
   ]
  },
  {
@@ -166,7 +198,19 @@ export const TAREFAS: TarefaModelo[] = [
   "prioridade": "Baixa",
   "itens": [
    "Envio ao cliente",
-   "Preenchido pelo cliente"
+   "Preenchido pelo cliente",
+   "Mensagem de agradecimento pelo preenchimento do briefing"
+  ]
+ },
+ {
+  "etapa": "03",
+  "variante": "ampliacao",
+  "ordem": 4,
+  "titulo": "Agendar a aferição do local da ampliação",
+  "descricao": "Em ampliação não há a etapa de agendamento da reunião de briefing: depois do briefing preenchido, agenda-se a aferição do local.",
+  "prioridade": "Alta",
+  "itens": [
+   "Agendar a aferição do local da ampliação"
   ]
  },
  {
@@ -230,30 +274,25 @@ export const TAREFAS: TarefaModelo[] = [
   "ordem": 1,
   "titulo": "Aferição no terreno",
   "descricao": null,
-  "prioridade": "Média",
+  "prioridade": "Alta",
   "itens": [
-   "Salvar fotos e demais documentos no servidor"
+   "Registro fotográfico dos 4 cantos do terreno e um 360 na frente do lote",
+   "Salvar fotos no servidor"
   ]
  },
  {
   "etapa": "06",
   "variante": "ampliacao",
   "ordem": 2,
-  "titulo": "Aferição no espaço alvo da ampliação",
+  "titulo": "Aferição do local de ampliação",
   "descricao": null,
-  "prioridade": "Baixa",
+  "prioridade": "Alta",
   "itens": [
-   "Salvar imagens da aferição no servidor"
+   "Registro fotográfico do local",
+   "Levantamento do existente e do averbado",
+   "Salvar fotos no servidor",
+   "Vetorização do levantamento"
   ]
- },
- {
-  "etapa": "06",
-  "variante": "ampliacao",
-  "ordem": 3,
-  "titulo": "Passar aferição a limpo",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
  },
  {
   "etapa": "06",
@@ -264,6 +303,19 @@ export const TAREFAS: TarefaModelo[] = [
   "prioridade": "Média",
   "itens": [
    "Salvar fotos e demais documentos no servidor"
+  ]
+ },
+ {
+  "etapa": "06",
+  "variante": "regularizacao",
+  "ordem": 5,
+  "titulo": "Aferição do local para regularização",
+  "descricao": null,
+  "prioridade": "Alta",
+  "itens": [
+   "Registro fotográfico do local",
+   "Salvar fotos no servidor",
+   "Vetorização do levantamento"
   ]
  },
  {
@@ -944,4 +996,4 @@ export const TAREFAS: TarefaModelo[] = [
   ]
  }
 ];
-export const VAR_ROTULO: Record<string, string> = {"padrao": "Padrão", "ampliacao": "Ampliação", "mais_projetos": "+ Projetos", "apos_solicitacao": "Após pausa a pedido", "apos_ausencia": "Após falta de retorno"};
+export const VAR_ROTULO: Record<string, string> = {"padrao": "Padrão", "ampliacao": "Ampliação", "mais_projetos": "+ Projetos", "regularizacao": "Regularização", "apos_solicitacao": "Após pausa a pedido", "apos_ausencia": "Após falta de retorno"};

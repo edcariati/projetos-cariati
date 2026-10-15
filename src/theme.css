@@ -723,3 +723,15 @@ details.servico>summary{flex-wrap:wrap}details.servico .tag{white-space:normal;m
 @media(hover:none){.ver-mais{opacity:1}}
 .ck-topo{display:flex;justify-content:flex-end;margin:4px 0}.ck-fechar{min-height:34px;padding:0 14px;font-size:13px}
 .entregaveis-lista{list-style:none;margin:0 0 var(--sp-3);padding:0;display:grid;gap:4px}.entregaveis-lista li{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);align-items:center}.entregaveis-lista li.feito .check span:first-of-type{text-decoration:line-through;color:var(--ink3)}
+
+/* ajustes da análise da planta baixa */
+.ck-info{display:flex;flex-direction:column;gap:2px;margin-left:28px;min-width:200px}
+.ck-info input,.ck-info select{max-width:320px}
+.ck-agenda{margin:2px 0 6px;color:var(--ink2)}
+.etapa-desc{margin:var(--sp-2) 0;padding:var(--sp-3);border-left:3px solid var(--sec-a);background:var(--soft);border-radius:var(--r-md);font-size:13.5px;color:var(--ink2)}
+.etapa-desc b{display:block;color:var(--ink);margin-bottom:2px;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.titulo-projeto{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
+.titulo-projeto .icone-btn{min-height:36px;min-width:36px}
+.nome-edicao{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center}
+.nome-edicao input{min-width:260px}
+.zona-final{margin-top:var(--sp-3)}

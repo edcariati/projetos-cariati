@@ -44,7 +44,7 @@ export function montarCronograma(projetos: ProjetoK[], modelos: EtapaModelo[], r
   return { linhas, inicio, fim };
 }
 
-export interface Evento { data: string; tipo: 'etapa' | 'protocolo' | 'entrega'; titulo: string; sub: string; projetoId: string; vencido: boolean }
+export interface Evento { data: string; tipo: 'etapa' | 'protocolo' | 'entrega' | 'reuniao'; titulo: string; sub: string; projetoId: string; vencido: boolean }
 const dia = (t: number) => new Date(t).toISOString().slice(0, 10);
 
 /** Datas que importam no calendário: prazo da etapa atual, prazos de protocolos e entrega prevista de cada projeto. */

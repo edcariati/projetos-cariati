@@ -90,7 +90,7 @@ export function EscolherServicos({ v, aoMudar, metragem, desabilitado }: { v: Es
       })}
       {f.legal && (
         <fieldset className="servico-extra" style={{ margin: 0, maxWidth: 'none' }}>
-          <legend>Tipo de aprovação na Prefeitura (pode marcar mais de um, ex.: unificação + residencial)</legend>
+          <legend>Tipo de aprovação — caso necessário, assinale mais de uma opção. Ex.: Averbação residencial e Regularização.</legend>
           <div className="etiquetas">{TIPOS_APROVACAO.map((t) => <label className="check" key={t}><input type="checkbox" disabled={desabilitado} checked={aprovs.includes(t)} onChange={() => alternaAprov(t)} />{t}</label>)}</div>
         </fieldset>
       )}

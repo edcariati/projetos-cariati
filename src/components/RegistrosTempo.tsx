@@ -12,8 +12,8 @@ const fmtDH = (iso: string) => new Date(iso).toLocaleString('pt-BR', { day: '2-d
  * Registros de tempo de uma etapa: lista de sessões, lançamento manual e correção de horários
  * (cronômetro esquecido ligado, aba fechada, queda de rede). O relógio fica só na linha da etapa e na faixa do topo.
  */
-export default function RegistrosTempo({ projetoId, etapaCodigo, meuId, admin, nomes }: {
-  projetoId: string; etapaCodigo: string; meuId: string; admin: boolean; nomes: Map<string, string>;
+export default function RegistrosTempo({ projetoId, etapaCodigo, meuId, admin, nomes, aberto }: {
+  projetoId: string; etapaCodigo: string; meuId: string; admin: boolean; nomes: Map<string, string>; aberto?: boolean;
 }) {
   const [lista, setLista] = useState<Tempo[]>([]);
   const [editando, setEditando] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export default function RegistrosTempo({ projetoId, etapaCodigo, meuId, admin, n
   function abrirNovo() { const f = new Date(); const i = new Date(f.getTime() - 3600_000); setIni(paraCampo(i.toISOString())); setFim(paraCampo(f.toISOString())); setNovo(true); setEditando(null); }
 
   return (
-    <details className="registros-tempo">
+    <details className="registros-tempo" open={aberto}>
       <summary><b>Registros de tempo</b> <span className="mudo pequeno">{lista.length} registro(s) · {fmtDur(total)} fechados</span></summary>
       {lista.length === 0 && <p className="mudo pequeno">Nenhum tempo registrado ainda. Use ▶ na linha da etapa ou lance o tempo à mão.</p>}
       <ul className="pilha">

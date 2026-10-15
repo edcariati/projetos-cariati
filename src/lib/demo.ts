@@ -164,7 +164,8 @@ function instanciarEtapas(p: Row) {
   for (const m of db.etapa_modelos) {
     const naoAplic = m.fase === 5 || (m.escopo === 'legal' && !p.tem_legal) ||
       (m.escopo === 'interiores' && !p.tem_interiores) || (m.escopo === 'complementares' && !p.tem_complementares) ||
-      (m.escopo === 'habitese' && !p.tem_habitese) || (p.tipo_estudo === 'mais_projetos' && ['11', '12', '13', '14'].includes(m.codigo));
+      (m.escopo === 'habitese' && !p.tem_habitese) || (p.tipo_estudo === 'mais_projetos' && ['11', '12', '13', '14'].includes(m.codigo)) ||
+      (p.tipo_projeto === 'regularizacao' && ['03', '04', '05'].includes(m.codigo)) || ((p.tipo_estudo === 'ampliacao' || p.tipo_projeto === 'ampliacao') && m.codigo === '04');
     db.projeto_etapas.push({
       id: uid(), projeto_id: p.id, etapa_codigo: m.codigo, status: naoAplic ? 'nao_aplicavel' : 'pendente',
       responsavel_id: null, iniciada_em: null, concluida_em: null, rodadas_ajuste: 0, observacao: null,
@@ -175,7 +176,7 @@ function instanciarEtapas(p: Row) {
   db.historico.push({ id: uid(), projeto_id: p.id, etapa_codigo: '01', tipo: 'etapa_iniciada', texto: 'Projeto criado', autor_id: eu, created_at: new Date().toISOString() });
   for (const e of db.projeto_etapas.filter((x) => x.projeto_id === p.id && x.status !== 'nao_aplicavel')) {
     const fase = db.etapa_modelos.find((m) => m.codigo === e.etapa_codigo)!.fase;
-    if (fase <= 4 || fase === 6) inserirTarefas(p.id, e.etapa_codigo, ['todas', p.tipo_estudo ?? 'padrao']);
+    if (fase <= 4 || fase === 6) inserirTarefas(p.id, e.etapa_codigo, p.tipo_projeto === 'regularizacao' ? ['todas', 'regularizacao'] : ['todas', p.tipo_estudo ?? 'padrao']);
   }
 }
 
@@ -218,7 +219,7 @@ const DEFAULTS: Record<string, () => Row> = {
     obra_condominio: null, obra_lote: null, obra_quadra: null, obra_inscricao_municipal: null, obra_matricula: null, obra_financiada: null, responsavel_comercial: null,
     atualizado_em: new Date().toISOString(), atualizado_por: null,
   }),
-  projetos: () => ({ perfil: null, servicos: null, servicos_observacao: null, tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
+  projetos: () => ({ complementares_tipos: null, tem_condominio: false, tem_evf: false, tem_caixa: false, tipo_projeto: null, perfil: null, servicos: null, servicos_observacao: null, tipo_estudo: 'padrao', tem_habitese: false, horas_estimadas: null, codigo: null, responsavel_id: perfilEu().perfil === 'admin' ? null : eu, tem_legal: false, tem_interiores: false, tem_complementares: false, tipo_aprovacao: null, status: 'ativo', pausado_em: null, motivo_pausa: null, observacoes: null }),
   protocolos: () => ({ orgao: null, numero: null, status: 'a_protocolar', data_protocolo: null, prazo: null, cliente_notificado: false, observacao: null, updated_at: new Date().toISOString() }),
   historico: () => ({ etapa_codigo: null, autor_id: eu }),
   protocolo_andamentos: () => ({ autor_id: eu }),
@@ -236,7 +237,7 @@ const SO_ADMIN = new Set(['projeto_equipe', 'etapa_modelos', 'documento_modelos'
 
 class Q implements PromiseLike<any> {
   op: 'select' | 'insert' | 'update' | 'delete' = 'select';
-  payload: any; sel = '*'; one = false; lim = Infinity; tabela: string; visaoCliente: boolean; faixa: [number, number] | null = null;
+  payload: any; sel = '*'; one = false; talvez = false; lim = Infinity; tabela: string; visaoCliente: boolean; faixa: [number, number] | null = null;
   filtros: ((r: Row) => boolean)[] = []; ordem: [string, boolean, boolean][] = [];
   constructor(public table: string) { this.visaoCliente = table === 'etapas_cliente'; this.tabela = this.visaoCliente ? 'etapa_modelos' : table; }
   select(s = '*') { this.sel = s; return this; }
@@ -258,6 +259,7 @@ class Q implements PromiseLike<any> {
   }
   limit(n: number) { this.lim = n; return this; }
   single() { this.one = true; return this; }
+  maybeSingle() { this.one = true; this.talvez = true; return this; }
   then<A, B>(ok?: (v: any) => A | PromiseLike<A>, ko?: (e: any) => B | PromiseLike<B>) {
     return Promise.resolve(this.run()).then(ok, ko);
   }
@@ -312,7 +314,7 @@ class Q implements PromiseLike<any> {
     if (this.faixa) alvo = alvo.slice(this.faixa[0], this.faixa[1] + 1);
     let dados = alvo.slice(0, this.lim).map((r) => expand(t, r, this.sel));
     if (this.visaoCliente) dados = dados.map(({ entrada, saida, regra, setores, ...resto }) => { void entrada; void saida; void regra; void setores; return resto; });
-    if (this.one) return dados[0] ? { data: dados[0], error: null } : { data: null, error: { message: 'Registro não encontrado' } };
+    if (this.one) return dados[0] ? { data: dados[0], error: null } : { data: null, error: this.talvez ? null : { message: 'Registro não encontrado' } };
     return { data: dados, error: null };
   }
 }

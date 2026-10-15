@@ -6,6 +6,9 @@ interface Doc { id: string; modelo_id: string | null; nome: string; codigo_arqui
 
 const limpar = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '_');
 
+/** Tamanho máximo de um arquivo anexado (limite do armazenamento). */
+const MAX_MB = 50;
+
 export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
   projetoId: string; etapaCodigo: string; clienteCodigo: string | null;
 }) {
@@ -24,7 +27,9 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
   useEffect(() => { carregar(); }, [carregar]);
 
   async function enviar(file: File, modelo: Modelo | null) {
-    setBusy(modelo?.id ?? 'avulso'); setErro('');
+    setErro('');
+    if (file.size > MAX_MB * 1024 * 1024) { setErro(`O arquivo “${file.name}” tem ${(file.size / 1048576).toFixed(1).replace('.', ',')} MB e o máximo permitido é ${MAX_MB} MB. Gere o PDF em tamanho menor (exportar com qualidade reduzida ou dividir em partes) e anexe de novo.`); return; }
+    setBusy(modelo?.id ?? 'avulso');
     try {
       const path = `${projetoId}/${etapaCodigo}/${Date.now()}-${limpar(file.name)}`;
       const up = await supabase.storage.from('documentos').upload(path, file);
@@ -37,7 +42,7 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
       if (ins.error) throw ins.error;
       await supabase.from('historico').insert({ projeto_id: projetoId, etapa_codigo: etapaCodigo, tipo: 'nota', texto: `Documento anexado: ${modelo?.nome ?? file.name}` });
       await carregar();
-    } catch (e) { setErro((e as Error).message); } finally { setBusy(null); }
+    } catch (e) { const m = (e as Error).message; setErro(/exceeded the maximum allowed size/i.test(m) ? `O arquivo passou do tamanho máximo permitido (${MAX_MB} MB). Gere um PDF menor e anexe de novo.` : m); } finally { setBusy(null); }
   }
 
   async function abrir(d: Doc) {
@@ -59,6 +64,7 @@ export default function Documentos({ projetoId, etapaCodigo, clienteCodigo }: {
   const Envio = ({ modelo, rotulo }: { modelo: Modelo | null; rotulo: string }) => (
     <label className="upload">
       {busy === (modelo?.id ?? 'avulso') ? 'Enviando…' : rotulo}
+      <small className="mudo" style={{ display: 'block' }}>máx. {MAX_MB} MB por arquivo</small>
       <input type="file" hidden disabled={busy !== null} onChange={(e) => { const f = e.target.files?.[0]; if (f) enviar(f, modelo); e.target.value = ''; }} />
     </label>
   );

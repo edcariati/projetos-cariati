@@ -35,19 +35,24 @@ export const statusProtocolo = (tipo: ProtocoloTipo, s: ProtocoloStatus) => STAT
 export const opcoesStatus = (tipo: ProtocoloTipo) =>
   (Object.keys(PROTOCOLO_STATUS) as ProtocoloStatus[]).filter((s) => !ehInterno(tipo) || s in (STATUS_INTERNO[tipo] ?? {}));
 
-/** Tipos de aprovação do projeto legal (Habite-se é um serviço à parte e não entra aqui). */
-export const TIPOS_APROVACAO = ['residencial', 'comercial', 'unificação', 'averbação', 'regularização'];
+/** Tipos de aprovação do projeto legal (se é comercial ou residencial já vem do tipo do projeto; o Habite-se é um serviço à parte). */
+export const TIPOS_APROVACAO = ['Averbação', 'Ampliação', 'Unificação', 'Desmembramento', 'Regularização', 'Viabilidade'];
+/** Projetos complementares que o escritório fornece (mais um campo livre para outros). */
+export const TIPOS_COMPLEMENTARES = ['Hidráulico', 'Elétrico', 'Estrutural'];
 
-/** Tipos de projeto do “Novo projeto”: etiqueta do nome e o que cada um preenche sozinho. */
-export const TIPOS_PROJETO: { id: string; rotulo: string; etiqueta: string; legal?: boolean; aprov?: string[]; estudo?: 'ampliacao'; interiores?: boolean }[] = [
-  { id: 'unifamiliar', rotulo: 'Residencial unifamiliar', etiqueta: 'RESIDÊNCIA', legal: true, aprov: ['residencial'] },
-  { id: 'multifamiliar', rotulo: 'Residencial multifamiliar', etiqueta: 'PORTAL', legal: true, aprov: ['residencial'] },
-  { id: 'comercial', rotulo: 'Comercial', etiqueta: 'COMERCIAL', legal: true, aprov: ['comercial'] },
-  { id: 'reforma', rotulo: 'Reforma', etiqueta: 'REFORMA' },
-  { id: 'interiores', rotulo: 'Interiores', etiqueta: 'INTERIORES', interiores: true },
-  { id: 'ampliacao', rotulo: 'Ampliação', etiqueta: 'AMPLIAÇÃO', legal: true, aprov: ['residencial'], estudo: 'ampliacao' },
-  { id: 'regularizacao', rotulo: 'Regularização', etiqueta: 'REGULARIZAÇÃO', legal: true, aprov: ['regularização'] },
-  { id: 'outros', rotulo: 'Outros…', etiqueta: '' },
+/**
+ * Tipos de projeto do “Novo projeto”: etiqueta do nome e o que cada um preenche sozinho.
+ * `estudo`: o tipo precisa de estudo preliminar (construção nova, ampliação, reforma, interiores); `tipoEstudo`: estudo sugerido.
+ */
+export const TIPOS_PROJETO: { id: string; rotulo: string; etiqueta: string; estudo: boolean; tipoEstudo?: 'padrao' | 'ampliacao'; legal?: boolean; aprov?: string[]; interiores?: boolean }[] = [
+  { id: 'unifamiliar', rotulo: 'Residencial unifamiliar', etiqueta: 'RESIDÊNCIA', estudo: true, legal: true },
+  { id: 'multifamiliar', rotulo: 'Residencial multifamiliar', etiqueta: 'PORTAL', estudo: true, legal: true },
+  { id: 'comercial', rotulo: 'Comercial', etiqueta: 'COMERCIAL', estudo: true, legal: true },
+  { id: 'reforma', rotulo: 'Reforma', etiqueta: 'REFORMA', estudo: true },
+  { id: 'interiores', rotulo: 'Interiores', etiqueta: 'INTERIORES', estudo: true, interiores: true },
+  { id: 'ampliacao', rotulo: 'Ampliação', etiqueta: 'AMPLIAÇÃO', estudo: true, tipoEstudo: 'ampliacao', legal: true, aprov: ['Ampliação'] },
+  { id: 'regularizacao', rotulo: 'Regularização', etiqueta: 'REGULARIZAÇÃO', estudo: false, legal: true, aprov: ['Regularização'] },
+  { id: 'outros', rotulo: 'Outros…', etiqueta: '', estudo: true },
 ];
 
 export const fmtData = (d: string | null | undefined) =>

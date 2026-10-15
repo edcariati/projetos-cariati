@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
+import type { Cliente, Especialidade, EtapaModelo, Historico, Profile, Projeto, ProjetoEquipe, ProjetoEtapa, ProjetoItem, ProjetoTarefa, Protocolo, ProtocoloTipo } from '../lib/types';
 import { ehParceiro, podeBancoHoras, usePerfil } from '../lib/perfil';
 import { ESPECIALIDADE, ETAPA_STATUS, FASES, PROJETO_STATUS, PROTOCOLO_TIPO, SETOR, TIPOS_EXTERNOS, TIPOS_INTERNOS, TIPO_ESTUDO, fmtData, tituloEtapa } from '../lib/labels';
 import {
@@ -14,6 +14,7 @@ import { CronometroMini } from '../components/Cronometro';
 import RegistrosTempo from '../components/RegistrosTempo';
 import ComplementaresParceiros from '../components/ComplementaresParceiros';
 import EntregaveisContrato from '../components/EntregaveisContrato';
+import { descricaoEtapa } from '../lib/etapasInfo';
 import GanttEtapas from '../components/GanttEtapas';
 import { carregarCronograma } from '../lib/carga';
 import { useTemposDe } from '../lib/tempo';
@@ -53,6 +54,10 @@ export default function ProjetoDetalhe() {
   const [pessoas, setPessoas] = useState<Profile[]>([]);
   const [novoMembro, setNovoMembro] = useState<{ usuario: string; esp: Especialidade }>({ usuario: '', esp: 'arquitetonico' });
   const [horasReal, setHorasReal] = useState<number | null>(null);
+  const nav = useNavigate();
+  const [clienteFull, setClienteFull] = useState<Partial<Cliente> | null>(null);
+  const [editandoNome, setEditandoNome] = useState(false);
+  const [nomeNovo, setNomeNovo] = useState('');
   const [novoProt, setNovoProt] = useState<{ tipo: ProtocoloTipo; orgao: string; numero: string } | null>(null);
 
   // modelos de etapa e equipe não mudam a cada clique: vêm uma vez só
@@ -85,6 +90,7 @@ export default function ProjetoDetalhe() {
   const atribuirTarefa = useCallback((tid: string, patch: Partial<ProjetoTarefa>) => setTarefas((l) => l.map((x) => (x.id === tid ? { ...x, ...patch } : x))), []);
   useEffect(() => { carregar(); }, [carregar]);
 
+  useEffect(() => { if (!projeto?.cliente_id) return; supabase.from('clientes').select('*').eq('id', projeto.cliente_id).maybeSingle().then(({ data }) => setClienteFull((data as Partial<Cliente>) ?? null)); }, [projeto?.cliente_id]);
   const run = async (fn: () => Promise<unknown>) => {
     setErro('');
     try { await fn(); await carregar(); } catch (e) { setErro((e as Error).message); }
@@ -117,6 +123,12 @@ export default function ProjetoDetalhe() {
   const consulta = eu.perfil === 'gestor';
   const podeAgir = (m: EtapaModelo) => !consulta && (admin || projeto.responsavel_id === eu.id || m.setores.includes(eu.setor));
 
+  const podeEditarProjeto = eu.perfil !== 'gestor' && (admin || projeto.responsavel_id === eu.id || eu.perfil === 'profissional');
+  const salvarCampoCliente = async (campo: string, valor: string | number | boolean | null) => {
+    const { error } = await supabase.from('clientes').update({ [campo]: valor }).eq('id', projeto.cliente_id);
+    if (error) throw error;
+    setClienteFull((c) => ({ ...(c ?? {}), [campo]: valor }));
+  };
   const linhaEtapa = (m: EtapaModelo) => {
               const e = etapaDe(m.codigo);
               if (!e) return null;
@@ -146,6 +158,7 @@ export default function ProjetoDetalhe() {
                         {e.iniciada_em && <><dt>Início</dt><dd>{fmtData(e.iniciada_em)}</dd></>}
                         {e.concluida_em && <><dt>Conclusão</dt><dd>{fmtData(e.concluida_em)}</dd></>}
                       </dl>
+                      {descricaoEtapa(m.codigo, projeto) && <div className="etapa-desc"><b>O que fazer nesta etapa</b>{descricaoEtapa(m.codigo, projeto)}</div>}
                       {COM_RODADAS.has(m.codigo) && (
                         <div className="rodadas">
                           Rodadas de ajuste: <b className={e.rodadas_ajuste > MAX_RODADAS ? 'alerta' : ''}>{e.rodadas_ajuste}</b> / {MAX_RODADAS}
@@ -158,12 +171,16 @@ export default function ProjetoDetalhe() {
                           })}>+ Registrar rodada (revisão)</button>}
                         </div>
                       )}
-                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} podeEditarLista={podeAgir(m) && !pausado} projetoId={projeto.id} />
+                      <Checklist etapa={m.codigo} tarefas={tarefas} itens={itens} nomes={nomes} editavel={podeAgir(m) && !pausado} onChange={carregar} aoMarcarItem={marcarItem} aoAtribuir={atribuirTarefa} aberto={ativa} pessoas={pessoas} meuId={eu.id} podeAtribuir={admin || projeto.responsavel_id === eu.id} podeEditarLista={podeAgir(m) && !pausado} projetoId={projeto.id} cliente={clienteFull} aoSalvarCampo={salvarCampoCliente} />
                       {m.codigo === '19' && <ComplementaresParceiros projeto={projeto} onChange={carregar} />}
-                      <RegistrosTempo projetoId={projeto.id} etapaCodigo={m.codigo} meuId={eu.id} admin={admin} nomes={nomes} />
+                      <RegistrosTempo projetoId={projeto.id} etapaCodigo={m.codigo} meuId={eu.id} admin={admin} nomes={nomes} aberto={ativa} />
                       <Documentos projetoId={projeto.id} etapaCodigo={m.codigo} clienteCodigo={projeto.clientes?.codigo ?? null} />
                       <div className="acoes">
                         {ativa && !pausado && podeAgir(m) && <button className="primario" onClick={async () => {
+                          if (m.codigo === '03' && projeto.tipo_projeto !== 'regularizacao') {
+                            const tIds = tarefas.filter((t) => t.etapa_codigo === '03').map((t) => t.id);
+                            if (itens.some((i) => tIds.includes(i.tarefa_id) && /preenchido pelo cliente/i.test(i.texto ?? '') && !i.feito)) { setErro('Sem o briefing preenchido pelo cliente a etapa não conclui, e a reunião de briefing não pode ser agendada.'); return; }
+                          }
                           const p = pendentes(m.codigo);
                           if (p > 0 && !(await confirmar(`Ainda há ${p} item(ns) pendente(s) no checklist desta etapa. Concluir mesmo assim?`))) return;
                           run(() => concluirEtapa(projeto.id, e, modelos, etapas));
@@ -183,7 +200,14 @@ export default function ProjetoDetalhe() {
       <p><Link to="/projetos">← Projetos</Link></p>
       <div className="titulo">
         <div>
-          <h1>{projeto.nome}</h1>
+          {editandoNome ? (
+            <form className="nome-edicao" onSubmit={(ev) => { ev.preventDefault(); const n = nomeNovo.trim(); if (!n) return; run(async () => { const { error } = await supabase.from('projetos').update({ nome: n }).eq('id', projeto.id); if (error) throw error; await supabase.from('historico').insert({ projeto_id: projeto.id, tipo: 'nota', texto: `Nome do projeto alterado de “${projeto.nome}” para “${n}”` }); setEditandoNome(false); }); }}>
+              <input aria-label="Nome do projeto" autoFocus value={nomeNovo} onChange={(e) => setNomeNovo(e.target.value)} />
+              <button className="primario">Salvar</button><button type="button" onClick={() => setEditandoNome(false)}>Cancelar</button>
+            </form>
+          ) : (
+            <div className="titulo-projeto"><h1>{projeto.nome}</h1>{podeEditarProjeto && <button className="icone-btn" title="Editar o nome do projeto" aria-label="Editar o nome do projeto" onClick={() => { setNomeNovo(projeto.nome); setEditandoNome(true); }}>✎</button>}</div>
+          )}
           <div className="mudo">{projeto.clientes?.nome}{projeto.clientes?.codigo ? ` · ${projeto.clientes.codigo}` : ''}</div>
         </div>
         <span className={`tag ${projeto.status}`}>{PROJETO_STATUS[projeto.status]}</span>
@@ -192,11 +216,14 @@ export default function ProjetoDetalhe() {
 
       <section className="card">
         <div className="etiquetas">
-          <span className="etiqueta" title="Tipo de estudo preliminar">{TIPO_ESTUDO[projeto.tipo_estudo]}</span>
+          {projeto.tipo_projeto !== 'regularizacao' && <span className="etiqueta" title="Tipo de estudo preliminar">{TIPO_ESTUDO[projeto.tipo_estudo]}</span>}
           {projeto.tem_legal && <span className="etiqueta">Legal{projeto.tipo_aprovacao ? ` · ${projeto.tipo_aprovacao}` : ''}</span>}
           {projeto.tem_interiores && <span className="etiqueta">Interiores</span>}
-          {projeto.tem_complementares && <span className="etiqueta">Complementares</span>}
-          {!projeto.tem_legal && !projeto.tem_interiores && !projeto.tem_complementares && <span className="etiqueta">Somente arquitetônico</span>}
+          {projeto.tem_complementares && <span className="etiqueta">Complementares{projeto.complementares_tipos?.length ? ` · ${projeto.complementares_tipos.join(', ')}` : ''}</span>}
+          {projeto.tem_condominio && <span className="etiqueta">Condomínio</span>}
+          {projeto.tem_evf && <span className="etiqueta">EVF</span>}
+          {projeto.tem_caixa && <span className="etiqueta">Documentação Caixa</span>}
+          {!projeto.tem_legal && !projeto.tem_interiores && !projeto.tem_complementares && !projeto.tem_condominio && !projeto.tem_evf && !projeto.tem_caixa && <span className="etiqueta">Somente arquitetônico</span>}
         </div>
         <div className="barra" role="progressbar" aria-valuenow={pctProjeto} aria-valuemin={0} aria-valuemax={100} aria-label="Andamento do projeto"><i style={{ width: `${pctProjeto}%` }} /></div>
         <p className="mudo pequeno" style={{ margin: '6px 0 0' }}>{pctProjeto}% do fluxo (etapas concluídas + itens já marcados da etapa em andamento){pendConcluidas > 0 && <b className="alerta"> · {pendConcluidas} pendência(s) em etapas concluídas</b>}</p>
@@ -215,6 +242,15 @@ export default function ProjetoDetalhe() {
               if (tipo) run(() => pausarProjeto(projeto.id, tipo === 'P1' ? 'Pausa a pedido do cliente' : 'Pausa por falta de retorno do cliente', tipo as 'P1' | 'P2'));
             }}>Pausar projeto</button>
           </>}
+          {podeEditarProjeto && (projeto.status === 'ativo' || pausado) && (
+            <button onClick={async () => { if (await confirmar('Finalizar este projeto? Ele sai do quadro e vai para o banco de projetos (filtro “Banco de projetos” em Projetos), de onde dá para recuperar.')) run(async () => { await supabase.from('projetos').update({ status: 'finalizado' }).eq('id', projeto.id); await supabase.from('historico').insert({ projeto_id: projeto.id, tipo: 'nota', texto: 'Projeto finalizado à mão e enviado ao banco de projetos' }); }); }}>Finalizar projeto</button>
+          )}
+          {podeEditarProjeto && projeto.status === 'finalizado' && (
+            <button className="primario" onClick={() => run(async () => { await supabase.from('projetos').update({ status: 'ativo' }).eq('id', projeto.id); await supabase.from('historico').insert({ projeto_id: projeto.id, tipo: 'nota', texto: 'Projeto reativado a partir do banco de projetos' }); })}>Reativar projeto</button>
+          )}
+          {admin && (
+            <button className="perigo" onClick={async () => { const n = await pedirTexto(`Excluir DEFINITIVAMENTE “${projeto.nome}”? Isso apaga etapas, tarefas, tempos e documentos e não dá para desfazer. Para confirmar, digite o nome do projeto.`); if (n && n.trim() === projeto.nome) run(async () => { const { error } = await supabase.from('projetos').delete().eq('id', projeto.id); if (error) throw error; nav('/projetos'); }); else if (n) setErro('O nome digitado não confere: o projeto não foi excluído.'); }}>Excluir definitivamente</button>
+          )}
           {pausado && <>
             <button className="primario" onClick={() => run(() => retomarProjeto(projeto.id))}>Retomar (aditivo assinado)</button>
             {dias > MAX_DIAS_PAUSA && <button className="perigo" onClick={async () => (await confirmar('Marcar como rescindido?')) && run(() => rescindirProjeto(projeto.id))}>Rescindir contrato</button>}
@@ -347,8 +383,8 @@ export default function ProjetoDetalhe() {
             const proximas = daFase.filter((m) => st(m) === 'pendente' || st(m) === 'nao_aplicavel');
             return (
               <>
-                {andamento.length > 0 && <><h4 className="grupo-etapas">Em andamento</h4><ul className="etapas">{andamento.map(linhaEtapa)}</ul></>}
                 {concluidas.length > 0 && <details className="grupo-etapas"><summary>Concluídas ({concluidas.length})</summary><ul className="etapas">{concluidas.map(linhaEtapa)}</ul></details>}
+                {andamento.length > 0 && <><h4 className="grupo-etapas">Em andamento</h4><ul className="etapas">{andamento.map(linhaEtapa)}</ul></>}
                 {proximas.length > 0 && <details className="grupo-etapas" open={andamento.length === 0}><summary>A seguir ({proximas.length})</summary><ul className="etapas">{proximas.map(linhaEtapa)}</ul></details>}
               </>
             );

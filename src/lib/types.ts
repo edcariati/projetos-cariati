@@ -45,7 +45,7 @@ export interface EtapaModelo {
   opcional: boolean; aceite_formal: boolean; escopo: string | null; horas_padrao: number;
 }
 export interface Projeto {
-  perfil?: string | null; servicos?: string[] | null; entregas?: string[] | null; tipo_projeto?: string | null; parceiros_complementares?: string | null; servicos_observacao?: string | null;
+  perfil?: string | null; servicos?: string[] | null; entregas?: string[] | null; tipo_projeto?: string | null; parceiros_complementares?: string | null; complementares_tipos?: string[] | null; tem_condominio?: boolean; tem_evf?: boolean; tem_caixa?: boolean; servicos_observacao?: string | null;
   id: string; cliente_id: string; nome: string; codigo: string | null; responsavel_id: string | null;
   tem_legal: boolean; tem_interiores: boolean; tem_complementares: boolean; tipo_aprovacao: string | null;
   tipo_estudo: TipoEstudo; tem_habitese: boolean; horas_estimadas: number | null; status: ProjetoStatus; pausado_em: string | null; motivo_pausa: string | null; observacoes: string | null;
@@ -79,5 +79,5 @@ export interface ProjetoTarefa {
   responsavel_id: string | null; setor_fila: Setor | null; atribuicao_manual: boolean;
 }
 export interface ProjetoItem {
-  id: string; tarefa_id: string; projeto_id: string; ordem: number; texto: string | null; feito: boolean; feito_por: string | null; feito_em: string | null; nota?: string | null;
+  id: string; tarefa_id: string; projeto_id: string; ordem: number; texto: string | null; feito: boolean; feito_por: string | null; feito_em: string | null; nota?: string | null; agenda_em?: string | null;
 }

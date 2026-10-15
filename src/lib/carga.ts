@@ -41,5 +41,16 @@ export async function carregarCronograma() {
   const modelos = (m.data as EtapaModelo[]) ?? [];
   const ref = refEtapas(projetos);
   const crono = montarCronograma(projetos, modelos, ref);
-  return { crono, eventos: montarEventos(crono, (pr.data as Protocolo[]) ?? []) };
+  const eventos = montarEventos(crono, (pr.data as Protocolo[]) ?? []);
+  // reuniões marcadas nos itens de agendamento (data e horário) entram no calendário
+  const ag = await supabase.from('projeto_tarefa_itens').select('agenda_em,projeto_id,projeto_tarefas(etapa_codigo,titulo)').not('agenda_em', 'is', null);
+  if (!ag.error) {
+    for (const x of (ag.data as unknown as { agenda_em: string; projeto_id: string; projeto_tarefas: { etapa_codigo: string; titulo: string } | null }[]) ?? []) {
+      const proj = projetos.find((p) => p.id === x.projeto_id); if (!proj) continue;
+      const d = new Date(x.agenda_em); const pad = (n: number) => String(n).padStart(2, '0');
+      eventos.push({ data: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, tipo: 'reuniao', titulo: proj.nome, sub: `Reunião às ${pad(d.getHours())}:${pad(d.getMinutes())} · etapa ${x.projeto_tarefas?.etapa_codigo ?? ''}`, projetoId: x.projeto_id, vencido: false });
+    }
+    eventos.sort((a, b) => (a.data < b.data ? -1 : 1));
+  }
+  return { crono, eventos };
 }

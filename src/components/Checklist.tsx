@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Profile, ProjetoItem, ProjetoTarefa, Tempo } from '../lib/types';
 import { SETOR, fmtData, fmtDur, fmtRelogio } from '../lib/labels';
+import type { Cliente } from '../lib/types';
+import { campoDoItem, valorCampo, valorParaBanco } from '../lib/camposInfo';
 import { aoMudar, iniciarCronometro, pararCronometro, segundosEntre } from '../lib/tempo';
 
 /** Tarefas e checklist de uma etapa (protocolo do escritório). A data e quem marcou ficam registrados sozinhos. */
-export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onChange, titulo = 'Checklist da etapa', aberto, pessoas, meuId, podeAtribuir, aoMarcarItem, aoAtribuir, podeEditarLista, projetoId }: {
+export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onChange, titulo = 'Checklist da etapa', aberto, pessoas, meuId, podeAtribuir, aoMarcarItem, aoAtribuir, podeEditarLista, projetoId, cliente, aoSalvarCampo }: {
   etapa: string; tarefas: ProjetoTarefa[]; itens: ProjetoItem[]; nomes: Map<string, string>;
   editavel: boolean; onChange: () => void; titulo?: string; aberto?: boolean;
   pessoas?: Profile[]; meuId?: string; podeAtribuir?: boolean;
@@ -13,6 +15,9 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
   podeEditarLista?: boolean;
   /** Quando informado, cada tarefa ganha o seu cronômetro (o tempo soma no total da etapa). */
   projetoId?: string;
+  /** Cadastro do cliente: itens que pedem uma informação (metragem, lote, endereço…) abrem um campo que grava nele. */
+  cliente?: Partial<Cliente> | null;
+  aoSalvarCampo?: (campo: string, valor: string | number | boolean | null) => Promise<void>;
   /** Quando informados, a tela muda na hora e o servidor é atualizado em segundo plano (sem recarregar tudo). */
   aoMarcarItem?: (id: string, patch: Partial<ProjetoItem>) => void;
   aoAtribuir?: (id: string, patch: Partial<ProjetoTarefa>) => void;
@@ -57,6 +62,61 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
     aoMarcarItem?.(i.id, { nota: nota.trim() || null });
   }
 
+  /** Informação pedida pelo item: grava no cadastro do cliente e marca o item. */
+  async function salvarInfo(i: ProjetoItem, txt: string) {
+    const k = campoDoItem(i.texto); if (!k || !aoSalvarCampo) return;
+    setErro('');
+    try { await aoSalvarCampo(String(k.campo), valorParaBanco(k, txt)); } catch (e) { return setErro((e as Error).message); }
+    if (txt.trim() && !i.feito) await alternar(i);
+  }
+  async function agendar(i: ProjetoItem, valor: string) {
+    setErro('');
+    const iso = valor ? new Date(valor).toISOString() : null;
+    const { error } = await supabase.from('projeto_tarefa_itens').update({ agenda_em: iso }).eq('id', i.id);
+    if (error) return setErro('Para guardar a data e o horário da reunião, rode o atualizar_0023.sql no Supabase.');
+    aoMarcarItem?.(i.id, { agenda_em: iso }); onChange();
+    if (iso && !i.feito) await alternar(i);   // marcar a reunião conclui o item de agendamento
+  }
+  const paraCampoData = (iso: string | null | undefined) => { if (!iso) return ''; const d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+  // a reunião aparece na etapa dela com a data marcada na etapa de agendamento (a mais próxima antes dela)
+  const agendaDaEtapa = itens.filter((x) => x.agenda_em).map((x) => ({ x, cod: tarefas.find((t) => t.id === x.tarefa_id)?.etapa_codigo ?? '' }))
+    .filter((y) => y.cod <= etapa).sort((p, q) => (q.cod > p.cod ? 1 : q.cod < p.cod ? -1 : 0))[0]?.x.agenda_em ?? null;
+
+  const linhaItem = (t: ProjetoTarefa, i: ProjetoItem, rotulo: string, prio?: string) => {
+    const k = cliente && aoSalvarCampo ? campoDoItem(i.texto) : null;
+    const pedeAgenda = /^(marcar|agendar)\b.*reuni/i.test(i.texto ?? '') || /^agendar\b/i.test(i.texto ?? '');
+    return (
+      <div className="ck-linha" key={i.id}>
+        <ItemLinha i={i} rotulo={rotulo} nomes={nomes} editavel={editavel} alternar={alternar} prio={prio} />
+        {k && (
+          <label className="ck-info pequeno">{k.rotulo}
+            {k.tipo === 'sim_nao'
+              ? <select disabled={!editavel} value={valorCampo(cliente, k)} onChange={(e) => salvarInfo(i, e.target.value)}><option value="">—</option><option value="sim">Sim</option><option value="nao">Não</option></select>
+              : <input disabled={!editavel} inputMode={k.tipo === 'numero' ? 'decimal' : undefined} defaultValue={valorCampo(cliente, k)} placeholder={`Informe: ${k.rotulo.toLowerCase()}`} onBlur={(e) => e.target.value !== valorCampo(cliente, k) && salvarInfo(i, e.target.value)} />}
+          </label>
+        )}
+        {pedeAgenda && (
+          <label className="ck-info pequeno">Data e horário da reunião
+            <input type="datetime-local" disabled={!editavel} defaultValue={paraCampoData(i.agenda_em)} onBlur={(e) => e.target.value !== paraCampoData(i.agenda_em) && agendar(i, e.target.value)} />
+          </label>
+        )}
+        {editando && editavel && i.texto !== null && <button className="link perigo" aria-label={`Excluir o item ${i.texto}`} onClick={() => excluir(i)}>✕ excluir</button>}
+        {/aceite/i.test(i.texto ?? '') && i.feito && editavel && (
+          <label className="ck-aceite pequeno">Data e versão do aceite
+            <input defaultValue={i.nota ?? ''} placeholder="ex.: 14/10/2026 · versão 2" onBlur={(e) => e.target.value !== (i.nota ?? '') && anotar(i, e.target.value)} />
+          </label>
+        )}
+        {/aceite/i.test(i.texto ?? '') && i.feito && !editavel && i.nota && <span className="pequeno mudo"> Aceite: {i.nota}</span>}
+      </div>
+    );
+  };
+  const campoNovo = (t: ProjetoTarefa, lista: ProjetoItem[]) => editando && editavel && projetoId && (
+    <div className="nota">
+      <input placeholder="Novo item deste checklist…" value={novoTexto[t.id] ?? ''} onChange={(e) => setNovoTexto({ ...novoTexto, [t.id]: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && incluir(t, lista.reduce((m, x) => Math.max(m, x.ordem), 0))} />
+      <button onClick={() => incluir(t, lista.reduce((m, x) => Math.max(m, x.ordem), 0))}>+ Adicionar</button>
+    </div>
+  );
+
   async function atribuir(t: ProjetoTarefa, quem: string | null) {
     if (!aoAtribuir) { await supabase.from('projeto_tarefas').update({ responsavel_id: quem, atribuicao_manual: true }).eq('id', t.id); return onChange(); }
     const antes = { responsavel_id: t.responsavel_id, atribuicao_manual: t.atribuicao_manual };
@@ -90,31 +150,20 @@ export default function Checklist({ etapa, tarefas, itens, nomes, editavel, onCh
         const unico = lista.length === 1 && lista[0].texto === null;
         return (
           <div className="ck-tarefa" key={t.id}>
-            {unico ? <><ItemLinha i={lista[0]} rotulo={t.titulo} nomes={nomes} editavel={editavel} alternar={alternar} prio={t.prioridade} /><Resp t={t} />{projetoId && <TarefaCrono projetoId={projetoId} etapa={t.etapa_codigo} tarefaId={t.id} />}</>
-              : <>
-                <h4>{t.titulo}{t.prioridade !== 'Baixa' && <span className={`ck-prio ${t.prioridade}`}>{t.prioridade}</span>}</h4>
-                {t.descricao && <p>{t.descricao}</p>}
-                <Resp t={t} />
-                {projetoId && <TarefaCrono projetoId={projetoId} etapa={t.etapa_codigo} tarefaId={t.id} />}
-                {lista.map((i) => (
-                  <div className="ck-linha" key={i.id}>
-                    <ItemLinha i={i} rotulo={i.texto ?? t.titulo} nomes={nomes} editavel={editavel} alternar={alternar} />
-                    {editando && editavel && <button className="link perigo" aria-label={`Excluir o item ${i.texto}`} onClick={() => excluir(i)}>✕ excluir</button>}
-                    {/aceite/i.test(i.texto ?? '') && i.feito && editavel && (
-                      <label className="ck-aceite pequeno">Data e versão do aceite
-                        <input defaultValue={i.nota ?? ''} placeholder="ex.: 14/10/2026 · versão 2" onBlur={(e) => e.target.value !== (i.nota ?? '') && anotar(i, e.target.value)} />
-                      </label>
-                    )}
-                    {/aceite/i.test(i.texto ?? '') && i.feito && !editavel && i.nota && <span className="pequeno mudo"> Aceite: {i.nota}</span>}
-                  </div>
-                ))}
-                {editando && editavel && (
-                  <div className="nota">
-                    <input placeholder="Novo item deste checklist…" value={novoTexto[t.id] ?? ''} onChange={(e) => setNovoTexto({ ...novoTexto, [t.id]: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && incluir(t, lista.reduce((m, x) => Math.max(m, x.ordem), 0))} />
-                    <button onClick={() => incluir(t, lista.reduce((m, x) => Math.max(m, x.ordem), 0))}>+ Adicionar</button>
-                  </div>
-                )}
-              </>}
+            {unico ? <>
+              {linhaItem(t, lista[0], t.titulo, t.prioridade)}
+              {/^reuni[aã]o/i.test(t.titulo) && agendaDaEtapa && <p className="pequeno ck-agenda">Reunião marcada para <b>{new Date(agendaDaEtapa).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</b></p>}
+              <Resp t={t} />{projetoId && <TarefaCrono projetoId={projetoId} etapa={t.etapa_codigo} tarefaId={t.id} />}
+              {campoNovo(t, lista)}
+            </> : <>
+              <h4>{t.titulo}{t.prioridade !== 'Baixa' && <span className={`ck-prio ${t.prioridade}`}>{t.prioridade}</span>}</h4>
+              {t.descricao && <p>{t.descricao}</p>}
+              {/^reuni[aã]o/i.test(t.titulo) && agendaDaEtapa && <p className="pequeno ck-agenda">Reunião marcada para <b>{new Date(agendaDaEtapa).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</b></p>}
+              <Resp t={t} />
+              {projetoId && <TarefaCrono projetoId={projetoId} etapa={t.etapa_codigo} tarefaId={t.id} />}
+              {lista.map((i) => linhaItem(t, i, i.texto ?? t.titulo))}
+              {campoNovo(t, lista)}
+            </>}
           </div>
         );
       })}

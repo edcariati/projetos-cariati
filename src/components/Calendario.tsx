@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Evento } from '../lib/cronograma';
 
 const DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
-const ICO: Record<string, string> = { etapa: '●', protocolo: '◆', entrega: '★' };
+const ICO: Record<string, string> = { etapa: '●', protocolo: '◆', entrega: '★', reuniao: '✦' };
 const maiusc = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

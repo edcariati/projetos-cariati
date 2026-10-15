@@ -1,8 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Cliente, Profile } from '../lib/types';
-import { TIPOS_APROVACAO, TIPOS_PROJETO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
+import { TIPOS_APROVACAO, TIPOS_COMPLEMENTARES, TIPOS_PROJETO, TIPO_ESTUDO, TIPO_ESTUDO_DESC } from '../lib/labels';
 import type { TipoEstudo } from '../lib/types';
 import { usePerfil } from '../lib/perfil';
 import { ehPerfilA, flagsDe, juntarAprovacoes, lerAprovacoes, perfilPorId, useCatalogo } from '../lib/servicos';
@@ -29,8 +29,15 @@ export default function NovoProjeto() {
   const [tipoEstudo, setTipoEstudo] = useState<TipoEstudo>('padrao');
   const [legal, setLegal] = useState(false);
   const [interiores, setInteriores] = useState(false);
-  const [compl, setCompl] = useState(false);
+  const [complTipos, setComplTipos] = useState<string[]>([]);
+  const [outroCompl, setOutroCompl] = useState('');
+  const [condominio, setCondominio] = useState(false);
   const [habitese, setHabitese] = useState(false);
+  const [evf, setEvf] = useState(false);
+  const [caixa, setCaixa] = useState(false);
+  // o que a pessoa mexeu à mão não é mais trocado pelo tipo do projeto
+  const manual = useRef(new Set<string>());
+  const mexeu = (k: string) => manual.current.add(k);
   const [aprovacoes, setAprovacoes] = useState<string[]>([]);
   const [erro, setErro] = useState('');
   const [busy, setBusy] = useState(false);
@@ -53,29 +60,34 @@ export default function NovoProjeto() {
 
   const tipo = TIPOS_PROJETO.find((t) => t.id === tipoProj);
   const etiqueta = tipo ? (tipo.id === 'outros' ? outroTipo.trim().toUpperCase() : tipo.etiqueta) : '';
-  const nomeProjeto = etiqueta && ident.trim() ? `[${etiqueta}] ${ident.trim().toUpperCase()}` : '';
+  const nomeProjeto = etiqueta && ident.trim() ? `${etiqueta} ${ident.trim().toUpperCase()}` : '';
 
-  // o tipo do projeto preenche o escopo; o cadastro do cliente (serviços) preenche o restante
+  // o tipo do projeto marca o escopo; ao trocar o tipo, o que ele tinha marcado sozinho se desmarca (o que a pessoa mexeu à mão fica)
   useEffect(() => {
     if (!tipo) return;
-    if (tipo.legal) { setLegal(true); if (tipo.aprov) setAprovacoes((a) => (a.length ? a : tipo.aprov!)); }
-    if (tipo.interiores) setInteriores(true);
-    if (tipo.estudo) setTipoEstudo(tipo.estudo);
+    if (!manual.current.has('legal')) setLegal(!!tipo.legal);
+    if (!manual.current.has('interiores')) setInteriores(!!tipo.interiores);
+    if (!manual.current.has('aprov')) setAprovacoes(tipo.aprov ?? []);
+    if (!manual.current.has('estudo')) setTipoEstudo(categoria === 'D' || categoria === 'E' ? 'mais_projetos' : tipo.tipoEstudo ?? 'padrao');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipo]);
 
   useEffect(() => {
     if (!clienteSel || (!clienteSel.servicos?.length && !clienteSel.servico_estudo && !perfilPorId(clienteSel.categoria))) return;
     const f = flagsDe(clienteSel.servicos ?? [], clienteSel.categoria);
-    setLegal((v) => v || f.legal); setInteriores((v) => v || f.interiores); setCompl(f.complementares); setHabitese(f.habitese);
+    const ids = clienteSel.servicos ?? [];
+    const doCat = [['estrutural-', 'Estrutural'], ['hidro-', 'Hidráulico'], ['eletrico-', 'Elétrico']].filter(([p]) => ids.some((i) => i.startsWith(p))).map(([, n]) => n);
+    setLegal((v) => v || f.legal); setInteriores((v) => v || f.interiores); setHabitese(f.habitese); setCaixa(ids.some((i) => i.startsWith('caixa-'))); setEvf(ids.some((i) => i.startsWith('evf-')));
+    setComplTipos((c) => [...new Set([...c, ...doCat])]);
     const est = clienteSel.servico_estudo || perfilPorId(clienteSel.categoria)?.estudo; if (est) setTipoEstudo(est as TipoEstudo);
-    if (clienteSel.servico_aprovacao) setAprovacoes(lerAprovacoes(clienteSel.servico_aprovacao));
+    if (clienteSel.servico_aprovacao) setAprovacoes(lerAprovacoes(clienteSel.servico_aprovacao).filter((t) => TIPOS_APROVACAO.includes(t)));
   }, [clienteSel]);
 
   // perfil D ou E (+ Projetos) leva o estudo "+ Projetos" automaticamente; dá para trocar depois
   const categoria = clienteId ? clienteSel?.categoria : novoCliente.categoria;
   useEffect(() => { if (categoria === 'D' || categoria === 'E' || perfilPorId(categoria)?.estudo === 'mais_projetos') setTipoEstudo('mais_projetos'); }, [categoria]);
 
-  const alternarAprov = (t: string) => setAprovacoes((a) => (a.includes(t) ? a.filter((x) => x !== t) : [...a, t]));
+  const alternarAprov = (t: string) => { mexeu('aprov'); setAprovacoes((a) => (a.includes(t) ? a.filter((x) => x !== t) : [...a, t])); };
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -102,15 +114,18 @@ export default function NovoProjeto() {
         cid = data.id;
       }
       const servicos = clienteId ? clienteSel?.servicos ?? [] : [];
+      const complementares = [...complTipos, ...(outroCompl.trim() ? [outroCompl.trim()] : [])];
       const corpoProjeto = {
         cliente_id: cid, nome: nomeProjeto, responsavel_id: responsavel || null, tem_legal: legal,
-        tem_interiores: interiores, tem_complementares: compl, tem_habitese: habitese, tipo_estudo: tipoEstudo,
+        tem_interiores: interiores, tem_complementares: complementares.length > 0, tem_habitese: habitese, tipo_estudo: tipoEstudo,
         tipo_aprovacao: legal && aprovacoes.length ? juntarAprovacoes(aprovacoes) : null,
         perfil: (clienteId ? clienteSel?.categoria : novoCliente.categoria) || null, servicos,
         servicos_observacao: clienteId ? clienteSel?.servicos_observacao ?? null : null,
         entregas: clienteId ? clienteSel?.entregas ?? null : null, tipo_projeto: tipo.id === 'outros' ? `outros:${etiqueta}` : tipo.id,
       };
-      let r = await supabase.from('projetos').insert(corpoProjeto).select('id').single();
+      const extra = { complementares_tipos: complementares, tem_condominio: condominio, tem_evf: evf, tem_caixa: caixa };
+      let r = await supabase.from('projetos').insert({ ...corpoProjeto, ...extra }).select('id').single();
+      if (r.error && /complementares_tipos|tem_condominio|tem_evf|tem_caixa/i.test(r.error.message)) r = await supabase.from('projetos').insert(corpoProjeto).select('id').single();   // banco sem a migração 0023
       if (r.error && /perfil|servico|entregas|tipo_projeto|schema cache|column/i.test(r.error.message)) {   // banco sem as migrações 0018/0020: cria sem os campos novos
         const { perfil, servicos: sv, servicos_observacao, entregas, tipo_projeto, ...basico } = corpoProjeto; void perfil; void sv; void servicos_observacao; void entregas; void tipo_projeto;
         r = await supabase.from('projetos').insert(basico).select('id').single();
@@ -164,7 +179,7 @@ export default function NovoProjeto() {
                 {eMail && <span className="campo-erro" role="alert">{eMail}</span>}
               </label>
             </div>
-            <label className="check"><input type="checkbox" checked={novoCliente.premium} onChange={(e) => setNovoCliente({ ...novoCliente, premium: e.target.checked })} />Entrega com pendrive (marcado sozinho nos perfis A1 a A4)</label>
+            <label className="check"><input type="checkbox" checked={novoCliente.premium} onChange={(e) => setNovoCliente({ ...novoCliente, premium: e.target.checked })} />Padrão para Perfil A</label>
           </fieldset>
         )}
         <fieldset>
@@ -176,11 +191,11 @@ export default function NovoProjeto() {
             </select>
           </label>
           {tipoProj === 'outros' && <label>Qual tipo?<input placeholder="Ex.: LOJA, GALPÃO, PORTAL" value={outroTipo} onChange={(e) => setOutroTipo(e.target.value)} /></label>}
-          <label>Nome de identificação do cliente
+          <label>Nome de identificação do projeto
             <input placeholder="AUGUSTO" value={ident} onChange={(e) => { setIdent(e.target.value.toUpperCase()); setIdentEditado(true); }} />
-            <span className="campo-dica">Só o nome pelo qual o cliente é conhecido — o tipo entra sozinho.</span>
+            <span className="campo-dica">Informe o sobrenome do cliente. O tipo de projeto será acrescentado automaticamente pelo sistema.</span>
           </label>
-          <p className="pequeno" style={{ margin: 0 }}>Nome do projeto: <strong>{nomeProjeto || '[RESIDÊNCIA] AUGUSTO'}</strong>{!nomeProjeto && <span className="mudo"> (exemplo; outros: [COMERCIAL] AUGUSTO, [PORTAL] AUGUSTO)</span>}</p>
+          <p className="pequeno" style={{ margin: 0 }}>Nome do projeto: <strong>{nomeProjeto || 'RESIDÊNCIA AUGUSTO'}</strong>{!nomeProjeto && <span className="mudo"> (exemplo)</span>}</p>
         </fieldset>
         <label>Responsável pelo projeto
           <select value={responsavel} onChange={(e) => setResponsavel(e.target.value)}>
@@ -188,24 +203,34 @@ export default function NovoProjeto() {
           </select>
           <span className="campo-dica">Quem cadastra nem sempre é quem conduz o projeto: escolha o responsável.</span>
         </label>
-        <label>Tipo de estudo preliminar
-          <select id="tipo-estudo" value={tipoEstudo} onChange={(e) => setTipoEstudo(e.target.value as TipoEstudo)}>
-            {Object.entries(TIPO_ESTUDO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-          <span className="pequeno mudo">{TIPO_ESTUDO_DESC[tipoEstudo]}</span>
-        </label>
+        {(!tipo || tipo.estudo) ? (
+          <label>Tipo de estudo preliminar
+            <select id="tipo-estudo" value={tipoEstudo} onChange={(e) => { mexeu('estudo'); setTipoEstudo(e.target.value as TipoEstudo); }}>
+              {Object.entries(TIPO_ESTUDO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <span className="pequeno mudo">{TIPO_ESTUDO_DESC[tipoEstudo]}</span>
+          </label>
+        ) : <p className="mudo pequeno" id="sem-estudo">Este tipo de projeto não tem estudo preliminar.</p>}
         <fieldset>
           <legend>Escopo contratado (além do arquitetônico)</legend>
-          <label className="check"><input type="checkbox" checked={legal} onChange={(e) => setLegal(e.target.checked)} />Projeto legal (aprovação na Prefeitura)</label>
+          <p className="pequeno mudo" style={{ margin: 0 }}>Na ordem em que acontece depois do estudo. O tipo do projeto marca o que costuma valer; você pode ajustar.</p>
+          <label className="check"><input type="checkbox" checked={interiores} onChange={(e) => { mexeu('interiores'); setInteriores(e.target.checked); }} />Interiores — estudo e detalhamento</label>
+          <div role="group" aria-label="Projetos complementares">
+            <span className="pequeno mudo">Projetos complementares (marque os que o escritório fornece)</span>
+            {TIPOS_COMPLEMENTARES.map((t) => <label key={t} className="check"><input type="checkbox" checked={complTipos.includes(t)} onChange={() => setComplTipos((c) => (c.includes(t) ? c.filter((x) => x !== t) : [...c, t]))} />{t}</label>)}
+            <label>Outro complementar<input placeholder="Ex.: Luminotécnico, Ar-condicionado" value={outroCompl} onChange={(e) => setOutroCompl(e.target.value)} /></label>
+          </div>
+          <label className="check"><input type="checkbox" checked={legal} onChange={(e) => { mexeu('legal'); setLegal(e.target.checked); }} />Projeto legal — aprovação na Prefeitura</label>
           {legal && (
             <div role="group" aria-label="Tipo de aprovação">
-              <span className="pequeno mudo">Tipo de aprovação (pode marcar mais de um, ex.: unificação + aprovação)</span>
+              <span className="pequeno mudo">Caso necessário, assinale mais de uma opção. Ex.: Averbação residencial e Regularização.</span>
               {TIPOS_APROVACAO.map((t) => <label key={t} className="check"><input type="checkbox" checked={aprovacoes.includes(t)} onChange={() => alternarAprov(t)} />{t}</label>)}
             </div>
           )}
-          <label className="check"><input type="checkbox" checked={interiores} onChange={(e) => setInteriores(e.target.checked)} />Interiores (estudo + detalhamento)</label>
-          <label className="check"><input type="checkbox" checked={compl} onChange={(e) => setCompl(e.target.checked)} />Projetos complementares</label>
-          <label className="check"><input type="checkbox" checked={habitese} onChange={(e) => setHabitese(e.target.checked)} />Habite-se (serviço após a regularização ou a obra pronta)</label>
+          <label className="check"><input type="checkbox" checked={condominio} onChange={(e) => setCondominio(e.target.checked)} />Aprovação em condomínio</label>
+          <label className="check"><input type="checkbox" checked={habitese} onChange={(e) => setHabitese(e.target.checked)} />Habite-se</label>
+          <label className="check"><input type="checkbox" checked={evf} onChange={(e) => setEvf(e.target.checked)} />EVF — estudo de viabilidade financeira</label>
+          <label className="check"><input type="checkbox" checked={caixa} onChange={(e) => setCaixa(e.target.checked)} />Documentação Caixa</label>
         </fieldset>
         {erro && <p className="erro">{erro}</p>}
         <button className="primario" disabled={busy}>{busy ? 'Criando…' : 'Criar projeto'}</button>
