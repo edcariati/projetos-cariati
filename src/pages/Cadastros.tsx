@@ -8,6 +8,7 @@ import { usePerfil } from '../lib/perfil';
 import { confirmar, pedirTexto } from '../components/Dialogo';
 import { avisar } from '../ui/avisos';
 import AbaServicos from './CadastroServicos';
+import AbaHoras from './CadastroHoras';
 import { Carregando, Vazio } from '../ui/Holo';
 
 /** Senha aleatória de 12 caracteres, sem letras que se confundem (0/O, 1/l/I). */
@@ -19,7 +20,7 @@ function gerarSenha() {
 const copiar = (t: string) => navigator.clipboard?.writeText(t).catch(() => undefined);
 
 /** Cadastros do administrador: clientes, parceiros e quem usa o aplicativo (com senha e exclusão). */
-export default function Cadastros({ aba }: { aba: 'clientes' | 'parceiros' | 'usuarios' | 'servicos' }) {
+export default function Cadastros({ aba }: { aba: 'clientes' | 'parceiros' | 'usuarios' | 'servicos' | 'horas' }) {
   return (
     <>
       <div className="titulo"><h1>Cadastros</h1></div>
@@ -27,12 +28,14 @@ export default function Cadastros({ aba }: { aba: 'clientes' | 'parceiros' | 'us
         <NavLink to="/cadastros/clientes">Clientes</NavLink>
         <NavLink to="/cadastros/parceiros">Parceiros</NavLink>
         <NavLink to="/cadastros/servicos">Serviços e perfis</NavLink>
+        <NavLink to="/cadastros/horas">Horas por etapa</NavLink>
         <NavLink to="/cadastros/usuarios">Quem usa o aplicativo</NavLink>
       </nav>
       {aba === 'clientes' && <AbaClientes />}
       {aba === 'parceiros' && <AbaParceiros />}
       {aba === 'usuarios' && <AbaUsuarios />}
       {aba === 'servicos' && <AbaServicos />}
+      {aba === 'horas' && <AbaHoras />}
     </>
   );
 }
