@@ -579,15 +579,6 @@ export const TAREFAS: TarefaModelo[] = [
  {
   "etapa": "19",
   "variante": "todas",
-  "ordem": 1,
-  "titulo": "Avaliação interna",
-  "descricao": null,
-  "prioridade": "Baixa",
-  "itens": []
- },
- {
-  "etapa": "19",
-  "variante": "todas",
   "ordem": 2,
   "titulo": "Gerar IFC do projeto",
   "descricao": null,
