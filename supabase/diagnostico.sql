@@ -20,4 +20,5 @@ select
   to_regclass('public.projeto_entregaveis') is not null                             as tem_0021_entregaveis,
   exists (select 1 from pg_proc where proname='is_gestor')                          as tem_0022_gestor,
   exists (select 1 from information_schema.columns where table_name='projeto_tarefa_itens' and column_name='agenda_em') as tem_0023_planta_baixa,
+  , exists (select 1 from information_schema.tables where table_name='fichas_atendimento') as tem_0025_integracao_atendimento,
   (select count(*) from auth.users where email like '%@cariati.com.br')             as usuarios_cariati;

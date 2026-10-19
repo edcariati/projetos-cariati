@@ -10,6 +10,10 @@ import { erroEmail, erroTelefone, formatarTelefone, proximoCodigo, telefoneLocal
 import { preencherEtapa01 } from '../lib/flow';
 import { sincronizarEntregaveis } from '../lib/entregaveis';
 
+type Ficha = { id: string; lead_id: string; recebida_em: string; ficha: Record<string, any> };   // eslint-disable-line @typescript-eslint/no-explicit-any
+const txt = (v: unknown) => (typeof v === 'string' || typeof v === 'number' ? String(v).trim() : '');
+const norm = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
 const primeiroNome = (n: string) => (n.trim().split(/\s+/)[0] ?? '').toUpperCase();
 
 export default function NovoProjeto() {
@@ -41,9 +45,12 @@ export default function NovoProjeto() {
   const [aprovacoes, setAprovacoes] = useState<string[]>([]);
   const [erro, setErro] = useState('');
   const [busy, setBusy] = useState(false);
+  const [fichas, setFichas] = useState<Ficha[]>([]);
+  const [fichaSel, setFichaSel] = useState<Ficha | null>(null);
 
   useEffect(() => {
     supabase.from('clientes').select('*').order('nome').then(({ data }) => setClientes((data as Cliente[]) ?? []));
+    supabase.from('fichas_atendimento').select('id,lead_id,recebida_em,ficha').eq('status', 'nova').order('recebida_em', { ascending: false }).then(({ data }) => setFichas((data as Ficha[]) ?? []));   // banco sem a migração 0025: lista vazia
     supabase.from('profiles').select('*').neq('perfil', 'cliente').eq('ativo', true).order('nome').then(({ data }) => setEquipe((data as Profile[]) ?? []));
   }, []);
 
@@ -87,6 +94,25 @@ export default function NovoProjeto() {
   const categoria = clienteId ? clienteSel?.categoria : novoCliente.categoria;
   useEffect(() => { if (categoria === 'D' || categoria === 'E' || perfilPorId(categoria)?.estudo === 'mais_projetos') setTipoEstudo('mais_projetos'); }, [categoria]);
 
+  // ficha de fechamento enviada pelo app de Atendimento: preenche cliente, tipo do projeto e escopo contratado (sem valores)
+  function importarFicha(id: string) {
+    const f = fichas.find((x) => x.id === id) ?? null;
+    setFichaSel(f);
+    if (!f) return;
+    const d = f.ficha, c = d.cliente ?? {}, o = d.obra ?? {}, e = d.escopo_contratado ?? {};
+    const perfilId = txt(d.perfil?.perfil_final ?? d.perfil);
+    setClienteId(''); setIdentEditado(false);
+    setNovoCliente((n) => ({ ...n, nome: txt(c.nome), telefone: formatarTelefone(txt(c.whatsapp ?? c.telefone)), email: txt(c.email), categoria: perfilPorId(perfilId) ? perfilId : '', premium: ehPerfilA(perfilId) }));
+    const t = norm(txt(o.tipo_projeto));
+    const achado = TIPOS_PROJETO.find((x) => norm(x.id) === t || norm(x.rotulo) === t);
+    if (achado) setTipoProj(achado.id);
+    if (e.legal != null) { mexeu('legal'); setLegal(!!e.legal); }
+    if (e.interiores != null) { mexeu('interiores'); setInteriores(!!e.interiores); }
+    if (Array.isArray(e.tipos_aprovacao)) { mexeu('aprov'); setAprovacoes(e.tipos_aprovacao.filter((x: string) => TIPOS_APROVACAO.includes(x))); }
+    if (Array.isArray(e.complementares_tipos)) setComplTipos(e.complementares_tipos.filter((x: string) => TIPOS_COMPLEMENTARES.includes(x)));
+    setCondominio(!!e.condominio); setHabitese(!!e.habitese); setEvf(!!e.evf); setCaixa(!!e.caixa);
+  }
+
   const alternarAprov = (t: string) => { mexeu('aprov'); setAprovacoes((a) => (a.includes(t) ? a.filter((x) => x !== t) : [...a, t])); };
 
   async function salvar(e: FormEvent) {
@@ -113,7 +139,18 @@ export default function NovoProjeto() {
         if (error) throw error;
         cid = data.id;
       }
-      const servicos = clienteId ? clienteSel?.servicos ?? [] : [];
+      const servicosFicha: string[] = fichaSel && !clienteId && Array.isArray(fichaSel.ficha.servicos_contratados) ? fichaSel.ficha.servicos_contratados.map((x: { item_id?: string }) => txt(x.item_id)).filter(Boolean) : [];
+      const servicos = clienteId ? clienteSel?.servicos ?? [] : servicosFicha;
+      if (fichaSel && !clienteId && cid) {   // endereço, dados da obra e serviços contratados vão para o cadastro do cliente
+        const c = fichaSel.ficha.cliente ?? {}, o = fichaSel.ficha.obra ?? {};
+        const metr = Number(String(o.metragem_terreno ?? o.area_pretendida ?? '').replace(',', '.'));
+        await supabase.from('clientes').update({
+          end_cep: txt(c.cep_cliente) || null, end_logradouro: txt(c.endereco_cliente) || null, end_cidade: txt(c.cidade_cliente) || null, end_uf: txt(c.estado_cliente) || null,
+          obra_intencao: txt(o.intencao_projeto ?? o.tipo_obra) || null, obra_metragem: Number.isFinite(metr) && metr > 0 ? metr : null,
+          obra_logradouro: txt(o.endereco_terreno) || null, obra_bairro: txt(o.bairro_terreno) || null, obra_cidade: txt(o.cidade_terreno) || null,
+          obra_lote: txt(o.lote) || null, obra_quadra: txt(o.quadra) || null, responsavel_comercial: txt(fichaSel.ficha.responsavel_comercial) || null, servicos: servicosFicha,
+        }).eq('id', cid);   // erro aqui não impede criar o projeto
+      }
       const complementares = [...complTipos, ...(outroCompl.trim() ? [outroCompl.trim()] : [])];
       const corpoProjeto = {
         cliente_id: cid, nome: nomeProjeto, responsavel_id: responsavel || null, tem_legal: legal,
@@ -132,6 +169,7 @@ export default function NovoProjeto() {
       }
       const { data, error } = r;
       if (error) throw error;
+      if (fichaSel) await supabase.from('fichas_atendimento').update({ status: 'importada', projeto_id: data.id }).eq('id', fichaSel.id);
       try { await sincronizarEntregaveis(data.id, { perfil: corpoProjeto.perfil, entregas: corpoProjeto.entregas, servicos: corpoProjeto.servicos }); } catch { /* sem a migração 0021: a lista aparece quando o banco for atualizado */ }
       try { await preencherEtapa01(data.id, clienteId ? clienteSel : { ...novoCliente } as Partial<Cliente>, eu.id); } catch { /* a etapa 01 pode ser preenchida à mão */ }
       nav(`/projetos/${data.id}`);
@@ -146,6 +184,15 @@ export default function NovoProjeto() {
       <div className="titulo"><h1>Novo projeto</h1></div>
       <form className="card form" onSubmit={salvar}>
         <p className="mudo pequeno" style={{ margin: 0 }}>O cadastro completo do cliente (documentos, endereço e dados da obra) fica em <Link to="/clientes">Clientes</Link>. Quando o cadastro já tem dados, a Etapa 01 (coleta inicial) chega marcada.</p>
+        {fichas.length > 0 && (
+          <label>Ficha recebida do atendimento
+            <select value={fichaSel?.id ?? ''} onChange={(e) => importarFicha(e.target.value)}>
+              <option value="">Não importar</option>
+              {fichas.map((f) => <option key={f.id} value={f.id}>{txt(f.ficha.cliente?.nome) || f.lead_id} · {new Date(f.recebida_em).toLocaleDateString('pt-BR')}</option>)}
+            </select>
+            <span className="campo-dica">Preenche cliente, tipo de projeto e serviços contratados. Confira antes de criar.</span>
+          </label>
+        )}
         <label>Cliente
           <select value={clienteId} onChange={(e) => { setClienteId(e.target.value); setIdentEditado(false); }}>
             <option value="">+ Cadastrar novo cliente</option>
