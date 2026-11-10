@@ -735,3 +735,4 @@ details.servico>summary{flex-wrap:wrap}details.servico .tag{white-space:normal;m
 .nome-edicao{display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center}
 .nome-edicao input{min-width:260px}
 .zona-final{margin-top:var(--sp-3)}
+.tab-horas{width:100%;border-collapse:collapse}.tab-horas th,.tab-horas td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}.tab-horas .num{text-align:right;white-space:nowrap}.campo-horas{width:84px;text-align:right;min-height:38px}.horas-fase{margin-top:var(--sp-4)}
