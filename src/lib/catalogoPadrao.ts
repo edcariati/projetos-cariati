@@ -48,6 +48,8 @@ const CATEGORIAS_PADRAO: CategoriaPadrao[] = [
     'Consultoria no Reuso', 'Projeto de Cisterna (Captação de Água Pluvial)', 'Projeto de Tratamento e Filtragem de Água Reutilizável', 'Projeto de Distribuição de Água Reutilizada',
     'Projeto de Bombeamento e Pressurização', 'Projeto de Monitoramento e Controle de Qualidade', 'Projeto de Integração com Sistemas Hidrossanitários', 'Projeto de Sustentabilidade e Economia de Água',
     'Tratamento e Filtragem', 'Compatibilização de Reuso com Arquitetura/Estrutura/Hidrossanitário'] },
+  { id: 'pontos', nome: 'Projeto de Pontos Técnicos', etapas: ['19'], itens: [
+    'Projeto de Pontos Elétricos', 'Projeto de Pontos Hidráulicos'] },
   { id: 'evf', nome: 'EVF — Estudo de Viabilidade Financeira', itens: [
     'Consultoria EVF', 'Prévia da Planilha de Produtos e Serviços', 'Levantamento dos Orçamentos – Materiais', 'Levantamento dos Orçamentos – Mão de Obra Especializada',
     'Organização dos Itens Propostos junto ao Projeto', 'Reunião de Apresentação do EVF'] },

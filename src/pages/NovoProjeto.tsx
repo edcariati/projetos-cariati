@@ -83,7 +83,7 @@ export default function NovoProjeto() {
     if (!clienteSel || (!clienteSel.servicos?.length && !clienteSel.servico_estudo && !perfilPorId(clienteSel.categoria))) return;
     const f = flagsDe(clienteSel.servicos ?? [], clienteSel.categoria);
     const ids = clienteSel.servicos ?? [];
-    const doCat = [['estrutural-', 'Estrutural'], ['hidro-', 'Hidráulico'], ['eletrico-', 'Elétrico']].filter(([p]) => ids.some((i) => i.startsWith(p))).map(([, n]) => n);
+    const doCat = [['estrutural-', 'Estrutural'], ['hidro-', 'Hidráulico'], ['eletrico-', 'Elétrico'], ['pontos-01', 'Pontos elétricos'], ['pontos-02', 'Pontos hidráulicos']].filter(([p]) => ids.some((i) => i.startsWith(p))).map(([, n]) => n);
     setLegal((v) => v || f.legal); setInteriores((v) => v || f.interiores); setHabitese(f.habitese); setCaixa(ids.some((i) => i.startsWith('caixa-'))); setEvf(ids.some((i) => i.startsWith('evf-')));
     setComplTipos((c) => [...new Set([...c, ...doCat])]);
     const est = clienteSel.servico_estudo || perfilPorId(clienteSel.categoria)?.estudo; if (est) setTipoEstudo(est as TipoEstudo);

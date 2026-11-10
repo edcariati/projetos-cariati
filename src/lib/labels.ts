@@ -38,7 +38,7 @@ export const opcoesStatus = (tipo: ProtocoloTipo) =>
 /** Tipos de aprovação do projeto legal (se é comercial ou residencial já vem do tipo do projeto; o Habite-se é um serviço à parte). */
 export const TIPOS_APROVACAO = ['Averbação', 'Ampliação', 'Unificação', 'Desmembramento', 'Regularização', 'Viabilidade'];
 /** Projetos complementares que o escritório fornece (mais um campo livre para outros). */
-export const TIPOS_COMPLEMENTARES = ['Hidráulico', 'Elétrico', 'Estrutural'];
+export const TIPOS_COMPLEMENTARES = ['Hidráulico', 'Elétrico', 'Estrutural', 'Pontos elétricos', 'Pontos hidráulicos'];
 
 /**
  * Tipos de projeto do “Novo projeto”: etiqueta do nome e o que cada um preenche sozinho.
